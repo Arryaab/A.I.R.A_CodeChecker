@@ -1,0 +1,7 @@
+{
+    "bug_id": "bug_011_type_error",
+    "description": "A stringify_list(items) function that joins list items into a comma-separated string but doesn't convert non-string items to str first.",
+    "category": "type_error",
+    "difficulty": "medium",
+    "expected_fix": "Use map(str, items) before joining"
+}

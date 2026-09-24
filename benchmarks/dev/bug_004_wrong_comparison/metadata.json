@@ -1,0 +1,7 @@
+{
+    "bug_id": "bug_004_wrong_comparison",
+    "description": "A max_of_three(a, b, c) function that finds the maximum of three numbers but uses < instead of > in one comparison.",
+    "category": "comparison_error",
+    "difficulty": "easy",
+    "expected_fix": "Fix comparison operator logic"
+}

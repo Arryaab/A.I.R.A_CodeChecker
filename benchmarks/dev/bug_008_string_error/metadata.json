@@ -1,0 +1,7 @@
+{
+    "bug_id": "bug_008_string_error",
+    "description": "A count_vowels(text) function that counts vowels but only checks lowercase vowels.",
+    "category": "string_error",
+    "difficulty": "easy",
+    "expected_fix": "Convert text to lowercase or add uppercase vowels to the check"
+}

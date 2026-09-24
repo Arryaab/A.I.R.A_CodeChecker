@@ -1,0 +1,10 @@
+{
+    "model": "gemini-2.0-flash",
+    "max_retries": 3,
+    "timeout_seconds": 60,
+    "sandbox_enabled": false,
+    "docker_image": "aegis-sandbox:latest",
+    "temperature": 0.2,
+    "max_tokens": 4096,
+    "log_level": "INFO"
+}

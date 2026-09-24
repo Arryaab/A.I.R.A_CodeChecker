@@ -1,0 +1,7 @@
+{
+    "bug_id": "bug_002_off_by_one",
+    "description": "A range_sum(start, end) function that sums integers from start to end INCLUSIVE, but uses range(start, end).",
+    "category": "boundary_error",
+    "difficulty": "easy",
+    "expected_fix": "Change range(start, end) to range(start, end + 1)"
+}

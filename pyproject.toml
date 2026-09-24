@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aegis-lite"
+version = "0.1.0"
+description = "An LLM-based, test-guided Python program repair system"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "[Student Name]"}
+]
+dependencies = [
+    "pytest>=7.0.0",
+]
+
+[project.optional-dependencies]
+ai = ["google-generativeai>=0.3.0"]
+sandbox = ["docker>=6.0.0"]
+all = ["google-generativeai>=0.3.0", "docker>=6.0.0"]
+
+[project.scripts]
+aegis = "aegis.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/placeholder/aegis-lite"
+Repository = "https://github.com/placeholder/aegis-lite.git"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --tb=short"
