@@ -1,7 +1,7 @@
 import re
 import ast
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Any, Dict, List
 
 @dataclass
 class SecurityScanResult:

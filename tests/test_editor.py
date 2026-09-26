@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 import json
 
+flask = pytest.importorskip("flask")
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
