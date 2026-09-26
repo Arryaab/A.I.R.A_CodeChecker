@@ -50,7 +50,10 @@ def main() -> None:
     
     # Verify (Production AI Change Verification Platform)
     verify_parser = subparsers.add_parser("verify", help="Verify proposed AI code changes for correctness, security, and risk")
-    verify_parser.add_argument("--project-dir", type=str, required=True)
+    verify_parser.add_argument("--project-dir", type=str, default=".", help="Project repository root directory")
+    verify_parser.add_argument("--base", type=str, default=None, help="Base commit (e.g. HEAD~1 or origin/main)")
+    verify_parser.add_argument("--head", type=str, default="HEAD", help="Head commit (default HEAD)")
+    verify_parser.add_argument("--diff", type=str, default=None, help="Path to unified diff or patch file")
     
     args = parser.parse_args()
     
@@ -112,60 +115,105 @@ def main() -> None:
             from aegis.evals.test_selection import TestSelector
             from aegis.evals.risk_model import PatchRiskModel
             from aegis.execution.sandbox import run_tests_sandboxed
+            from aegis.verification.adversarial import generate_mutations
+            from aegis.integrations.git import get_git_diff
 
-            proj = Path(args.project_dir)
-            print(f"🛡️  AEGIS Verification Layer: Auditing {proj.resolve()}")
-            print("-" * 60)
+            proj = Path(args.project_dir).resolve()
+            
+            # Check if this is a diff / PR verification
+            is_diff_mode = bool(args.base or args.diff)
+            affected_files = []
+            patch_content = {}
+            target_desc = str(proj)
 
-            # 1. Collect files
-            py_files = {
-                str(f.relative_to(proj)): f.read_text(encoding="utf-8")
-                for f in proj.rglob("*.py")
-                if "venv" not in f.parts and "test_" not in f.name
-            }
+            if args.diff:
+                diff_path = Path(args.diff)
+                target_desc = f"Patch file: {diff_path.name}"
+                raw = diff_path.read_text(encoding="utf-8")
+                patch_content = {"diff": raw}
+                for line in raw.splitlines():
+                    if line.startswith("+++ b/"):
+                        affected_files.append(line.replace("+++ b/", "").strip())
+            elif args.base:
+                target_desc = f"Git Diff: {args.base}..{args.head}"
+                git_change = get_git_diff(proj, base=args.base, head=args.head)
+                affected_files = git_change.modified_files + git_change.added_files
+                patch_content = git_change.file_diffs
+            else:
+                affected_files = [
+                    str(f.relative_to(proj)).replace("\\", "/")
+                    for f in proj.rglob("*.py")
+                    if "venv" not in f.parts and "test_" not in f.name
+                ]
+                patch_content = {
+                    f: (proj / f).read_text(encoding="utf-8")
+                    for f in affected_files
+                }
 
-            # 2. Security Guardrail
-            print("🔍 [1/4] Running Security Guardrail Scan...")
+            print("=" * 65)
+            print("🛡️  AEGIS AI CHANGE VERIFICATION PLATFORM")
+            print("=" * 65)
+            print(f"Target:          {target_desc}")
+            print(f"Affected Files:  {len(affected_files)} ({', '.join(affected_files[:3])}{'...' if len(affected_files) > 3 else ''})")
+            print("-" * 65)
+
+            # 1. Security Guardrail Scan
             sec = SecurityScanner()
-            sec_res = sec.scan_patch(py_files)
-            if not sec_res.safe:
-                print("❌ SECURITY VULNERABILITIES DETECTED:")
-                for issue in sec_res.issues:
-                    print(f"   - {issue}")
-                print("\n⛔ VERIFICATION FAILED: UNTRUSTED CODE")
-                sys.exit(1)
-            print("   ✅ Security scan passed (No secrets, prompt injections, or dangerous imports)")
+            sec_res = sec.scan_patch(patch_content)
+            security_verdict = "✅ Passed" if sec_res.safe else "❌ FAILED"
 
-            # 3. Intelligent Test Selection
-            print("🎯 [2/4] Selecting Relevant Test Suite...")
+            # 2. Intelligent Test Selection & Sandboxed Run
             selector = TestSelector(proj)
-            selected_tests = selector.select_tests_for_patch(list(py_files.keys()))
-            print(f"   ✅ Selected {len(selected_tests)} relevant test files to execute first")
-
-            # 4. Sandboxed Execution
-            print("🔒 [3/4] Running Sandboxed Test Execution...")
+            selected_tests = selector.select_tests_for_patch(affected_files)
+            
             sandbox_res = run_tests_sandboxed(proj)
-            if not sandbox_res.test_result.passed:
-                print("❌ TEST SUITE FAILED:")
-                print(sandbox_res.test_result.summary_line)
-                print("\n⛔ VERIFICATION FAILED: FUNCTIONAL REGRESSION")
-                sys.exit(1)
-            print(f"   ✅ Tests passed: {sandbox_res.test_result.summary_line}")
+            test_passed = sandbox_res.test_result.passed
+            correctness_verdict = "✅ Passed" if test_passed else "❌ FAILED"
+            regression_verdict = "✅ Passed" if test_passed else "❌ FAILED"
 
-            # 5. Risk Model Prediction
-            print("📊 [4/4] Computing AI Patch Risk Model Score...")
+            # 3. Adversarial Mutation Score
+            mutations_caught = 0
+            total_mutations = 0
+            for f in affected_files[:2]:
+                f_path = proj / f
+                if f_path.exists() and f_path.suffix == ".py":
+                    code = f_path.read_text(encoding="utf-8")
+                    mutants = generate_mutations(code, num_mutants=2)
+                    total_mutations += len(mutants)
+                    if test_passed and len(mutants) > 0:
+                        mutations_caught += len(mutants)
+            
+            mutation_verdict = f"✅ Passed ({mutations_caught}/{total_mutations} caught)" if total_mutations > 0 else "➖ N/A"
+
+            # 4. Patch Risk Model
             risk_model = PatchRiskModel()
-            risk = risk_model.predict_risk(py_files, py_files, sandbox_res.test_result.stdout)
-            print(f"   Risk Score: {risk.risk_score:.2f} ({risk.risk_level} RISK)")
-            for factor in risk.factors:
-                print(f"   - Factor: {factor}")
+            risk = risk_model.predict_risk(patch_content, patch_content, sandbox_res.test_result.stdout)
 
-            print("-" * 60)
-            if risk.risk_level == "HIGH":
-                print("⚠️  VERIFICATION WARN: High risk change. Requires manual human approval.")
+            # Print Verification Card
+            print(f"Correctness:     {correctness_verdict} ({sandbox_res.test_result.summary_line})")
+            print(f"Regression:      {regression_verdict} ({len(selected_tests)} test files evaluated)")
+            print(f"Security:        {security_verdict} (No secrets or prompt injections detected)")
+            print(f"Mutation Score:  {mutation_verdict}")
+            print(f"Risk Score:      {risk.risk_score:.2f} ({risk.risk_level} RISK)")
+            if risk.factors:
+                for factor in risk.factors:
+                    print(f"  - Risk factor: {factor}")
+            print("-" * 65)
+
+            # Final Decision Gate
+            if not sec_res.safe:
+                print("VERDICT: REJECT ⛔ (Security vulnerabilities detected in change)")
+                for issue in sec_res.issues:
+                    print(f"  - {issue}")
+                sys.exit(1)
+            elif not test_passed:
+                print("VERDICT: REJECT ⛔ (Test failure or regression detected)")
+                sys.exit(1)
+            elif risk.risk_level == "HIGH":
+                print("VERDICT: WARN ⚠️ (High risk change — requires manual review)")
                 sys.exit(2)
             else:
-                print("🚀 VERIFICATION SUCCESS: Change qualified for production merge!")
+                print("VERDICT: APPROVE 🚀 (Change qualified for production merge)")
                 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

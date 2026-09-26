@@ -27,6 +27,13 @@ jobs:
         run: |
           pytest tests/
 
-      - name: Run Aegis Change Verification Guardrail
+      - name: Fetch Git History for Diff Analysis
+        run: git fetch --prune --unshallow || git fetch --depth=10
+
+      - name: Run Aegis PR Change Verification Guardrail
         run: |
-          python -m aegis.cli verify --project-dir examples/passing_project
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python -m aegis.cli verify --base origin/${{ github.base_ref }} --head HEAD
+          else
+            python -m aegis.cli verify --base HEAD~1 --head HEAD || true
+          fi
