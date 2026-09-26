@@ -115,90 +115,92 @@ def main() -> None:
             from aegis.evals.test_selection import TestSelector
             from aegis.evals.risk_model import PatchRiskModel
             from aegis.execution.sandbox import run_tests_sandboxed
-            from aegis.verification.adversarial import generate_mutations
-            from aegis.integrations.git import get_git_diff
+            from aegis.verification.adversarial import run_mutation_tests
+            from aegis.integrations.git import get_git_diff, PatchChange
 
             proj = Path(args.project_dir).resolve()
             
             # Check if this is a diff / PR verification
             is_diff_mode = bool(args.base or args.diff)
             affected_files = []
-            patch_content = {}
+            patches = {}
             target_desc = str(proj)
 
             if args.diff:
                 diff_path = Path(args.diff)
                 target_desc = f"Patch file: {diff_path.name}"
                 raw = diff_path.read_text(encoding="utf-8")
-                patch_content = {"diff": raw}
+                # Parse files from unified diff
                 for line in raw.splitlines():
                     if line.startswith("+++ b/"):
-                        affected_files.append(line.replace("+++ b/", "").strip())
+                        f = line.replace("+++ b/", "").strip()
+                        affected_files.append(f)
+                        patches[f] = PatchChange(path=f, new_content=(proj / f).read_text(encoding="utf-8") if (proj / f).exists() else "")
             elif args.base:
                 target_desc = f"Git Diff: {args.base}..{args.head}"
                 git_change = get_git_diff(proj, base=args.base, head=args.head)
                 affected_files = git_change.modified_files + git_change.added_files
-                patch_content = git_change.file_diffs
+                patches = git_change.patches
             else:
                 affected_files = [
                     str(f.relative_to(proj)).replace("\\", "/")
                     for f in proj.rglob("*.py")
                     if "venv" not in f.parts and "test_" not in f.name
                 ]
-                patch_content = {
-                    f: (proj / f).read_text(encoding="utf-8")
-                    for f in affected_files
-                }
+                for f in affected_files:
+                    code = (proj / f).read_text(encoding="utf-8", errors="replace")
+                    patches[f] = PatchChange(path=f, new_content=code, added_lines=code.splitlines())
 
-            print("=" * 65)
+            print("=" * 68)
             print("🛡️  AEGIS AI CHANGE VERIFICATION PLATFORM")
-            print("=" * 65)
-            print(f"Target:          {target_desc}")
-            print(f"Affected Files:  {len(affected_files)} ({', '.join(affected_files[:3])}{'...' if len(affected_files) > 3 else ''})")
-            print("-" * 65)
+            print("=" * 68)
+            print(f"Target:             {target_desc}")
+            print(f"Affected Files:     {len(affected_files)} ({', '.join(affected_files[:3])}{'...' if len(affected_files) > 3 else ''})")
+            print("-" * 68)
 
-            # 1. Security Guardrail Scan
+            # 1. Structured Patch Security Scan (inspects added_lines only for secrets/injection, new_content for AST)
             sec = SecurityScanner()
-            sec_res = sec.scan_patch(patch_content)
+            sec_res = sec.scan_patch_changes(patches)
             security_verdict = "✅ Passed" if sec_res.safe else "❌ FAILED"
 
-            # 2. Intelligent Test Selection & Sandboxed Run
+            # 2. Real Intelligent Test Selection
             selector = TestSelector(proj)
             selected_tests = selector.select_tests_for_patch(affected_files)
             
-            sandbox_res = run_tests_sandboxed(proj)
-            test_passed = sandbox_res.test_result.passed
-            correctness_verdict = "✅ Passed" if test_passed else "❌ FAILED"
-            regression_verdict = "✅ Passed" if test_passed else "❌ FAILED"
+            # Step 2a: Run selected test suite first (Fast Targeted Feedback)
+            selected_res = run_tests_sandboxed(proj, test_files=selected_tests)
+            targeted_passed = selected_res.test_result.passed
 
-            # 3. Adversarial Mutation Score
-            mutations_caught = 0
-            total_mutations = 0
-            for f in affected_files[:2]:
-                f_path = proj / f
-                if f_path.exists() and f_path.suffix == ".py":
-                    code = f_path.read_text(encoding="utf-8")
-                    mutants = generate_mutations(code, num_mutants=2)
-                    total_mutations += len(mutants)
-                    if test_passed and len(mutants) > 0:
-                        mutations_caught += len(mutants)
+            # Step 2b: Run full test suite for Regression Verification
+            full_res = run_tests_sandboxed(proj)
+            full_passed = full_res.test_result.passed
             
-            mutation_verdict = f"✅ Passed ({mutations_caught}/{total_mutations} caught)" if total_mutations > 0 else "➖ N/A"
+            correctness_verdict = "✅ Passed" if targeted_passed else "❌ FAILED"
+            regression_verdict = "✅ Passed (0 regressed)" if full_passed else "❌ FAILED (Regressions detected)"
 
-            # 4. Patch Risk Model
+            # 3. Real Mutation Testing (Executes AST mutants against the test suite!)
+            mut_res = run_mutation_tests(proj, affected_files[:2], max_mutants_per_file=2)
+            if mut_res.total_mutants > 0:
+                mut_pct = mut_res.score * 100
+                mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_res.total_mutants} killed)"
+            else:
+                mutation_verdict = "➖ N/A (No mutant operators in diff)"
+
+            # 4. Patch Risk Model Baseline
             risk_model = PatchRiskModel()
-            risk = risk_model.predict_risk(patch_content, patch_content, sandbox_res.test_result.stdout)
+            raw_patch_dict = {k: v.new_content for k, v in patches.items()}
+            risk = risk_model.predict_risk(raw_patch_dict, raw_patch_dict, full_res.test_result.stdout)
 
             # Print Verification Card
-            print(f"Correctness:     {correctness_verdict} ({sandbox_res.test_result.summary_line})")
-            print(f"Regression:      {regression_verdict} ({len(selected_tests)} test files evaluated)")
-            print(f"Security:        {security_verdict} (No secrets or prompt injections detected)")
-            print(f"Mutation Score:  {mutation_verdict}")
-            print(f"Risk Score:      {risk.risk_score:.2f} ({risk.risk_level} RISK)")
+            print(f"Correctness:        {correctness_verdict} ({len(selected_tests)} targeted test files passed in {selected_res.test_result.duration_seconds}s)")
+            print(f"Regression:         {regression_verdict} (Full suite: {full_res.test_result.summary_line})")
+            print(f"Security:           {security_verdict} (AST imports + added lines scanned)")
+            print(f"Mutation Score:     {mutation_verdict}")
+            print(f"Risk Score:         {risk.risk_score:.2f} ({risk.risk_level} RISK)")
             if risk.factors:
                 for factor in risk.factors:
                     print(f"  - Risk factor: {factor}")
-            print("-" * 65)
+            print("-" * 68)
 
             # Final Decision Gate
             if not sec_res.safe:
@@ -206,8 +208,11 @@ def main() -> None:
                 for issue in sec_res.issues:
                     print(f"  - {issue}")
                 sys.exit(1)
-            elif not test_passed:
-                print("VERDICT: REJECT ⛔ (Test failure or regression detected)")
+            elif not targeted_passed:
+                print("VERDICT: REJECT ⛔ (Targeted test failure in modified modules)")
+                sys.exit(1)
+            elif not full_passed:
+                print("VERDICT: REJECT ⛔ (Regression detected in full test suite)")
                 sys.exit(1)
             elif risk.risk_level == "HIGH":
                 print("VERDICT: WARN ⚠️ (High risk change — requires manual review)")

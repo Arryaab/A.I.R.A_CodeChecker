@@ -51,27 +51,15 @@ class TestResult:
     failure_messages: list[str] = field(default_factory=list)
 
 
-def run_tests(project_dir: str | Path, timeout: int = 60) -> TestResult:
+def run_tests(
+    project_dir: str | Path,
+    timeout: int = 60,
+    test_files: list[str] | None = None
+) -> TestResult:
     """Run pytest on a project directory and return structured results.
-
-    This function is deliberately simple: it shells out to pytest,
-    captures everything, parses the output, and returns a TestResult.
-
-    Args:
-        project_dir: Path to the directory containing the Python code
-                     and test files. pytest will discover tests here
-                     following its standard conventions (test_*.py).
-        timeout:     Maximum wall-clock seconds to allow the test run.
-                     Default is 60. This prevents infinite loops in
-                     buggy code from blocking the pipeline forever.
-
-    Returns:
-        A TestResult dataclass with all structured information.
-
-    Raises:
-        FileNotFoundError: If project_dir does not exist.
-        TimeoutError:      If the test run exceeds the timeout.
+    If test_files is specified, runs ONLY those specific test files.
     """
+    import sys
     # Resolve to an absolute path so error messages are unambiguous.
     project_path = Path(project_dir).resolve()
 
@@ -79,20 +67,15 @@ def run_tests(project_dir: str | Path, timeout: int = 60) -> TestResult:
         raise FileNotFoundError(f"Project directory not found: {project_path}")
 
     # Build the pytest command.
-    # -v:          Verbose output — shows each test name and PASSED/FAILED.
-    # --tb=short:  Shorter tracebacks — enough context without overwhelming noise.
-    # --color=no:  Disable ANSI color codes. When pytest detects a non-TTY
-    #              (which subprocess provides), it *usually* disables color,
-    #              but --color=no makes this explicit and reliable.
-    # -p no:cacheprovider:  Disable the .pytest_cache directory. We don't
-    #              want to leave cache artifacts in copied project directories.
     cmd = [
-        "python", "-m", "pytest",
+        sys.executable, "-m", "pytest",
         "-v",
         "--tb=short",
         "--color=no",
         "-p", "no:cacheprovider",
     ]
+    if test_files:
+        cmd.extend(test_files)
 
     # time.monotonic() is used instead of time.time() because it
     # cannot go backwards due to system clock adjustments (NTP, DST, etc.).

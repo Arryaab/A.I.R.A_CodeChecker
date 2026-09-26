@@ -46,11 +46,12 @@ def run_tests_sandboxed(
     timeout: int = 60,
     use_docker: bool = False,
     docker_image: str = "aegis-sandbox:latest",
+    test_files: list[str] | None = None,
 ) -> SandboxResult:
     project_dir = Path(project_dir)
     
     if not use_docker or not is_docker_available():
-        test_result = run_tests(project_dir, timeout=timeout)
+        test_result = run_tests(project_dir, timeout=timeout, test_files=test_files)
         return SandboxResult(test_result=test_result, used_sandbox=False)
 
     try:

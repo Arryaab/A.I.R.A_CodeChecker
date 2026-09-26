@@ -70,3 +70,64 @@ def generate_mutations(source_code: str, num_mutants: int = 3) -> List[str]:
             mutants.append(ast.unparse(mutated_tree))
             
     return list(set(mutants)) # return unique mutants
+
+from dataclasses import dataclass
+from pathlib import Path
+from aegis.execution.runner import run_tests
+
+@dataclass
+class MutationScoreResult:
+    total_mutants: int
+    killed_mutants: int
+    survived_mutants: int
+    score: float  # 0.0 to 1.0
+
+def run_mutation_tests(
+    project_dir: Path,
+    target_files: List[str],
+    max_mutants_per_file: int = 2,
+    timeout: int = 15
+) -> MutationScoreResult:
+    """
+    Executes actual mutation testing:
+    Applies AST mutants to project files, runs pytest against them,
+    and calculates empirical mutation score (killed / total).
+    """
+    total = 0
+    killed = 0
+    survived = 0
+
+    for rel_path in target_files:
+        f_path = project_dir / rel_path
+        if not f_path.exists() or f_path.suffix != ".py" or "test_" in f_path.name:
+            continue
+
+        orig_code = f_path.read_text(encoding="utf-8", errors="replace")
+        mutants = generate_mutations(orig_code, num_mutants=max_mutants_per_file)
+
+        for mutant in mutants:
+            total += 1
+            try:
+                # Write mutant to disk
+                f_path.write_text(mutant, encoding="utf-8")
+                # Run test suite against mutant
+                res = run_tests(project_dir, timeout=timeout)
+                if not res.passed:
+                    # Test failed -> mutant was killed (Good test suite!)
+                    killed += 1
+                else:
+                    # Test passed -> mutant survived (Test suite missed the regression!)
+                    survived += 1
+            except Exception:
+                killed += 1
+            finally:
+                # Restore original file
+                f_path.write_text(orig_code, encoding="utf-8")
+
+    score = (killed / total) if total > 0 else 1.0
+    return MutationScoreResult(
+        total_mutants=total,
+        killed_mutants=killed,
+        survived_mutants=survived,
+        score=score
+    )

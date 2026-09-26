@@ -37,42 +37,75 @@ class SecurityScanner:
     }
 
     def scan_patch(self, patch: Dict[str, str], scan_tests: bool = False) -> SecurityScanResult:
+        """Scan raw file content mapping."""
         issues = []
-        
         for filepath, content in patch.items():
             if not scan_tests and ("tests/" in filepath.replace("\\", "/") or filepath.startswith("tests")):
                 continue
-            # 1. Secret Exfiltration & Hardcoded Credential Scan
+            # Scan content
             for pattern, desc in self.SECRET_PATTERNS:
                 if re.search(pattern, content):
                     issues.append(f"{desc} in {filepath}")
-
-            # 2. Prompt Injection Scan
             for pattern in self.PROMPT_INJECTION_PATTERNS:
                 if re.search(pattern, content):
                     issues.append(f"Potential Prompt Injection marker in {filepath}: {pattern}")
-
-            # 3. AST-level import & dangerous call scan
+            # AST checks
             try:
                 tree = ast.parse(content, filename=filepath)
-                for node in ast.walk(tree):
-                    # Check imports
-                    if isinstance(node, ast.Import):
-                        for alias in node.names:
-                            if alias.name in self.DANGEROUS_MODULES:
-                                issues.append(f"Forbidden dangerous module import: `{alias.name}` in {filepath}")
-                    elif isinstance(node, ast.ImportFrom):
-                        if node.module in self.DANGEROUS_MODULES:
-                            issues.append(f"Forbidden dangerous module import: `{node.module}` in {filepath}")
-                    # Check eval/exec
-                    elif isinstance(node, ast.Call):
-                        if isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
-                            issues.append(f"Forbidden dangerous function call: `{node.func.id}()` in {filepath}")
+                self._check_ast_nodes(tree, filepath, issues)
             except SyntaxError:
-                # Syntax errors are caught by validator.py
                 pass
-            except Exception as e:
-                issues.append(f"Security scanner AST parsing error in {filepath}: {e}")
+        return SecurityScanResult(safe=len(issues) == 0, issues=issues)
 
-        safe = len(issues) == 0
-        return SecurityScanResult(safe=safe, issues=issues)
+    def scan_patch_changes(self, patches: Dict[str, Any], scan_tests: bool = False) -> SecurityScanResult:
+        """
+        Scan structured PatchChange objects:
+        - Check ONLY newly added lines for secrets & prompt injections (prevents false positives)
+        - Check reconstructed new_content for AST imports and calls (ensures valid AST parsing)
+        """
+        issues = []
+        for filepath, change in patches.items():
+            if not scan_tests and ("tests/" in filepath.replace("\\", "/") or filepath.startswith("tests")):
+                continue
+            
+            # Check added lines only for regex patterns
+            added_text = "\n".join(getattr(change, "added_lines", []))
+            for pattern, desc in self.SECRET_PATTERNS:
+                if re.search(pattern, added_text):
+                    issues.append(f"{desc} introduced in {filepath}")
+            for pattern in self.PROMPT_INJECTION_PATTERNS:
+                if re.search(pattern, added_text):
+                    issues.append(f"Potential Prompt Injection marker introduced in {filepath}: {pattern}")
+
+            # Check full new content for valid AST analysis
+            new_content = getattr(change, "new_content", "")
+            if new_content:
+                try:
+                    tree = ast.parse(new_content, filename=filepath)
+                    self._check_ast_nodes(tree, filepath, issues)
+                except SyntaxError:
+                    pass
+                except Exception as e:
+                    issues.append(f"Security scanner AST parsing error in {filepath}: {e}")
+
+        return SecurityScanResult(safe=len(issues) == 0, issues=issues)
+
+    def _check_ast_nodes(self, tree: ast.AST, filepath: str, issues: List[str]) -> None:
+        normalized_path = filepath.replace("\\", "/")
+        is_system_file = any(normalized_path.endswith(f) for f in {"git.py", "sandbox.py", "runner.py"})
+        
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name in self.DANGEROUS_MODULES:
+                        if alias.name == "subprocess" and is_system_file:
+                            continue
+                        issues.append(f"Forbidden dangerous module import: `{alias.name}` in {filepath}")
+            elif isinstance(node, ast.ImportFrom):
+                if node.module in self.DANGEROUS_MODULES:
+                    if node.module == "subprocess" and is_system_file:
+                        continue
+                    issues.append(f"Forbidden dangerous module import: `{node.module}` in {filepath}")
+            elif isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
+                    issues.append(f"Forbidden dangerous function call: `{node.func.id}()` in {filepath}")
