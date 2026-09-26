@@ -107,6 +107,7 @@ def run_mutation_tests(
     timeout: int = 15,
     use_docker: bool = False,
     require_sandbox: bool = False,
+    docker_image: str = "aegis-sandbox:latest",
 ) -> MutationScoreResult:
     """
     Executes deterministic mutation testing with fresh snapshot isolation per mutant.
@@ -155,7 +156,8 @@ def run_mutation_tests(
                         snap_dir,
                         timeout=timeout,
                         use_docker=use_docker,
-                        require_sandbox=require_sandbox
+                        require_sandbox=require_sandbox,
+                        docker_image=docker_image,
                     )
                     tr = res.test_result
                     if tr.exit_code == 2:  # internal pytest error / usage error

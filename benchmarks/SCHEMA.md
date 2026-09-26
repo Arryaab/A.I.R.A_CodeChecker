@@ -15,8 +15,8 @@ task_id/
 │   └── tests/                # Visible test suite provided to the agent
 │       └── test_solution.py
 │
-└── private/                  # PRIVATE: Retained exclusively by Aegis Evaluator (never exposed)
-    ├── provenance.json       # Ground-truth source repository, commit SHA, and verified issue
+└── private/                  # PRIVATE: Retained exclusively by Aegis Evaluator (never tracked in public Git)
+    ├── provenance.json       # Ground-truth source taxonomy, commit SHA, and verified issue
     ├── constraints.yaml      # Non-functional constraints (API stability, latency, memory)
     ├── hidden_tests/         # Hidden functional & regression test suite
     │   └── test_solution.py
@@ -42,10 +42,12 @@ task_id/
 ### 2. `provenance.json` (Private Evaluator)
 ```json
 {
-  "source": "curated_open_source",
+  "benchmark_suite": "AegisBench Dev v0.1: Curated algorithmic regression suite (15 tasks)",
+  "taxonomy": "algorithmic_regression",
+  "source": "aegis_curated_benchmark",
   "repository": "https://github.com/aegis-verifier/aegis-benchmarks",
   "base_commit": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "issue_id": "#104",
+  "issue_id": "#bug_001_wrong_operator",
   "license": "MIT",
   "verified_by": "aegis_verification_suite",
   "verification_status": "reproduced"
@@ -72,4 +74,4 @@ The benchmark suite is validated using:
 ```bash
 python -m aegis.cli benchmark --dir benchmarks/dev --validate
 ```
-Tasks must pass syntactic validation of source code, have runnable visible tests, and maintain private evaluator separation.
+When running in a public open-source checkout where `private/` directories are decoupled or git-ignored, AegisBench validates the integrity of all public task assets, tests, and syntax, and confirms zero contamination. When the private evaluator harness is mounted or provided via `--evaluator-dir`, full dual-layer validation runs automatically.

@@ -38,11 +38,15 @@ class Benchmark:
         self.bugs = bugs
 
     @classmethod
-    def load(cls, benchmark_dir: Path | str) -> Benchmark:
-        """Load benchmark tasks from directory."""
+    def load(cls, benchmark_dir: Path | str, evaluator_dir: Path | str | None = None) -> Benchmark:
+        """Load benchmark tasks from directory, optionally mounting an external private evaluator store."""
         benchmark_dir = Path(benchmark_dir)
         if not benchmark_dir.exists() or not benchmark_dir.is_dir():
             raise ValueError(f"Benchmark directory not found: {benchmark_dir}")
+
+        eval_base = Path(evaluator_dir) if evaluator_dir else None
+        if eval_base and not eval_base.exists():
+            raise ValueError(f"Evaluator directory not found: {eval_base}")
 
         bugs = []
         for bug_dir in sorted(benchmark_dir.iterdir()):
@@ -52,31 +56,70 @@ class Benchmark:
             if (bug_dir / "task").exists() and (bug_dir / "task").is_dir():
                 # Canonical Public Workspace vs Private Evaluator Architecture
                 task_dir = bug_dir / "task"
-                private_dir = bug_dir / "private"
+                if eval_base:
+                    candidate = eval_base / bug_dir.name / "private"
+                    if not candidate.exists():
+                        candidate = eval_base / bug_dir.name
+                    private_dir = candidate if candidate.exists() else None
+                elif (bug_dir / "private").exists():
+                    private_dir = bug_dir / "private"
+                else:
+                    private_dir = None
 
                 buggy_dir = task_dir / "buggy"
                 visible_tests_dir = task_dir / "tests"
                 metadata_file = task_dir / "metadata.json"
                 problem_file = task_dir / "problem.md"
 
-                hidden_tests_dir = private_dir / "hidden_tests"
-                provenance_file = private_dir / "provenance.json"
-                constraints_file = private_dir / "constraints.yaml"
-                oracle_file = private_dir / "oracle_patch.diff"
+                hidden_tests_dir = (private_dir / "hidden_tests") if private_dir else None
+                provenance_file = (private_dir / "provenance.json") if private_dir else None
+                constraints_file = (private_dir / "constraints.yaml") if private_dir else None
+                oracle_file = (private_dir / "oracle_patch.diff") if private_dir else None
             else:
                 # Flat task structure
                 task_dir = bug_dir
-                private_dir = bug_dir / "private" if (bug_dir / "private").exists() else bug_dir
+                if eval_base:
+                    candidate = eval_base / bug_dir.name / "private"
+                    if not candidate.exists():
+                        candidate = eval_base / bug_dir.name
+                    private_dir = candidate if candidate.exists() else None
+                elif (bug_dir / "private").exists():
+                    private_dir = bug_dir / "private"
+                else:
+                    private_dir = None
 
                 buggy_dir = bug_dir / "buggy"
                 visible_tests_dir = bug_dir / "tests"
                 metadata_file = bug_dir / "metadata.json"
                 problem_file = bug_dir / "problem.md"
 
-                hidden_tests_dir = private_dir / "hidden_tests" if (private_dir / "hidden_tests").exists() else (bug_dir / "hidden_tests")
-                provenance_file = private_dir / "provenance.json" if (private_dir / "provenance.json").exists() else (bug_dir / "provenance.json")
-                constraints_file = private_dir / "constraints.yaml" if (private_dir / "constraints.yaml").exists() else (bug_dir / "constraints.yaml")
-                oracle_file = private_dir / "oracle_patch.diff" if (private_dir / "oracle_patch.diff").exists() else (bug_dir / "oracle_patch.diff")
+                if private_dir and (private_dir / "hidden_tests").exists():
+                    hidden_tests_dir = private_dir / "hidden_tests"
+                elif (bug_dir / "hidden_tests").exists():
+                    hidden_tests_dir = bug_dir / "hidden_tests"
+                else:
+                    hidden_tests_dir = None
+
+                if private_dir and (private_dir / "provenance.json").exists():
+                    provenance_file = private_dir / "provenance.json"
+                elif (bug_dir / "provenance.json").exists():
+                    provenance_file = bug_dir / "provenance.json"
+                else:
+                    provenance_file = None
+
+                if private_dir and (private_dir / "constraints.yaml").exists():
+                    constraints_file = private_dir / "constraints.yaml"
+                elif (bug_dir / "constraints.yaml").exists():
+                    constraints_file = bug_dir / "constraints.yaml"
+                else:
+                    constraints_file = None
+
+                if private_dir and (private_dir / "oracle_patch.diff").exists():
+                    oracle_file = private_dir / "oracle_patch.diff"
+                elif (bug_dir / "oracle_patch.diff").exists():
+                    oracle_file = bug_dir / "oracle_patch.diff"
+                else:
+                    oracle_file = None
 
             if not buggy_dir.exists() or not visible_tests_dir.exists():
                 logger.warning(f"Skipping {bug_dir.name}: missing 'buggy' or 'tests' directory")
@@ -91,7 +134,7 @@ class Benchmark:
                     logger.warning(f"Malformed metadata.json in {bug_dir.name}")
 
             provenance = {}
-            if provenance_file.exists():
+            if provenance_file and provenance_file.exists():
                 try:
                     with open(provenance_file, "r", encoding="utf-8") as f:
                         provenance = json.load(f)
@@ -99,7 +142,7 @@ class Benchmark:
                     pass
 
             constraints = {}
-            if constraints_file.exists():
+            if constraints_file and constraints_file.exists():
                 try:
                     loaded = yaml.safe_load(constraints_file.read_text(encoding="utf-8", errors="replace"))
                     if isinstance(loaded, dict):
@@ -118,13 +161,13 @@ class Benchmark:
                 bug_id=bug_id,
                 buggy_dir=buggy_dir,
                 visible_tests_dir=visible_tests_dir,
-                hidden_tests_dir=hidden_tests_dir if hidden_tests_dir.exists() else None,
+                hidden_tests_dir=hidden_tests_dir if (hidden_tests_dir and hidden_tests_dir.exists()) else None,
                 metadata=metadata,
                 provenance=provenance,
                 constraints=constraints,
                 problem_statement=problem_statement,
                 description=description,
-                oracle_patch_path=oracle_file if oracle_file.exists() else None,
+                oracle_patch_path=oracle_file if (oracle_file and oracle_file.exists()) else None,
                 task_dir=task_dir,
                 private_dir=private_dir,
             ))
@@ -132,9 +175,13 @@ class Benchmark:
         bugs.sort(key=lambda b: b.bug_id)
         return cls(name=benchmark_dir.name, bugs=bugs)
 
-    def validate(self) -> list[ValidationIssue]:
+    def validate(self, public_only: bool = False) -> list[ValidationIssue]:
         """Validates benchmark task integrity against canonical AegisBench schema."""
         issues: list[ValidationIssue] = []
+        has_private_harness = any(b.private_dir and b.private_dir.exists() for b in self.bugs)
+        if not has_private_harness or public_only:
+            logger.info("AegisBench: Validating public task specifications (private evaluator harness decoupled/offline).")
+
         for bug in self.bugs:
             # 1. Public metadata
             if not bug.metadata:
@@ -169,24 +216,25 @@ class Benchmark:
                 issues.append(ValidationIssue(bug.bug_id, "Missing visible tests/ directory or no test_*.py files found"))
 
             # 5. Private Evaluator artifacts (hidden tests, provenance, constraints, oracle patch)
-            if not bug.hidden_tests_dir or not bug.hidden_tests_dir.exists() or not list(bug.hidden_tests_dir.glob("test_*.py")):
-                issues.append(ValidationIssue(bug.bug_id, "Missing private hidden_tests/ directory or hidden test files"))
+            if not public_only and has_private_harness:
+                if not bug.hidden_tests_dir or not bug.hidden_tests_dir.exists() or not list(bug.hidden_tests_dir.glob("test_*.py")):
+                    issues.append(ValidationIssue(bug.bug_id, "Missing private hidden_tests/ directory or hidden test files"))
 
-            if not bug.provenance:
-                issues.append(ValidationIssue(bug.bug_id, "Missing or invalid private provenance.json"))
-            else:
-                if not bug.provenance.get("repository") and not bug.provenance.get("source"):
-                    issues.append(ValidationIssue(bug.bug_id, "provenance.json missing 'repository' or 'source'"))
-                if not bug.provenance.get("base_commit"):
-                    issues.append(ValidationIssue(bug.bug_id, "provenance.json missing 'base_commit'"))
+                if not bug.provenance:
+                    issues.append(ValidationIssue(bug.bug_id, "Missing or invalid private provenance.json"))
+                else:
+                    if not bug.provenance.get("repository") and not bug.provenance.get("source"):
+                        issues.append(ValidationIssue(bug.bug_id, "provenance.json missing 'repository' or 'source'"))
+                    if not bug.provenance.get("base_commit"):
+                        issues.append(ValidationIssue(bug.bug_id, "provenance.json missing 'base_commit'"))
 
-            if not bug.constraints:
-                issues.append(ValidationIssue(bug.bug_id, "Missing or invalid private constraints.yaml"))
+                if not bug.constraints:
+                    issues.append(ValidationIssue(bug.bug_id, "Missing or invalid private constraints.yaml"))
 
-            if not bug.oracle_patch_path or not bug.oracle_patch_path.exists() or not bug.oracle_patch_path.read_text(encoding="utf-8").strip():
-                issues.append(ValidationIssue(bug.bug_id, "Missing private oracle_patch.diff ground-truth fix"))
+                if not bug.oracle_patch_path or not bug.oracle_patch_path.exists() or not bug.oracle_patch_path.read_text(encoding="utf-8").strip():
+                    issues.append(ValidationIssue(bug.bug_id, "Missing private oracle_patch.diff ground-truth fix"))
 
-            # 6. Benchmark Contamination / Leakage Guardrail
+            # 6. Benchmark Contamination / Leakage Guardrail (Always checked)
             if bug.task_dir and bug.task_dir.exists():
                 for forbidden in ["hidden_tests", "oracle_patch.diff", "provenance.json", "constraints.yaml"]:
                     if (bug.task_dir / forbidden).exists():
@@ -207,8 +255,9 @@ class Benchmark:
         return self.bugs[index]
 
     def summary(self) -> str:
-        with_hidden = sum(1 for b in self.bugs if b.hidden_tests_dir)
-        return f"Benchmark '{self.name}': {len(self.bugs)} bugs total, {with_hidden} with hidden tests."
+        with_hidden = sum(1 for b in self.bugs if b.hidden_tests_dir and b.hidden_tests_dir.exists())
+        status = f"{with_hidden} with hidden tests" if with_hidden > 0 else "0 with hidden tests"
+        return f"Benchmark '{self.name}': {len(self.bugs)} bugs total, {status}."
 
     def filter(self, category: str) -> Benchmark:
         filtered_bugs = [b for b in self.bugs if b.metadata.get("category") == category]

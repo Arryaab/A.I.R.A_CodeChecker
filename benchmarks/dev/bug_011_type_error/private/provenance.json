@@ -1,9 +1,0 @@
-{
-  "source": "aegis_curated_benchmark",
-  "repository": "https://github.com/aegis-verifier/aegis-benchmarks",
-  "base_commit": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "issue_id": "#bug_011_type_error",
-  "license": "MIT",
-  "verified_by": "aegis_verification_suite",
-  "verification_status": "reproduced"
-}

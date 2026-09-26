@@ -78,3 +78,7 @@ aegis-report.json
 
 # Docker
 .dockerignore
+
+# Benchmark Private Evaluator Artifacts (Zero Contamination)
+benchmarks/**/private/
+benchmarks/private/

@@ -1,9 +1,0 @@
---- a/solution.py
-+++ b/solution.py
-@@ -1,3 +1,5 @@
--def append_to_list(item, lst=[]):
-+def append_to_list(item, lst=None):
-+    if lst is None:
-+        lst = []
-     lst.append(item)
-     return lst

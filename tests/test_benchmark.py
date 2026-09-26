@@ -143,3 +143,59 @@ def test_benchmark_contamination_detection(tmp_path):
     issues = bench.validate()
     errors = [i for i in issues if i.severity == "ERROR"]
     assert any("Benchmark contamination error" in e.issue for e in errors)
+
+def test_benchmark_public_only_validation_without_private_dir(tmp_path):
+    bench_dir = tmp_path / "public_only_bench"
+    bench_dir.mkdir()
+    bug1 = bench_dir / "bug_pub"
+    bug1.mkdir()
+
+    task_dir = bug1 / "task"
+    (task_dir / "buggy").mkdir(parents=True)
+    (task_dir / "buggy" / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    (task_dir / "tests").mkdir(parents=True)
+    (task_dir / "tests" / "test_calc.py").write_text("def test_add(): pass\n", encoding="utf-8")
+    (task_dir / "problem.md").write_text("# Add\nDescription\n", encoding="utf-8")
+    (task_dir / "metadata.json").write_text(json.dumps({
+        "bug_id": "bug_pub", "category": "arithmetic", "difficulty": "easy"
+    }), encoding="utf-8")
+
+    bench = Benchmark.load(bench_dir)
+    assert len(bench) == 1
+    assert bench[0].hidden_tests_dir is None
+    issues = bench.validate()
+    assert len([i for i in issues if i.severity == "ERROR"]) == 0
+
+def test_benchmark_decoupled_evaluator_dir(tmp_path):
+    public_bench = tmp_path / "public_suite"
+    public_bench.mkdir()
+    bug1 = public_bench / "bug_split"
+    bug1.mkdir()
+
+    task_dir = bug1 / "task"
+    (task_dir / "buggy").mkdir(parents=True)
+    (task_dir / "buggy" / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    (task_dir / "tests").mkdir(parents=True)
+    (task_dir / "tests" / "test_calc.py").write_text("def test_add(): pass\n", encoding="utf-8")
+    (task_dir / "problem.md").write_text("# Add\n", encoding="utf-8")
+    (task_dir / "metadata.json").write_text(json.dumps({
+        "bug_id": "bug_split", "category": "arithmetic", "difficulty": "easy"
+    }), encoding="utf-8")
+
+    # Decoupled external private store
+    eval_store = tmp_path / "private_store"
+    eval_store.mkdir()
+    priv_dir = eval_store / "bug_split" / "private"
+    (priv_dir / "hidden_tests").mkdir(parents=True)
+    (priv_dir / "hidden_tests" / "test_calc.py").write_text("def test_hidden(): pass\n", encoding="utf-8")
+    (priv_dir / "provenance.json").write_text(json.dumps({
+        "repository": "repo", "base_commit": "sha123"
+    }), encoding="utf-8")
+    (priv_dir / "constraints.yaml").write_text("constraints: ok\n", encoding="utf-8")
+    (priv_dir / "oracle_patch.diff").write_text("diff\n", encoding="utf-8")
+
+    bench = Benchmark.load(public_bench, evaluator_dir=eval_store)
+    assert len(bench) == 1
+    assert bench[0].hidden_tests_dir is not None
+    issues = bench.validate()
+    assert len([i for i in issues if i.severity == "ERROR"]) == 0

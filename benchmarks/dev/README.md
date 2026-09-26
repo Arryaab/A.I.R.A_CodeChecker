@@ -1,6 +1,8 @@
-# AegisBench Dev-15 (Diagnostic Evaluation Suite)
+# AegisBench Dev v0.1: Curated Algorithmic Regression Suite (15 tasks)
 
 A standardized diagnostic suite of 15 algorithmic and logical Python defect fixtures designed for unit testing, repair pipeline validation, and verifier regression testing.
+
+## Task Inventory
 
 | Bug ID | Category | Difficulty | Description |
 |--------|----------|------------|-------------|
@@ -22,9 +24,19 @@ A standardized diagnostic suite of 15 algorithmic and logical Python defect fixt
 
 ---
 
+## Architectural Separation & Zero Contamination
+
+To guarantee evaluation integrity and eliminate training/evaluator contamination, each task maintains strict structural separation:
+- `task/`: Public task specification exposed to autonomous coding agents (problem statement, metadata, buggy codebase, and visible unit tests).
+- `private/`: Private evaluator harness (hidden tests, ground-truth oracle patches, non-functional constraints, and provenance metadata). In public Git checkouts, private evaluator data is untracked (`.gitignore`) and can be mounted separately via `--evaluator-dir`.
+
 ## Benchmark Validation
 
-Validate all Dev-15 tasks against the canonical schema:
+Validate tasks against the canonical schema:
 ```bash
 python -m aegis.cli benchmark --dir benchmarks/dev --validate
+```
+Or with a decoupled private evaluator repository:
+```bash
+python -m aegis.cli benchmark --dir benchmarks/dev --evaluator-dir /path/to/private-evaluator --validate
 ```

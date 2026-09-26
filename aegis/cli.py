@@ -53,6 +53,7 @@ def main() -> None:
     # Benchmark
     bench_parser = subparsers.add_parser("benchmark", help="List and validate benchmark tasks")
     bench_parser.add_argument("--dir", type=str, required=True, help="Directory containing benchmark tasks")
+    bench_parser.add_argument("--evaluator-dir", type=str, default=None, help="Optional external directory containing private evaluator harness")
     bench_parser.add_argument("--validate", action="store_true", help="Perform strict schema, provenance, and task integrity validation")
     
     # Verify (Production AI Change Verification Platform)
@@ -130,7 +131,7 @@ def main() -> None:
                 sys.exit(1)
                 
         elif args.command == "benchmark":
-            benchmark = Benchmark.load(args.dir)
+            benchmark = Benchmark.load(args.dir, evaluator_dir=getattr(args, "evaluator_dir", None))
             print(benchmark.summary())
             if getattr(args, "validate", False):
                 print(f"Validating {len(benchmark)} tasks in '{args.dir}' against canonical AegisBench schema...")
@@ -257,8 +258,19 @@ def main() -> None:
 
             # 2. Hermetic Commit-Pure Execution Sandbox
             from aegis.integrations.git import create_commit_snapshot
+            from aegis.execution.environment import build_sandbox_environment_image
             commit_to_extract = args.head if (is_diff_mode and not args.diff) else (args.base or "HEAD")
+            env_info = None
+            docker_image = "aegis-sandbox:latest"
             with create_commit_snapshot(proj, commit_ref=commit_to_extract) as exec_dir:
+                # Commit-pure environment inspection of immutable snapshot
+                env_info = inspect_repository_environment(exec_dir)
+
+                # Build or resolve reproducible container image if manifests exist
+                docker_image = "aegis-sandbox:latest"
+                if use_docker:
+                    docker_image = build_sandbox_environment_image(exec_dir)
+
                 if args.diff:
                     # Hermetically apply patch to ephemeral snapshot
                     apply_patch_file(exec_dir, diff_path)
@@ -282,7 +294,8 @@ def main() -> None:
                     exec_dir,
                     test_files=selected_tests,
                     use_docker=use_docker,
-                    require_sandbox=require_sandbox
+                    require_sandbox=require_sandbox,
+                    docker_image=docker_image,
                 )
                 targeted_passed = selected_res.test_result.passed
                 correctness_verdict = "✅ Passed" if targeted_passed else "❌ FAILED"
@@ -308,7 +321,12 @@ def main() -> None:
                 ]
 
                 if active_tier in ("STANDARD", "DEEP"):
-                    full_res = run_tests_sandboxed(exec_dir, use_docker=use_docker, require_sandbox=require_sandbox)
+                    full_res = run_tests_sandboxed(
+                        exec_dir,
+                        use_docker=use_docker,
+                        require_sandbox=require_sandbox,
+                        docker_image=docker_image,
+                    )
                     full_passed = full_res.test_result.passed
                     regression_verdict = f"✅ Passed (0 regressed, {full_res.test_result.summary_line})" if full_passed else "❌ FAILED (Regressions detected)"
 
@@ -326,7 +344,8 @@ def main() -> None:
                                     exec_dir,
                                     test_files=base_test_files,
                                     use_docker=use_docker,
-                                    require_sandbox=require_sandbox
+                                    require_sandbox=require_sandbox,
+                                    docker_image=docker_image,
                                 )
                                 if not base_eval_res.test_result.passed:
                                     trusted_base_passed = False
@@ -341,7 +360,8 @@ def main() -> None:
                             mutation_targets[:2],
                             max_mutants_per_file=max_mutants,
                             use_docker=use_docker,
-                            require_sandbox=require_sandbox
+                            require_sandbox=require_sandbox,
+                            docker_image=docker_image,
                         )
                         if mut_res.score is not None:
                             mut_score = mut_res.score
@@ -377,17 +397,17 @@ def main() -> None:
                             if common_tests:
                                 import statistics
                                 # Warmup + 3 measured iterations on BASE
-                                run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox)
+                                run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=docker_image)
                                 base_runs = [
-                                    run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox).test_result.duration_seconds
+                                    run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=docker_image).test_result.duration_seconds
                                     for _ in range(3)
                                 ]
                                 base_duration_s = round(statistics.median(base_runs), 3)
 
                                 # Warmup + 3 measured iterations on HEAD
-                                run_tests_sandboxed(exec_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox)
+                                run_tests_sandboxed(exec_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=docker_image)
                                 head_runs = [
-                                    run_tests_sandboxed(exec_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox).test_result.duration_seconds
+                                    run_tests_sandboxed(exec_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=docker_image).test_result.duration_seconds
                                     for _ in range(3)
                                 ]
                                 head_duration_s = round(statistics.median(head_runs), 3)
@@ -511,8 +531,8 @@ def main() -> None:
                 raw_diff_content = ""
                 diff_sha256 = hashlib.sha256(b"").hexdigest()
 
-            # Environment inspection & dependency hashing
-            env_info = inspect_repository_environment(proj)
+            if env_info is None:
+                env_info = inspect_repository_environment(proj)
 
             # Generate Machine-Readable Audit Report Artifact (Schema 1.0)
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -547,9 +567,12 @@ def main() -> None:
                     },
                     "environment": {
                         "dependency_manifests": env_info.dependency_manifests,
+                        "dependency_manifest_hash": env_info.dependency_manifest_hash,
+                        "resolved_dependency_lock_hash": env_info.resolved_dependency_lock_hash,
                         "dependency_lock_hash": env_info.dependency_lock_hash,
                         "environment_fingerprint": env_info.environment_fingerprint,
                         "sandbox_engine": env_info.sandbox,
+                        "sandbox_image": docker_image,
                     },
                 },
                 "change": {

@@ -1,6 +1,0 @@
---- a/solution.py
-+++ b/solution.py
-@@ -1,2 +1,2 @@
- def stringify_list(items):
--    return ','.join(items)
-+    return ','.join(str(x) for x in items)

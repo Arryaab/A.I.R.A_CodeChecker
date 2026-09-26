@@ -12,11 +12,16 @@ MANIFEST_FILENAMES = [
     "pyproject.toml",
     "setup.py",
     "setup.cfg",
-    "poetry.lock",
     "Pipfile",
-    "Pipfile.lock",
     "environment.yml",
     "environment.yaml",
+]
+
+LOCK_FILENAMES = [
+    "uv.lock",
+    "poetry.lock",
+    "Pipfile.lock",
+    "pdm.lock",
 ]
 
 @dataclass
@@ -24,46 +29,71 @@ class EnvironmentFingerprint:
     python_version: str
     platform: str
     dependency_manifests: List[str] = field(default_factory=list)
-    dependency_lock_hash: str = ""
+    dependency_manifest_hash: str = ""
+    resolved_dependency_lock_hash: Optional[str] = None
+    dependency_lock_hash: str = ""  # Backward-compatible alias/mirror of dependency_manifest_hash
     environment_fingerprint: str = ""
     sandbox: str = "docker"
 
 def inspect_repository_environment(repo_dir: Path) -> EnvironmentFingerprint:
     """
-    Inspects a repository to discover dependency manifests, calculate a deterministic
-    dependency lock hash, and generate an immutable environment fingerprint.
+    Inspects a repository to discover dependency manifests, calculate deterministic
+    manifest and resolved lock hashes, and generate an immutable environment fingerprint.
     """
     found_manifests = []
-    hasher = hashlib.sha256()
+    manifest_hasher = hashlib.sha256()
 
     for name in sorted(MANIFEST_FILENAMES):
         manifest_path = repo_dir / name
         if manifest_path.exists() and manifest_path.is_file():
             found_manifests.append(name)
-            hasher.update(name.encode("utf-8"))
+            manifest_hasher.update(name.encode("utf-8"))
             try:
                 content = manifest_path.read_bytes().replace(b"\r\n", b"\n")
-                hasher.update(content)
+                manifest_hasher.update(content)
             except Exception:
                 pass
 
     if found_manifests:
-        dependency_lock_hash = hasher.hexdigest()
+        dependency_manifest_hash = manifest_hasher.hexdigest()
     else:
-        dependency_lock_hash = hashlib.sha256(b"NO_MANIFESTS_PRESENT").hexdigest()
+        dependency_manifest_hash = hashlib.sha256(b"NO_MANIFESTS_PRESENT").hexdigest()
+
+    # Inspect lockfiles
+    found_locks = []
+    lock_hasher = hashlib.sha256()
+    for name in sorted(LOCK_FILENAMES):
+        lock_path = repo_dir / name
+        if lock_path.exists() and lock_path.is_file():
+            found_locks.append(name)
+            lock_hasher.update(name.encode("utf-8"))
+            try:
+                content = lock_path.read_bytes().replace(b"\r\n", b"\n")
+                lock_hasher.update(content)
+            except Exception:
+                pass
+
+    if found_locks:
+        resolved_dependency_lock_hash = lock_hasher.hexdigest()
+    else:
+        resolved_dependency_lock_hash = None
 
     py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     fp_hasher = hashlib.sha256()
     fp_hasher.update(py_ver.encode("utf-8"))
     fp_hasher.update(sys.platform.encode("utf-8"))
-    fp_hasher.update(dependency_lock_hash.encode("utf-8"))
+    fp_hasher.update(dependency_manifest_hash.encode("utf-8"))
+    if resolved_dependency_lock_hash:
+        fp_hasher.update(resolved_dependency_lock_hash.encode("utf-8"))
     environment_fingerprint = fp_hasher.hexdigest()
 
     return EnvironmentFingerprint(
         python_version=py_ver,
         platform=sys.platform,
         dependency_manifests=found_manifests,
-        dependency_lock_hash=dependency_lock_hash,
+        dependency_manifest_hash=dependency_manifest_hash,
+        resolved_dependency_lock_hash=resolved_dependency_lock_hash,
+        dependency_lock_hash=dependency_manifest_hash,
         environment_fingerprint=environment_fingerprint,
         sandbox="docker"
     )
@@ -89,8 +119,63 @@ def generate_reproducible_dockerfile(
     elif (repo_dir / "pyproject.toml").exists():
         lines.extend([
             "COPY pyproject.toml /workspace/pyproject.toml",
-            "RUN pip install --no-cache-dir -e . || true",
+            "RUN pip install --no-cache-dir -e .",
+        ])
+    elif (repo_dir / "setup.py").exists():
+        lines.extend([
+            "COPY setup.py /workspace/setup.py",
+            "RUN pip install --no-cache-dir -e .",
         ])
 
     lines.append("COPY . /workspace")
     return "\n".join(lines) + "\n"
+
+def build_sandbox_environment_image(
+    repo_dir: Path,
+    base_image: str = "python:3.11-slim"
+) -> str:
+    """
+    Builds a reproducible container image for the repository snapshot if dependency manifests exist.
+    Fails closed with RuntimeError if docker build fails.
+    Returns the tagged image name or 'aegis-sandbox:latest' if no custom manifests are present.
+    """
+    import subprocess
+    from aegis.execution.sandbox import is_docker_available
+
+    has_manifests = any((repo_dir / m).exists() for m in ["requirements.txt", "pyproject.toml", "setup.py"])
+    if not has_manifests:
+        return "aegis-sandbox:latest"
+
+    env = inspect_repository_environment(repo_dir)
+    image_tag = f"aegis-env-{env.dependency_manifest_hash[:12]}"
+
+    if not is_docker_available():
+        raise RuntimeError(
+            "Aegis Security Failure: Docker sandbox is required for executing changes with custom dependencies, "
+            "but the Docker daemon is unavailable."
+        )
+
+    # Check if image already exists locally
+    inspect_res = subprocess.run(
+        ["docker", "image", "inspect", image_tag],
+        capture_output=True,
+        text=True
+    )
+    if inspect_res.returncode == 0:
+        return image_tag
+
+    # Build image using generated Dockerfile
+    dockerfile_content = generate_reproducible_dockerfile(repo_dir, base_image=base_image)
+    build_res = subprocess.run(
+        ["docker", "build", "-t", image_tag, "-f", "-", str(repo_dir)],
+        input=dockerfile_content,
+        text=True,
+        capture_output=True
+    )
+    if build_res.returncode != 0:
+        err = build_res.stderr.strip() if build_res.stderr else f"exit code {build_res.returncode}"
+        raise RuntimeError(
+            f"Aegis Security Failure: Failed to build reproducible sandbox environment image '{image_tag}':\n{err}"
+        )
+
+    return image_tag

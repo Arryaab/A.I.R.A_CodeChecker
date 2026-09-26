@@ -124,6 +124,15 @@ def test_audit_report_schema_1_0(tmp_path):
     assert "release_policy" in data["decision"]
     assert data["decision"]["technical_verdict"] in ("QUALIFIED", "QUALIFIED_WITHIN_SCOPE", "FAILED")
     assert data["decision"]["release_policy"] in ("AUTO_APPROVE", "REVIEW", "BLOCK")
+    if "provenance" in data:
+        assert "base_sha" in data["provenance"]
+        assert "head_sha" in data["provenance"]
+        assert "diff_sha256" in data["provenance"]
+        if "environment" in data["provenance"]:
+            assert "dependency_manifests" in data["provenance"]["environment"]
+            assert "dependency_manifest_hash" in data["provenance"]["environment"]
+            assert "dependency_lock_hash" in data["provenance"]["environment"]
+            assert "environment_fingerprint" in data["provenance"]["environment"]
 
 def test_audit_provenance_cryptographic_integrity(tmp_path):
     import subprocess
@@ -170,12 +179,41 @@ def test_audit_provenance_cryptographic_integrity(tmp_path):
     # Environment fingerprint
     env_info = inspect_repository_environment(repo)
     assert "requirements.txt" in env_info.dependency_manifests
-    assert len(env_info.dependency_lock_hash) == 64
+    assert len(env_info.dependency_manifest_hash) == 64
+    assert env_info.dependency_lock_hash == env_info.dependency_manifest_hash
+    assert env_info.resolved_dependency_lock_hash is None
     assert len(env_info.environment_fingerprint) == 64
+
+    # Now add a lockfile and verify resolved_dependency_lock_hash
+    (repo / "poetry.lock").write_text("[package]\nname = 'pytest'\n", encoding="utf-8")
+    env_info_locked = inspect_repository_environment(repo)
+    assert env_info_locked.resolved_dependency_lock_hash is not None
+    assert len(env_info_locked.resolved_dependency_lock_hash) == 64
 
     # Fail closed on invalid ref
     bad_res = subprocess.run(["git", "rev-parse", "--verify", "invalid_ref_xyz_123"], cwd=repo, capture_output=True, text=True)
     assert bad_res.returncode != 0
+
+def test_environment_dockerfile_generation_fail_closed(tmp_path):
+    from aegis.execution.environment import (
+        generate_reproducible_dockerfile,
+        build_sandbox_environment_image,
+    )
+    import pytest
+
+    # pyproject repo
+    repo = tmp_path / "pyproject_repo"
+    repo.mkdir()
+    (repo / "pyproject.toml").write_text("[project]\nname = 'pkg'\n", encoding="utf-8")
+
+    dockerfile = generate_reproducible_dockerfile(repo)
+    assert "|| true" not in dockerfile, "Verifiers must fail closed; '|| true' is forbidden in environment builds"
+    assert "RUN pip install --no-cache-dir -e ." in dockerfile
+
+    # Empty repo without manifests returns default aegis-sandbox:latest without running docker build
+    empty_repo = tmp_path / "empty_repo"
+    empty_repo.mkdir()
+    assert build_sandbox_environment_image(empty_repo) == "aegis-sandbox:latest"
 
 
 
