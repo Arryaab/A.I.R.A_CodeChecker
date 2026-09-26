@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Tuple
@@ -49,6 +50,105 @@ def _git_show_object(repo_dir: Path, ref: str, file_path: str) -> str:
             "Aegis refuses to fall back to the uncommitted working tree."
         )
     return res.stdout
+
+def apply_patch_file(target_dir: Path, diff_path: Path) -> None:
+    """
+    Hermetically applies a unified diff patch to a target directory using git apply.
+    Fails closed if the patch cannot be applied cleanly.
+    """
+    res = subprocess.run(
+        ["git", "apply", "--ignore-space-change", "--ignore-whitespace", str(diff_path.resolve())],
+        cwd=target_dir,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    if res.returncode != 0:
+        err = res.stderr.strip() if res.stderr else f"git apply exited with code {res.returncode}"
+        raise RuntimeError(
+            f"Commit-pure verification error: Failed to apply patch '{diff_path.name}' to immutable snapshot ({err})."
+        )
+
+def parse_unified_diff(
+    repo_dir: Path,
+    raw_diff: str,
+    base_ref: str = "HEAD"
+) -> Tuple[List[str], Dict[str, PatchChange]]:
+    """
+    Parses unified diff text, identifying affected files, hunks, and base content.
+    Base content is reconstructed from base_ref via git show (fail-closed).
+    """
+    file_diffs: Dict[str, List[str]] = {}
+    current_file = None
+    last_old_file = None
+    
+    for line in raw_diff.splitlines():
+        if line.startswith("diff --git"):
+            parts = line.split()
+            if len(parts) >= 4:
+                b_path = parts[3]
+                if b_path.startswith("b/"):
+                    current_file = b_path[2:].replace("\\", "/")
+                else:
+                    current_file = b_path.replace("\\", "/")
+                if current_file not in file_diffs:
+                    file_diffs[current_file] = [line]
+                else:
+                    file_diffs[current_file].append(line)
+                continue
+        elif line.startswith("--- "):
+            raw_path = line[4:].strip().split("\t")[0]
+            if raw_path.startswith("a/"):
+                last_old_file = raw_path[2:].replace("\\", "/")
+            elif raw_path != "/dev/null":
+                last_old_file = raw_path.replace("\\", "/")
+            if current_file:
+                file_diffs[current_file].append(line)
+            continue
+        elif line.startswith("+++ "):
+            raw_path = line[4:].strip().split("\t")[0]
+            if raw_path == "/dev/null":
+                current_file = last_old_file
+            elif raw_path.startswith("b/"):
+                current_file = raw_path[2:].replace("\\", "/")
+            else:
+                current_file = raw_path.replace("\\", "/")
+
+            if current_file:
+                if current_file not in file_diffs:
+                    file_diffs[current_file] = []
+                file_diffs[current_file].append(line)
+            continue
+        else:
+            if current_file:
+                file_diffs[current_file].append(line)
+
+    affected_files = list(file_diffs.keys())
+    patches: Dict[str, PatchChange] = {}
+
+    for f, lines in file_diffs.items():
+        diff_text = "\n".join(lines)
+        added_lines = [l[1:] for l in lines if l.startswith("+") and not l.startswith("+++")]
+        deleted_lines = [l[1:] for l in lines if l.startswith("-") and not l.startswith("---")]
+        
+        try:
+            old_content = _git_show_object(repo_dir, base_ref, f)
+            status = "D" if not added_lines and deleted_lines else "M"
+        except RuntimeError:
+            old_content = ""
+            status = "A"
+
+        patches[f] = PatchChange(
+            path=f,
+            old_content=old_content,
+            new_content="",  # Populated from patched snapshot
+            added_lines=added_lines,
+            deleted_lines=deleted_lines,
+            status=status
+        )
+
+    return affected_files, patches
 
 def get_git_diff(repo_dir: Path, base: str = "HEAD~1", head: str = "HEAD") -> GitChange:
     """
@@ -226,7 +326,10 @@ def create_commit_snapshot(repo_dir: Path, commit_ref: str = "HEAD") -> Generato
 
         try:
             with tarfile.open(fileobj=io.BytesIO(res.stdout)) as tar:
-                tar.extractall(temp_path)
+                if sys.version_info >= (3, 12):
+                    tar.extractall(temp_path, filter="data")
+                else:
+                    tar.extractall(temp_path)
         except Exception as e:
             raise RuntimeError(f"Failed to extract git archive for ref '{commit_ref}': {e}") from e
 

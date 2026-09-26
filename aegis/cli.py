@@ -143,15 +143,14 @@ def main() -> None:
             target_desc = str(proj)
 
             if args.diff:
-                diff_path = Path(args.diff)
-                target_desc = f"Patch file: {diff_path.name}"
-                raw = diff_path.read_text(encoding="utf-8")
-                # Parse files from unified diff
-                for line in raw.splitlines():
-                    if line.startswith("+++ b/"):
-                        f = line.replace("+++ b/", "").strip()
-                        affected_files.append(f)
-                        patches[f] = PatchChange(path=f, new_content=(proj / f).read_text(encoding="utf-8") if (proj / f).exists() else "")
+                diff_path = Path(args.diff).resolve()
+                if not diff_path.exists():
+                    raise FileNotFoundError(f"Patch file not found: {diff_path}")
+                base_ref = args.base or "HEAD"
+                target_desc = f"Patch file: {diff_path.name} (Base: {base_ref})"
+                raw = diff_path.read_text(encoding="utf-8", errors="replace")
+                from aegis.integrations.git import parse_unified_diff, apply_patch_file
+                affected_files, patches = parse_unified_diff(proj, raw, base_ref=base_ref)
             elif args.base:
                 target_desc = f"Git Diff: {args.base}..{args.head}"
                 git_change = get_git_diff(proj, base=args.base, head=args.head)
@@ -186,22 +185,37 @@ def main() -> None:
                 else:
                     active_tier = "DEEP"
 
+            est_mutants = 2 if active_tier == "STANDARD" else 4 if active_tier == "DEEP" else 0
+            est_detail = f"targeted checks only (~2-5s)" if active_tier == "FAST" else f"full suite + {est_mutants} mutants (~25-45s)" if active_tier == "STANDARD" else f"full suite + {est_mutants} mutants + perf benchmark (~1-2m)"
+
             print("=" * 68)
             print("🛡️  AEGIS AI CHANGE VERIFICATION PLATFORM")
             print("=" * 68)
             print(f"Target:             {target_desc}")
             print(f"Affected Files:     {len(affected_files)} ({', '.join(affected_files[:3])}{'...' if len(affected_files) > 3 else ''})")
-            print(f"Verification Tier:  {active_tier} (Risk: {risk.risk_score:.2f} {risk.risk_level})")
+            print(f"Verification Tier:  {active_tier} (Risk: {risk.risk_score:.2f} {risk.risk_level} | {est_detail})")
             print("-" * 68)
 
-            # 2. Structured Patch Security Scan (inspects added_lines only for secrets/injection, new_content for AST)
-            sec = SecurityScanner()
-            sec_res = sec.scan_patch_changes(patches)
-            security_verdict = "✅ Passed" if sec_res.safe else "❌ FAILED"
-
-            # 3. Hermetic Commit-Pure Execution Sandbox
+            # 2. Hermetic Commit-Pure Execution Sandbox
             from aegis.integrations.git import create_commit_snapshot
-            with create_commit_snapshot(proj, commit_ref=args.head if is_diff_mode else "HEAD") as exec_dir:
+            commit_to_extract = args.head if (is_diff_mode and not args.diff) else (args.base or "HEAD")
+            with create_commit_snapshot(proj, commit_ref=commit_to_extract) as exec_dir:
+                if args.diff:
+                    # Hermetically apply patch to ephemeral snapshot
+                    apply_patch_file(exec_dir, diff_path)
+                    for f, p in patches.items():
+                        target_f = exec_dir / f
+                        if target_f.exists() and target_f.is_file():
+                            p.new_content = target_f.read_text(encoding="utf-8", errors="replace")
+                        else:
+                            p.new_content = ""
+                            p.status = "D"
+
+                # 3. Structured Patch Security Scan (inspects added_lines for secrets/injection, new_content for AST)
+                sec = SecurityScanner()
+                sec_res = sec.scan_patch_changes(patches)
+                security_verdict = "✅ Passed" if sec_res.safe else "❌ FAILED"
+
                 # 3a. Targeted Test Execution (Fast Feedback - All Tiers)
                 selector = TestSelector(exec_dir)
                 selected_tests = selector.select_tests_for_patch(affected_files)
@@ -249,11 +263,38 @@ def main() -> None:
                     regression_verdict = "⚡ Skipped (FAST Tier)"
                     mutation_verdict = "⚡ Skipped (FAST Tier)"
 
+                # 3c. DEEP Tier: Performance Regression Benchmark
+                perf_regression = False
+                perf_delta_pct = None
+                base_duration_s = None
+                head_duration_s = None
+
+                if active_tier == "DEEP" and selected_tests:
+                    head_duration_s = selected_res.test_result.duration_seconds
+                    base_ref_for_perf = args.base or "HEAD~1"
+                    try:
+                        with create_commit_snapshot(proj, commit_ref=base_ref_for_perf) as base_dir:
+                            base_res = run_tests_sandboxed(base_dir, test_files=selected_tests)
+                            base_duration_s = base_res.test_result.duration_seconds
+                            delta_s = head_duration_s - base_duration_s
+                            perf_delta_pct = (delta_s / max(base_duration_s, 0.001)) * 100.0
+                            if perf_delta_pct > 15.0 and delta_s > 0.05:
+                                perf_regression = True
+                                perf_verdict = f"⚠️ Regression detected (+{perf_delta_pct:.1f}%: {base_duration_s:.3f}s -> {head_duration_s:.3f}s)"
+                                risk.factors.append(f"Performance latency regression (+{perf_delta_pct:.1f}%)")
+                            else:
+                                perf_verdict = f"✅ Passed ({perf_delta_pct:+.1f}%: {base_duration_s:.3f}s -> {head_duration_s:.3f}s)"
+                    except Exception as e:
+                        perf_verdict = f"➖ Skipped (Baseline benchmark error: {e})"
+                else:
+                    perf_verdict = f"⚡ Skipped ({active_tier} Tier)"
+
             # Print Verification Card
             print(f"Correctness:        {correctness_verdict} ({len(selected_tests)} targeted test files passed in {selected_res.test_result.duration_seconds}s)")
             print(f"Regression:         {regression_verdict}")
             print(f"Security:           {security_verdict} (AST imports + added lines scanned)")
             print(f"Mutation Score:     {mutation_verdict}")
+            print(f"Performance:        {perf_verdict}")
             print(f"Risk Score:         {risk.risk_score:.2f} ({risk.risk_level} RISK)")
             if risk.factors:
                 for factor in risk.factors:
@@ -278,6 +319,9 @@ def main() -> None:
             if technical_verdict == "FAILED":
                 release_policy = "BLOCK"
                 policy_reason = tech_reason
+            elif perf_regression:
+                release_policy = "REVIEW"
+                policy_reason = f"Performance latency regression (+{perf_delta_pct:.1f}%) requires review"
             elif risk.risk_level == "LOW":
                 release_policy = "AUTO_APPROVE"
                 policy_reason = "Low risk change meets criteria for automated production merge"
@@ -352,6 +396,13 @@ def main() -> None:
                         "safe": sec_res.safe,
                         "issues_count": len(sec_res.issues),
                         "issues": sec_res.issues,
+                    },
+                    "performance": {
+                        "status": "evaluated" if active_tier == "DEEP" and base_duration_s is not None else "skipped",
+                        "baseline_duration_s": base_duration_s,
+                        "head_duration_s": head_duration_s,
+                        "delta_pct": round(perf_delta_pct, 2) if perf_delta_pct is not None else None,
+                        "regression_detected": perf_regression,
                     },
                 },
                 "risk": {

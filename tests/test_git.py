@@ -59,4 +59,47 @@ def test_git_show_object_fail_closed(sample_git_repo: Path):
     with pytest.raises(RuntimeError, match="Commit-pure verification error"):
         _git_show_object(sample_git_repo, "HEAD", "non_existent_file_xyz.py")
 
+def test_parse_unified_diff_and_apply(sample_git_repo: Path, tmp_path: Path):
+    from aegis.integrations.git import parse_unified_diff, apply_patch_file
+    
+    # Generate unified diff between HEAD~1 and HEAD
+    res = subprocess.run(
+        ["git", "diff", "-M", "HEAD~1..HEAD"],
+        cwd=sample_git_repo,
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    raw_diff = res.stdout
+    
+    affected, patches = parse_unified_diff(sample_git_repo, raw_diff, base_ref="HEAD~1")
+    assert "f1.py" in affected
+    assert "f3.py" in affected
+    assert "to_delete.py" in affected or "to_rename.py" in affected or "renamed.py" in affected
+    
+    patch_file = tmp_path / "change.patch"
+    patch_file.write_text(raw_diff, encoding="utf-8")
+    
+    with create_commit_snapshot(sample_git_repo, commit_ref="HEAD~1") as snap_dir:
+        # Pre-patch checks
+        assert (snap_dir / "f1.py").read_text(encoding="utf-8") == "print('f1 v1')"
+        assert not (snap_dir / "f3.py").exists()
+        assert (snap_dir / "to_delete.py").exists()
+        
+        # Apply patch hermetically
+        apply_patch_file(snap_dir, patch_file)
+        
+        # Post-patch verification
+        assert (snap_dir / "f1.py").read_text(encoding="utf-8").strip() == "print('f1 v2')"
+        assert (snap_dir / "f3.py").exists()
+        assert not (snap_dir / "to_delete.py").exists()
+
+def test_apply_patch_file_fail_closed(tmp_path: Path):
+    from aegis.integrations.git import apply_patch_file
+    bad_patch = tmp_path / "corrupt.patch"
+    bad_patch.write_text("invalid diff header\n@@ bogus @@\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="Failed to apply patch"):
+        apply_patch_file(tmp_path, bad_patch)
+
+
 

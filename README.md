@@ -102,9 +102,10 @@ Affected Files:     1 (tests/test_git.py)
 Verification Tier:  STANDARD (Risk: 0.30 MEDIUM)
 --------------------------------------------------------------------
 Correctness:        ✅ Passed (1 targeted test files passed in 1.88s)
-Regression:         ✅ Passed (0 regressed, 56 passed, 1 skipped in 7.76s)
+Regression:         ✅ Passed (0 regressed, 64 passed in 7.76s)
 Security:           ✅ Passed (AST imports + added lines scanned)
 Mutation Score:     ➖ N/A (No production source files modified)
+Performance:        ⚡ Skipped (STANDARD Tier)
 Risk Score:         0.30 (MEDIUM RISK)
   - Risk factor: Large diff size (64 lines changed)
 --------------------------------------------------------------------
@@ -132,8 +133,14 @@ python -m aegis.cli verify --base origin/main --head HEAD
 # Run in FAST tier for rapid targeted feedback
 python -m aegis.cli verify --base HEAD~1 --tier fast
 
-# Verify a standalone patch file directly
-python -m aegis.cli verify --diff proposed_change.patch
+# Run in DEEP tier for full regression, mutation, and performance latency benchmarking
+python -m aegis.cli verify --base HEAD~1 --head HEAD --tier deep
+
+# Verify a standalone patch file directly to an immutable base snapshot
+python -m aegis.cli verify --diff proposed_change.patch --base HEAD~1
+
+# Export machine-readable Schema 1.0 audit artifacts to a custom directory
+python -m aegis.cli verify --base HEAD~1 --output-dir ./audit_artifacts
 ```
 
 ### 2. Autonomous Multi-Agent Program Repair
@@ -146,7 +153,7 @@ python -m aegis.cli repair --project-dir ./my_buggy_project
 ```bash
 python -m pytest -q
 ```
-**57 passed, 1 skipped, 0 failures** in base configuration (or **62 passed** when installed with full web extras).
+**59 passed, 5 skipped, 0 failures** in base configuration (or **64 passed** when installed with full web extras).
 
 ---
 
