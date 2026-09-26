@@ -133,6 +133,13 @@ def test_audit_report_schema_1_0(tmp_path):
             assert "dependency_manifest_hash" in data["provenance"]["environment"]
             assert "dependency_lock_hash" in data["provenance"]["environment"]
             assert "environment_fingerprint" in data["provenance"]["environment"]
+        if "requested_environment" in data["provenance"]:
+            assert "python_version" in data["provenance"]["requested_environment"]
+            assert "platform" in data["provenance"]["requested_environment"]
+            assert "dependency_manifest_hash" in data["provenance"]["requested_environment"]
+        if "executed_environment" in data["provenance"]:
+            assert "sandbox_engine" in data["provenance"]["executed_environment"]
+            assert "sandbox_image" in data["provenance"]["executed_environment"]
 
 def test_audit_provenance_cryptographic_integrity(tmp_path):
     import subprocess

@@ -25,6 +25,25 @@ LOCK_FILENAMES = [
 ]
 
 @dataclass
+class RequestedEnvironment:
+    python_version: str
+    platform: str
+    dependency_manifests: List[str] = field(default_factory=list)
+    dependency_manifest_hash: str = ""
+    resolved_dependency_lock_hash: Optional[str] = None
+    dependency_lock_hash: str = ""
+    environment_fingerprint: str = ""
+
+@dataclass
+class ExecutedEnvironment:
+    sandbox_engine: str  # "docker" or "host"
+    sandbox_image: str   # container image tag or "host"
+    python_version: str  # executed runtime python version
+    platform: str        # executed runtime platform
+    network_isolated: bool
+    container_id: Optional[str] = None
+
+@dataclass
 class EnvironmentFingerprint:
     python_version: str
     platform: str
@@ -34,6 +53,41 @@ class EnvironmentFingerprint:
     dependency_lock_hash: str = ""  # Backward-compatible alias/mirror of dependency_manifest_hash
     environment_fingerprint: str = ""
     sandbox: str = "docker"
+
+    def to_requested_dict(self) -> dict:
+        return {
+            "python_version": self.python_version,
+            "platform": self.platform,
+            "dependency_manifests": self.dependency_manifests,
+            "dependency_manifest_hash": self.dependency_manifest_hash,
+            "resolved_dependency_lock_hash": self.resolved_dependency_lock_hash,
+            "dependency_lock_hash": self.dependency_lock_hash,
+            "environment_fingerprint": self.environment_fingerprint,
+        }
+
+def resolve_executed_environment(
+    use_docker: bool,
+    docker_image: str,
+    host_env: EnvironmentFingerprint,
+    container_id: Optional[str] = None,
+) -> ExecutedEnvironment:
+    if use_docker:
+        return ExecutedEnvironment(
+            sandbox_engine="docker",
+            sandbox_image=docker_image,
+            python_version="3.11-slim",
+            platform="linux",
+            network_isolated=True,
+            container_id=container_id,
+        )
+    return ExecutedEnvironment(
+        sandbox_engine="host",
+        sandbox_image="host",
+        python_version=host_env.python_version,
+        platform=host_env.platform,
+        network_isolated=False,
+        container_id=None,
+    )
 
 def inspect_repository_environment(repo_dir: Path) -> EnvironmentFingerprint:
     """

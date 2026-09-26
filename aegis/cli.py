@@ -259,20 +259,12 @@ def main() -> None:
             # 2. Hermetic Commit-Pure Execution Sandbox
             from aegis.integrations.git import create_commit_snapshot
             from aegis.execution.environment import build_sandbox_environment_image
-            commit_to_extract = args.head if (is_diff_mode and not args.diff) else (args.base or "HEAD")
+            commit_to_extract = (args.base or "HEAD") if args.diff else (args.head or "HEAD")
             env_info = None
             docker_image = "aegis-sandbox:latest"
             with create_commit_snapshot(proj, commit_ref=commit_to_extract) as exec_dir:
-                # Commit-pure environment inspection of immutable snapshot
-                env_info = inspect_repository_environment(exec_dir)
-
-                # Build or resolve reproducible container image if manifests exist
-                docker_image = "aegis-sandbox:latest"
-                if use_docker:
-                    docker_image = build_sandbox_environment_image(exec_dir)
-
                 if args.diff:
-                    # Hermetically apply patch to ephemeral snapshot
+                    # Hermetically apply patch to ephemeral snapshot FIRST
                     apply_patch_file(exec_dir, diff_path)
                     for f, p in patches.items():
                         target_f = exec_dir / f
@@ -281,6 +273,14 @@ def main() -> None:
                         else:
                             p.new_content = ""
                             p.status = "D"
+
+                # Commit-pure environment inspection of proposed post-change state
+                env_info = inspect_repository_environment(exec_dir)
+
+                # Build or resolve reproducible container image based on proposed manifests
+                docker_image = "aegis-sandbox:latest"
+                if use_docker:
+                    docker_image = build_sandbox_environment_image(exec_dir)
 
                 # 3. Structured Patch Security Scan (inspects added_lines for secrets/injection, new_content for AST)
                 sec = SecurityScanner()
@@ -564,6 +564,22 @@ def main() -> None:
                         "required": require_sandbox,
                         "used": use_docker,
                         "docker_available": is_docker_available(),
+                    },
+                    "requested_environment": {
+                        "python_version": env_info.python_version,
+                        "platform": env_info.platform,
+                        "dependency_manifests": env_info.dependency_manifests,
+                        "dependency_manifest_hash": env_info.dependency_manifest_hash,
+                        "resolved_dependency_lock_hash": env_info.resolved_dependency_lock_hash,
+                        "dependency_lock_hash": env_info.dependency_lock_hash,
+                        "environment_fingerprint": env_info.environment_fingerprint,
+                    },
+                    "executed_environment": {
+                        "sandbox_engine": "docker" if use_docker else "host",
+                        "sandbox_image": docker_image if use_docker else "host",
+                        "python_version": "3.11-slim" if use_docker else env_info.python_version,
+                        "platform": "linux" if use_docker else env_info.platform,
+                        "network_isolated": use_docker,
                     },
                     "environment": {
                         "dependency_manifests": env_info.dependency_manifests,

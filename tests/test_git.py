@@ -101,5 +101,110 @@ def test_apply_patch_file_fail_closed(tmp_path: Path):
     with pytest.raises(RuntimeError, match="(Failed to apply patch|Strict patch check failed)"):
         apply_patch_file(tmp_path, bad_patch)
 
+def test_git_verification_executes_head_not_base(tmp_path: Path):
+    import json
+    import sys
+
+    repo = tmp_path / "head_not_base_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Tester"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "tester@aegis.dev"], cwd=repo, check=True, capture_output=True)
+
+    # Commit 1 (BASE): calc.py returns 1. test_calc.py expects 2 (fails on BASE, passes on HEAD)
+    (repo / "calc.py").write_text("def get_value():\n    return 1\n", encoding="utf-8")
+    tests_dir = repo / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_calc.py").write_text("from calc import get_value\n\ndef test_val():\n    assert get_value() == 2\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "base commit with buggy get_value() returning 1"], cwd=repo, check=True, capture_output=True)
+
+    # Commit 2 (HEAD): calc.py returns 2. test_calc.py now passes!
+    (repo / "calc.py").write_text("def get_value():\n    return 2\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "fix get_value() to return 2"], cwd=repo, check=True, capture_output=True)
+
+    # Run Aegis verification comparing BASE (HEAD~1) and HEAD
+    out_dir = tmp_path / "runs"
+    cmd = [
+        sys.executable, "-m", "aegis.cli", "verify",
+        "--project-dir", str(repo),
+        "--base", "HEAD~1",
+        "--head", "HEAD",
+        "--tier", "fast",
+        "--output-dir", str(out_dir),
+        "--unsafe-local"
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+    # Report verification
+    report_file = out_dir / "report.json"
+    assert report_file.exists(), f"Report file not generated. Stderr: {res.stderr}\nStdout: {res.stdout}"
+    report = json.loads(report_file.read_text(encoding="utf-8"))
+
+    # If Aegis mistakenly executed BASE, get_value() returned 1 and targeted_tests failed.
+    # Because Aegis correctly executes HEAD, get_value() returns 2 and targeted_tests passed!
+    assert report["verification"]["targeted_tests"]["passed"] is True
+    assert "QUALIFIED" in report["decision"]["technical_verdict"]
+
+    # Also verify requested_environment and executed_environment in provenance
+    assert "requested_environment" in report["provenance"]
+    assert "executed_environment" in report["provenance"]
+
+def test_diff_mode_applies_patch_before_environment_build(tmp_path: Path):
+    import json
+    import sys
+
+    repo = tmp_path / "diff_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Tester"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "tester@aegis.dev"], cwd=repo, check=True, capture_output=True)
+
+    # Base commit
+    (repo / "calc.py").write_text("def compute():\n    return 10\n", encoding="utf-8")
+    tests_dir = repo / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_calc.py").write_text("from calc import compute\ndef test_compute():\n    assert compute() == 20\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "base commit"], cwd=repo, check=True, capture_output=True)
+
+    # Create patch modifying calc.py to return 20 and adding requirements.txt
+    patch_file = tmp_path / "fix.diff"
+    patch_content = (
+        "--- a/calc.py\n"
+        "+++ b/calc.py\n"
+        "@@ -1,2 +1,2 @@\n"
+        " def compute():\n"
+        "-    return 10\n"
+        "+    return 20\n"
+        "--- /dev/null\n"
+        "+++ b/requirements.txt\n"
+        "@@ -0,0 +1 @@\n"
+        "+pytest>=7.0.0\n"
+    )
+    patch_file.write_text(patch_content, encoding="utf-8")
+
+    out_dir = tmp_path / "diff_runs"
+    cmd = [
+        sys.executable, "-m", "aegis.cli", "verify",
+        "--project-dir", str(repo),
+        "--diff", str(patch_file),
+        "--base", "HEAD",
+        "--tier", "fast",
+        "--output-dir", str(out_dir),
+        "--unsafe-local"
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+    report_file = out_dir / "report.json"
+    assert report_file.exists(), f"Stderr: {res.stderr}\nStdout: {res.stdout}"
+    report = json.loads(report_file.read_text(encoding="utf-8"))
+
+    # Verified targeted test passes on patched code
+    assert report["verification"]["targeted_tests"]["passed"] is True
+    # Verified environment inspection detected requirements.txt from the applied patch
+    assert "requirements.txt" in report["provenance"]["environment"]["dependency_manifests"]
+
 
 

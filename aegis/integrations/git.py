@@ -100,6 +100,7 @@ def parse_unified_diff(
     file_diffs: Dict[str, List[str]] = {}
     current_file = None
     last_old_file = None
+    pending_header_lines: List[str] = []
     
     for line in raw_diff.splitlines():
         if line.startswith("diff --git "):
@@ -123,10 +124,7 @@ def parse_unified_diff(
                         b_path = parts[1]
                         current_file = (b_path[2:] if b_path.startswith("b/") else b_path).replace("\\", "/")
 
-            if current_file:
-                if current_file not in file_diffs:
-                    file_diffs[current_file] = []
-                file_diffs[current_file].append(line)
+            pending_header_lines = [line]
             continue
         elif line.startswith("--- "):
             raw = line[4:].strip()
@@ -135,10 +133,11 @@ def parse_unified_diff(
             raw_path = raw.split("\t")[0].strip()
             if raw_path.startswith("a/"):
                 last_old_file = raw_path[2:].replace("\\", "/")
-            elif raw_path != "/dev/null":
+            elif raw_path == "/dev/null":
+                last_old_file = None
+            else:
                 last_old_file = raw_path.replace("\\", "/")
-            if current_file:
-                file_diffs[current_file].append(line)
+            pending_header_lines.append(line)
             continue
         elif line.startswith("+++ "):
             raw = line[4:].strip()
@@ -155,10 +154,17 @@ def parse_unified_diff(
             if current_file:
                 if current_file not in file_diffs:
                     file_diffs[current_file] = []
+                file_diffs[current_file].extend(pending_header_lines)
                 file_diffs[current_file].append(line)
+            pending_header_lines = []
             continue
         else:
             if current_file:
+                if pending_header_lines:
+                    if current_file not in file_diffs:
+                        file_diffs[current_file] = []
+                    file_diffs[current_file].extend(pending_header_lines)
+                    pending_header_lines = []
                 file_diffs[current_file].append(line)
 
     affected_files = list(file_diffs.keys())
