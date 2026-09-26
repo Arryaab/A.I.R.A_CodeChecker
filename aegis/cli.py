@@ -18,7 +18,7 @@ from aegis.evals.evaluation import evaluate_benchmark, generate_json_report, gen
 from aegis.core.orchestrator import repair_bug
 from aegis.verification.validator import validate_python
 from aegis.llm import GeminiProvider, OllamaProvider
-from aegis.execution.environment import inspect_repository_environment
+from aegis.execution.environment import inspect_repository_environment, resolve_executed_environment
 
 def get_provider_for_cli(config: AegisConfig):
     if config.model.startswith("ollama/"):
@@ -574,13 +574,11 @@ def main() -> None:
                         "dependency_lock_hash": env_info.dependency_lock_hash,
                         "environment_fingerprint": env_info.environment_fingerprint,
                     },
-                    "executed_environment": {
-                        "sandbox_engine": "docker" if use_docker else "host",
-                        "sandbox_image": docker_image if use_docker else "host",
-                        "python_version": "3.11-slim" if use_docker else env_info.python_version,
-                        "platform": "linux" if use_docker else env_info.platform,
-                        "network_isolated": use_docker,
-                    },
+                    "executed_environment": resolve_executed_environment(
+                        use_docker=use_docker,
+                        docker_image=docker_image,
+                        host_env=env_info,
+                    ).to_dict(),
                     "environment": {
                         "dependency_manifests": env_info.dependency_manifests,
                         "dependency_manifest_hash": env_info.dependency_manifest_hash,

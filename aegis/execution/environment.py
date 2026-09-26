@@ -42,6 +42,18 @@ class ExecutedEnvironment:
     platform: str        # executed runtime platform
     network_isolated: bool
     container_id: Optional[str] = None
+    image_digest: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return {
+            "sandbox_engine": self.sandbox_engine,
+            "sandbox_image": self.sandbox_image,
+            "python_version": self.python_version,
+            "platform": self.platform,
+            "network_isolated": self.network_isolated,
+            "container_id": self.container_id,
+            "image_digest": self.image_digest,
+        }
 
 @dataclass
 class EnvironmentFingerprint:
@@ -68,10 +80,36 @@ class EnvironmentFingerprint:
 def resolve_executed_environment(
     use_docker: bool,
     docker_image: str,
-    host_env: EnvironmentFingerprint,
+    host_env: Optional[EnvironmentFingerprint] = None,
     container_id: Optional[str] = None,
 ) -> ExecutedEnvironment:
     if use_docker:
+        image_digest = None
+        try:
+            import subprocess
+            # Query RepoDigests or image Id for cryptographic container runtime provenance
+            res = subprocess.run(
+                ["docker", "image", "inspect", "--format", "{{index .RepoDigests 0}}", docker_image],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            out = res.stdout.strip()
+            if res.returncode == 0 and out and out != "<no value>":
+                image_digest = out
+            else:
+                id_res = subprocess.run(
+                    ["docker", "image", "inspect", "--format", "{{.Id}}", docker_image],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                id_out = id_res.stdout.strip()
+                if id_res.returncode == 0 and id_out:
+                    image_digest = id_out
+        except Exception:
+            pass
+
         return ExecutedEnvironment(
             sandbox_engine="docker",
             sandbox_image=docker_image,
@@ -79,14 +117,19 @@ def resolve_executed_environment(
             platform="linux",
             network_isolated=True,
             container_id=container_id,
+            image_digest=image_digest,
         )
+
+    py_ver = host_env.python_version if host_env else f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    plat = host_env.platform if host_env else sys.platform
     return ExecutedEnvironment(
         sandbox_engine="host",
         sandbox_image="host",
-        python_version=host_env.python_version,
-        platform=host_env.platform,
+        python_version=py_ver,
+        platform=plat,
         network_isolated=False,
         container_id=None,
+        image_digest=None,
     )
 
 def inspect_repository_environment(repo_dir: Path) -> EnvironmentFingerprint:
@@ -170,18 +213,9 @@ def generate_reproducible_dockerfile(
             "COPY requirements.txt /tmp/requirements.txt",
             "RUN pip install --no-cache-dir -r /tmp/requirements.txt",
         ])
-    elif (repo_dir / "pyproject.toml").exists():
-        lines.extend([
-            "COPY pyproject.toml /workspace/pyproject.toml",
-            "RUN pip install --no-cache-dir -e .",
-        ])
-    elif (repo_dir / "setup.py").exists():
-        lines.extend([
-            "COPY setup.py /workspace/setup.py",
-            "RUN pip install --no-cache-dir -e .",
-        ])
-
     lines.append("COPY . /workspace")
+    if (repo_dir / "pyproject.toml").exists() or (repo_dir / "setup.py").exists():
+        lines.append("RUN pip install --no-cache-dir -e .")
     return "\n".join(lines) + "\n"
 
 def build_sandbox_environment_image(

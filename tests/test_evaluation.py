@@ -205,6 +205,8 @@ def test_environment_dockerfile_generation_fail_closed(tmp_path):
     from aegis.execution.environment import (
         generate_reproducible_dockerfile,
         build_sandbox_environment_image,
+        resolve_executed_environment,
+        inspect_repository_environment,
     )
     import pytest
 
@@ -216,11 +218,46 @@ def test_environment_dockerfile_generation_fail_closed(tmp_path):
     dockerfile = generate_reproducible_dockerfile(repo)
     assert "|| true" not in dockerfile, "Verifiers must fail closed; '|| true' is forbidden in environment builds"
     assert "RUN pip install --no-cache-dir -e ." in dockerfile
+    
+    # Ensure COPY . /workspace strictly precedes RUN pip install --no-cache-dir -e .
+    copy_idx = dockerfile.find("COPY . /workspace")
+    pip_idx = dockerfile.find("RUN pip install --no-cache-dir -e .")
+    assert copy_idx != -1 and pip_idx != -1
+    assert copy_idx < pip_idx, "COPY . /workspace must precede editable install so package sources exist"
+
+    # Hybrid repo with requirements.txt and pyproject.toml
+    hybrid_repo = tmp_path / "hybrid_repo"
+    hybrid_repo.mkdir()
+    (hybrid_repo / "requirements.txt").write_text("pytest>=7.0.0\n", encoding="utf-8")
+    (hybrid_repo / "pyproject.toml").write_text("[project]\nname = 'pkg2'\n", encoding="utf-8")
+    dockerfile_hybrid = generate_reproducible_dockerfile(hybrid_repo)
+    req_copy_idx = dockerfile_hybrid.find("COPY requirements.txt /tmp/requirements.txt")
+    req_pip_idx = dockerfile_hybrid.find("RUN pip install --no-cache-dir -r /tmp/requirements.txt")
+    ws_copy_idx = dockerfile_hybrid.find("COPY . /workspace")
+    e_pip_idx = dockerfile_hybrid.find("RUN pip install --no-cache-dir -e .")
+    assert req_copy_idx < req_pip_idx < ws_copy_idx < e_pip_idx, (
+        "Requirements must be cached first, followed by full workspace copy, followed by editable installation"
+    )
 
     # Empty repo without manifests returns default aegis-sandbox:latest without running docker build
     empty_repo = tmp_path / "empty_repo"
     empty_repo.mkdir()
     assert build_sandbox_environment_image(empty_repo) == "aegis-sandbox:latest"
+
+    # Verify executed environment resolution and provenance
+    env_info = inspect_repository_environment(repo)
+    host_exec = resolve_executed_environment(use_docker=False, docker_image="host", host_env=env_info)
+    assert host_exec.sandbox_engine == "host"
+    assert host_exec.sandbox_image == "host"
+    assert host_exec.network_isolated is False
+    assert host_exec.image_digest is None
+    assert host_exec.to_dict()["sandbox_engine"] == "host"
+
+    docker_exec = resolve_executed_environment(use_docker=True, docker_image="aegis-sandbox:latest", host_env=env_info)
+    assert docker_exec.sandbox_engine == "docker"
+    assert docker_exec.sandbox_image == "aegis-sandbox:latest"
+    assert docker_exec.network_isolated is True
+    assert "image_digest" in docker_exec.to_dict()
 
 
 
