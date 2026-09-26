@@ -9,7 +9,7 @@ from pathlib import Path
 @dataclass
 class AegisConfig:
     """Central configuration for Aegis-Lite."""
-    model: str = "gemini-2.0-flash"
+    model: str = "gemini-3.8-flash"
     max_retries: int = 3
     timeout_seconds: int = 60
     sandbox_enabled: bool = False

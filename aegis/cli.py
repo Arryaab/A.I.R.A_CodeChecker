@@ -7,9 +7,14 @@ from pathlib import Path
 from aegis.benchmark import Benchmark
 from aegis.config import load_config, AegisConfig
 from aegis.evaluation import evaluate_benchmark, generate_json_report, generate_markdown_report
-from aegis.llm import GeminiProvider
 from aegis.repair import repair_bug
 from aegis.validator import validate_python
+from aegis.llm import GeminiProvider, OllamaProvider
+
+def get_provider_for_cli(config: AegisConfig):
+    if config.model.startswith("ollama/"):
+        return OllamaProvider(model=config.model.replace("ollama/", ""))
+    return GeminiProvider(api_key=config.api_key, model=config.model)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Aegis-Lite: LLM-based program repair")
@@ -18,13 +23,13 @@ def main() -> None:
     # Repair
     repair_parser = subparsers.add_parser("repair", help="Repair a single buggy project")
     repair_parser.add_argument("--project-dir", type=str, required=True)
-    repair_parser.add_argument("--model", type=str, default="gemini-2.0-flash")
+    repair_parser.add_argument("--model", type=str, default="gemini-3.8-flash")
     repair_parser.add_argument("--max-retries", type=int, default=3)
     
     # Evaluate
     eval_parser = subparsers.add_parser("evaluate", help="Run evaluation on a benchmark suite")
     eval_parser.add_argument("--benchmark", type=str, required=True)
-    eval_parser.add_argument("--model", type=str, default="gemini-2.0-flash")
+    eval_parser.add_argument("--model", type=str, default="gemini-3.8-flash")
     eval_parser.add_argument("--output", type=str, default="results")
     
     # Validate
@@ -42,7 +47,7 @@ def main() -> None:
             config = load_config()
             config.model = args.model
             config.max_retries = args.max_retries
-            provider = GeminiProvider(api_key=config.api_key, model=config.model)
+            provider = get_provider_for_cli(config)
             
             print(f"Repairing project in {args.project_dir} with {args.model}...")
             result = repair_bug(
@@ -56,7 +61,7 @@ def main() -> None:
         elif args.command == "evaluate":
             config = load_config()
             config.model = args.model
-            provider = GeminiProvider(api_key=config.api_key, model=config.model)
+            provider = get_provider_for_cli(config)
             
             benchmark = Benchmark.load(args.benchmark)
             print(benchmark.summary())

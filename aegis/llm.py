@@ -48,7 +48,7 @@ class LLMProvider(ABC):
 
 class GeminiProvider(LLMProvider):
     """Uses google-generativeai SDK if available. Falls back to REST API via urllib."""
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash", temperature: float = 0.2):
+    def __init__(self, api_key: str, model: str = "gemini-3.8-flash", temperature: float = 0.2):
         self.api_key = api_key
         self._model = model
         self.temperature = temperature
@@ -69,8 +69,8 @@ class GeminiProvider(LLMProvider):
 
     def ask(self, prompt: str, system: str = "") -> LLMResponse:
         start_time = time.time()
-        max_retries = 3
-        
+        max_retries = 5
+
         for attempt in range(max_retries):
             try:
                 if self.use_sdk:
@@ -78,21 +78,53 @@ class GeminiProvider(LLMProvider):
                 else:
                     return self._ask_rest(prompt, system, start_time)
             except Exception as e:
-                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                error_str = str(e)
+                is_rate_limit = "429" in error_str or "quota" in error_str.lower()
+
                 if attempt == max_retries - 1:
                     raise
-                time.sleep(2 ** attempt)  # Exponential backoff
-        
+
+                if is_rate_limit:
+                    # Parse retry delay from error if available,
+                    # otherwise default to 60s for rate limits.
+                    wait = self._parse_retry_delay(error_str)
+                    logger.warning(
+                        f"Rate limited (attempt {attempt + 1}). "
+                        f"Waiting {wait}s before retry..."
+                    )
+                    time.sleep(wait)
+                else:
+                    wait = min(2 ** attempt, 16)
+                    logger.warning(
+                        f"Attempt {attempt + 1} failed: {e}. "
+                        f"Retrying in {wait}s..."
+                    )
+                    time.sleep(wait)
+
         raise RuntimeError("Failed to generate response from Gemini API.")
+
+    @staticmethod
+    def _parse_retry_delay(error_str: str) -> float:
+        """Extract retry_delay seconds from Gemini API error message."""
+        import re
+        match = re.search(r'retry in (\d+(?:\.\d+)?)s', error_str, re.IGNORECASE)
+        if match:
+            return float(match.group(1)) + 2  # Add 2s buffer
+        match = re.search(r'retry_delay\s*\{\s*seconds:\s*(\d+)', error_str)
+        if match:
+            return float(match.group(1)) + 2
+        return 62  # Default: wait just over 1 minute
 
     def _ask_sdk(self, prompt: str, system: str, start_time: float) -> LLMResponse:
         generation_config = self.genai.types.GenerationConfig(
             temperature=self.temperature
         )
-        model = self.genai.GenerativeModel(
-            model_name=self._model,
-            system_instruction=system
-        )
+        # Only pass system_instruction when non-empty — Gemini SDK
+        # rejects empty strings with "'content' argument must not be empty".
+        model_kwargs = {"model_name": self._model}
+        if system:
+            model_kwargs["system_instruction"] = system
+        model = self.genai.GenerativeModel(**model_kwargs)
         
         response = model.generate_content(
             prompt,
@@ -116,9 +148,6 @@ class GeminiProvider(LLMProvider):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:generateContent?key={self.api_key}"
         
         payload = {
-            "system_instruction": {
-                "parts": [{"text": system}]
-            },
             "contents": [
                 {
                     "parts": [{"text": prompt}]
@@ -128,6 +157,11 @@ class GeminiProvider(LLMProvider):
                 "temperature": self.temperature
             }
         }
+        # Only include system_instruction when non-empty.
+        if system:
+            payload["system_instruction"] = {
+                "parts": [{"text": system}]
+            }
         
         req = urllib.request.Request(
             url, 
@@ -154,6 +188,56 @@ class GeminiProvider(LLMProvider):
             duration_seconds=duration
         )
 
+class OllamaProvider(LLMProvider):
+    """Uses a local Ollama instance (no API key required)."""
+    def __init__(self, model: str = "qwen2.5-coder", temperature: float = 0.2):
+        self._model = model
+        self.temperature = temperature
+        self.endpoint = "http://localhost:11434/api/generate"
+
+    @property
+    def name(self) -> str:
+        return f"ollama/{self._model}"
+
+    def ask(self, prompt: str, system: str = "") -> LLMResponse:
+        start_time = time.time()
+        
+        payload = {
+            "model": self._model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": self.temperature
+            }
+        }
+        if system:
+            payload["system"] = system
+
+        req = urllib.request.Request(
+            self.endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        
+        try:
+            with urllib.request.urlopen(req) as response:
+                result = json.loads(response.read().decode("utf-8"))
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Failed to connect to Ollama at {self.endpoint}. Is Ollama running? Error: {e}")
+            
+        text = result.get("response", "")
+        
+        duration = time.time() - start_time
+        prompt_tokens = result.get("prompt_eval_count", 0)
+        completion_tokens = result.get("eval_count", 0)
+        
+        return LLMResponse(
+            content=text,
+            model=self._model,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            duration_seconds=duration
+        )
 
 class MockProvider(LLMProvider):
     """Returns pre-configured responses. For testing."""

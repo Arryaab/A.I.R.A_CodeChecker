@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from aegis.config import AegisConfig
-from aegis.llm import LLMProvider, LLMResponse, build_repair_prompt
+from aegis.llm import LLMProvider, LLMResponse, build_repair_prompt, SYSTEM_PROMPT
 from aegis.patcher import apply_patch, copy_project, parse_llm_patch
 from aegis.runner import TestResult
 from aegis.sandbox import run_tests_sandboxed
@@ -94,7 +94,7 @@ def repair_bug(
         )
         
         try:
-            llm_res = provider.ask(prompt)
+            llm_res = provider.ask(prompt, system=SYSTEM_PROMPT)
             total_tokens += llm_res.prompt_tokens + llm_res.completion_tokens
             patch = parse_llm_patch(llm_res.content)
             

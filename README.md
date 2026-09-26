@@ -46,17 +46,37 @@ cd aegis-lite
 pip install -e .
 ```
 
-### API Key Setup
-Get an API key from Google AI Studio or your preferred provider.
+### AI Provider Setup
+Aegis-Lite supports both cloud APIs (Gemini) and local, private models (Ollama).
+
+**Option A: Local AI (Free, No API Key Required)**
+1. Install [Ollama](https://ollama.com) on your machine.
+2. Pull a coding model: `ollama run qwen2.5-coder:7b` (or `llama3`).
+3. Aegis-Lite will automatically detect and use Ollama if no API key is provided!
+
+**Option B: Gemini Cloud (Faster)**
+Get a free API key from Google AI Studio.
 ```bash
-cp .env.example .env
-# Edit .env and add your API key
+set AEGIS_API_KEY=your-api-key
 ```
 
 ### Running a Repair
 ```bash
 python -m aegis.cli repair --project-dir examples/sample_project
 ```
+
+## Web Editor (Experimental)
+
+Aegis-Lite includes a Programiz-style web-based Python editor with real-time syntax checking, multi-error reporting, and AI auto-fixing.
+
+**To run the editor:**
+```bash
+set AEGIS_API_KEY=your-api-key
+python aegis_editor.py
+```
+Then navigate to `http://localhost:5000` in your browser.
+
+> **Warning:** The web editor runs arbitrary user code locally without the Docker sandboxing used by the CLI. It is meant for local use and demonstrations only. Do not deploy it to a public server without adding proper isolation.
 
 ## Usage
 
