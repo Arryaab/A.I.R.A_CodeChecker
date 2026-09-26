@@ -55,7 +55,16 @@ def run_tests_sandboxed(
 
     try:
         create_res = subprocess.run(
-            ["docker", "create", docker_image],
+            [
+                "docker", "create",
+                "--network", "none",
+                "--cpus", "1.0",
+                "--memory", "512m",
+                "--pids-limit", "50",
+                "--security-opt", "no-new-privileges",
+                "--cap-drop", "ALL",
+                docker_image
+            ],
             capture_output=True, text=True, check=True
         )
         container_id = create_res.stdout.strip()
@@ -82,12 +91,13 @@ def run_tests_sandboxed(
             tests_error=0,
             summary_line="Docker run completed",
         )
-        subprocess.run(["docker", "rm", container_id], capture_output=True)
         return SandboxResult(test_result=test_result, used_sandbox=True, container_id=container_id)
     except subprocess.TimeoutExpired as e:
-        subprocess.run(["docker", "rm", "-f", container_id], capture_output=True)
         tr = TestResult(False, PYTEST_EXIT_INTERNAL_ERROR, "", str(e), float(timeout), 0, 0, 0, "Timeout")
         return SandboxResult(test_result=tr, used_sandbox=True, container_id=container_id)
     except Exception as e:
         tr = TestResult(False, PYTEST_EXIT_INTERNAL_ERROR, "", str(e), 0.0, 0, 0, 0, "Error")
-        return SandboxResult(test_result=tr, used_sandbox=True)
+        return SandboxResult(test_result=tr, used_sandbox=True, container_id=container_id if 'container_id' in locals() else "")
+    finally:
+        if 'container_id' in locals() and container_id:
+            subprocess.run(["docker", "rm", "-f", container_id], capture_output=True)
