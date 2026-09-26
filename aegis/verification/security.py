@@ -68,6 +68,12 @@ class SecurityScanner:
             if not scan_tests and ("tests/" in filepath.replace("\\", "/") or filepath.startswith("tests")):
                 continue
             
+            # Check for suspicious security-critical file deletions
+            if getattr(change, "status", "") == "D":
+                if any(k in filepath.lower() for k in ["auth", "security", "guardrail", "policy", "token"]):
+                    issues.append(f"Security-critical module deletion detected: `{filepath}`")
+                continue
+            
             # Check added lines only for regex patterns
             added_text = "\n".join(getattr(change, "added_lines", []))
             for pattern, desc in self.SECRET_PATTERNS:

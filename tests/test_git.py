@@ -9,5 +9,7 @@ def test_get_git_diff():
     assert isinstance(change.modified_files, list)
     assert isinstance(change.added_files, list)
     assert isinstance(change.deleted_files, list)
+    assert isinstance(change.renamed_files, list)
+    assert isinstance(change.patches, dict)
     assert change.base == "HEAD~1"
     assert change.head == "HEAD"
