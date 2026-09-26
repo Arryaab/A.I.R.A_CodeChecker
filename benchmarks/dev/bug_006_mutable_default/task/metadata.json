@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_006_mutable_default",
+  "category": "mutable_default",
+  "difficulty": "medium",
+  "description": "A append_to_list(item, lst=[]) function with the classic mutable default argument bug.",
+  "expected_behavior": "Change lst=[] to lst=None and initialize inside",
+  "tags": [
+    "python-gotcha",
+    "mutable-default",
+    "lists"
+  ]
+}

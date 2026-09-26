@@ -1,7 +1,0 @@
-{
-    "bug_id": "bug_003_missing_return",
-    "description": "A is_even(n) function that checks if n is even but forgets to return False for odd numbers.",
-    "category": "missing_return",
-    "difficulty": "easy",
-    "expected_fix": "Add `return False` or just `return n % 2 == 0`"
-}

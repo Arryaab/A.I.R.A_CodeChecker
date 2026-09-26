@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_002_off_by_one",
+  "category": "boundary_error",
+  "difficulty": "easy",
+  "description": "A range_sum(start, end) function that sums integers from start to end INCLUSIVE, but uses range(start, end).",
+  "expected_behavior": "Change range(start, end) to range(start, end + 1)",
+  "tags": [
+    "boundary",
+    "loop",
+    "range"
+  ]
+}

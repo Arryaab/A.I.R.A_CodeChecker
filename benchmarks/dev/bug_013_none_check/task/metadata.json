@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_013_none_check",
+  "category": "none_check",
+  "difficulty": "medium",
+  "description": "A first_positive(numbers) function that returns the first positive number from a list, or None if none exist. Doesn't handle empty list.",
+  "expected_behavior": "Handle empty list correctly instead of crashing",
+  "tags": [
+    "index-error",
+    "empty-list",
+    "none-check"
+  ]
+}

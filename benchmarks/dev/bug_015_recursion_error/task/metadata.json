@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_015_recursion_error",
+  "category": "recursion_error",
+  "difficulty": "hard",
+  "description": "A flatten(nested_list) function that flattens a nested list recursively but has a wrong base case.",
+  "expected_behavior": "Fix the type check to handle all iterables properly, or just list and tuple",
+  "tags": [
+    "recursion",
+    "isinstance",
+    "tuples"
+  ]
+}

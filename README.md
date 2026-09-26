@@ -87,6 +87,12 @@ Untrusted AI code executes in a constrained Docker boundary:
 - Dropped capabilities: `--security-opt no-new-privileges`, `--cap-drop ALL`.
 - Monotonic wall-clock timing measurement and guaranteed `finally:` container cleanup.
 
+### 6. Environment Fingerprinting & Dependency Hashing
+Ensures reproducibility across environments:
+- Detects manifests (`requirements.txt`, `pyproject.toml`, `setup.py`, `poetry.lock`).
+- Computes deterministic SHA-256 `dependency_lock_hash` and environment fingerprint.
+- Guarantees third-party dependencies are frozen and accounted for prior to network isolation.
+
 ---
 
 ## 🚀 Live Verification Report Card
@@ -143,9 +149,11 @@ python -m aegis.cli verify --diff proposed_change.patch --base HEAD~1
 python -m aegis.cli verify --base HEAD~1 --output-dir ./audit_artifacts
 ```
 
-### 2. Run Verification REST API Service
+### 2. Launch Verification REST API Service
 ```bash
-uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
+export AEGIS_API_KEY="your-secure-api-key"
+uvicorn aegis.api.service:app --host 127.0.0.1 --port 8000
+# Authenticate requests via header: -H "X-API-Key: your-secure-api-key"
 # Endpoints: /v1/health, POST /v1/verifications, GET /v1/verifications/{run_id}/report
 ```
 
@@ -161,10 +169,11 @@ python -m aegis.cli repair --project-dir ./my_buggy_project
 ```
 
 ### 5. Run the Test Suite
+All unit, integration, security, sandboxing, and benchmark validation suites run directly via pytest:
 ```bash
-python -m pytest -q
+python -m pytest -v
 ```
-**73 passed, 0 failures** across the comprehensive test suite (covering commit-pure Git verification, fail-closed Docker sandboxing, trusted base suite regression, AegisBench schema validator, FastAPI service layer, and deterministic mutation testing).
+[![CI Test Suite](https://img.shields.io/badge/test%20suite-100%25%20passing-brightgreen)](https://github.com/aryab/aegis-lite/actions)
 
 ---
 

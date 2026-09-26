@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_009_loop_boundary",
+  "category": "loop_error",
+  "difficulty": "medium",
+  "description": "A fibonacci(n) function that returns the nth Fibonacci number but has a loop boundary error.",
+  "expected_behavior": "Fix the loop range to compute exactly n times, or change the condition",
+  "tags": [
+    "loop-boundary",
+    "iteration",
+    "fibonacci"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_012_dict_error",
+  "category": "dict_error",
+  "difficulty": "medium",
+  "description": "A word_frequency(text) function that counts word frequencies but always sets count to 1.",
+  "expected_behavior": "Increment the count instead of setting it to 1",
+  "tags": [
+    "dictionary",
+    "counting",
+    "frequency"
+  ]
+}

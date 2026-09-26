@@ -1,7 +1,0 @@
-{
-    "bug_id": "bug_001_wrong_operator",
-    "description": "A subtract(a, b) function that uses + instead of -.",
-    "category": "operator_error",
-    "difficulty": "easy",
-    "expected_fix": "Change a + b to a - b"
-}

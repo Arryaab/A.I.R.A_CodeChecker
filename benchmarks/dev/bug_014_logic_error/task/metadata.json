@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_014_logic_error",
+  "category": "logic_error",
+  "difficulty": "medium",
+  "description": "A is_leap_year(year) function that has the leap year logic wrong (missing century exception).",
+  "expected_behavior": "Add logic for year % 100 == 0 and year % 400 == 0",
+  "tags": [
+    "logic-error",
+    "calendar",
+    "leap-year"
+  ]
+}

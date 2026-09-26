@@ -1,7 +1,0 @@
-{
-    "bug_id": "bug_007_wrong_index",
-    "description": "A second_largest(numbers) function that finds the second largest element but has an off-by-one index error.",
-    "category": "index_error",
-    "difficulty": "medium",
-    "expected_fix": "Fix indexing to access the second to last element after sorting"
-}

@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,6 @@
+ def first_positive(numbers):
+-    if numbers[0] > 0:
+-        return numbers[0]
++    if not numbers:
++        return None
+     for n in numbers:
+         if n > 0:
+             return n

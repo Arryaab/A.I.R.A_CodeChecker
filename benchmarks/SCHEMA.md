@@ -8,18 +8,18 @@ To prevent benchmark leakage, data contamination, and evaluation bias (as addres
 
 ```text
 task_id/
-├── PUBLIC (Exposed to Autonomous Coding Agent)
+├── task/                     # PUBLIC: Exposed to Autonomous Coding Agent
 │   ├── problem.md            # Problem description, requirements, and error context
 │   ├── metadata.json         # Task metadata (bug_id, category, difficulty)
 │   ├── buggy/                # Isolated repository snapshot containing the defect
 │   └── tests/                # Visible test suite provided to the agent
 │       └── test_solution.py
 │
-└── PRIVATE (Retained exclusively by Aegis Evaluator — Never exposed to agent)
+└── private/                  # PRIVATE: Retained exclusively by Aegis Evaluator (never exposed)
     ├── provenance.json       # Ground-truth source repository, commit SHA, and verified issue
     ├── constraints.yaml      # Non-functional constraints (API stability, latency, memory)
     ├── hidden_tests/         # Hidden functional & regression test suite
-    │   └── test_hidden.py
+    │   └── test_solution.py
     └── oracle_patch.diff     # Gold standard verified human patch
 ```
 

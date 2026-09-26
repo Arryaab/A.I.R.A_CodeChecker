@@ -1,7 +1,0 @@
-{
-    "bug_id": "bug_010_missing_edge_case",
-    "description": "A safe_divide(a, b) function that divides a by b but doesn't handle b=0.",
-    "category": "edge_case",
-    "difficulty": "easy",
-    "expected_fix": "Add check for b == 0 and return None"
-}

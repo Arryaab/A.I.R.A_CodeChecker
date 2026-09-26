@@ -125,4 +125,57 @@ def test_audit_report_schema_1_0(tmp_path):
     assert data["decision"]["technical_verdict"] in ("QUALIFIED", "QUALIFIED_WITHIN_SCOPE", "FAILED")
     assert data["decision"]["release_policy"] in ("AUTO_APPROVE", "REVIEW", "BLOCK")
 
+def test_audit_provenance_cryptographic_integrity(tmp_path):
+    import subprocess
+    import hashlib
+    from aegis.execution.environment import inspect_repository_environment
+    
+    # Initialize a test git repo
+    repo = tmp_path / "provenance_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Tester"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "tester@aegis.dev"], cwd=repo, check=True, capture_output=True)
+
+    # Commit 1
+    (repo / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    (repo / "requirements.txt").write_text("pytest>=7.0.0\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "initial commit"], cwd=repo, check=True, capture_output=True)
+
+    # Commit 2
+    (repo / "calc.py").write_text("def add(a, b): return a + b + 0\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "second commit"], cwd=repo, check=True, capture_output=True)
+
+    # Resolve SHAs directly
+    res_base = subprocess.run(["git", "rev-parse", "HEAD~1"], cwd=repo, capture_output=True, text=True, check=True)
+    base_sha = res_base.stdout.strip()
+    res_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True)
+    head_sha = res_head.stdout.strip()
+
+    assert len(base_sha) == 40
+    assert len(head_sha) == 40
+    assert base_sha != head_sha
+    assert all(c in "0123456789abcdef" for c in base_sha.lower())
+    assert all(c in "0123456789abcdef" for c in head_sha.lower())
+
+    # Diff hash verification
+    res_diff = subprocess.run(["git", "diff", "HEAD~1..HEAD"], cwd=repo, capture_output=True, text=True, check=True)
+    diff_text = res_diff.stdout
+    expected_diff_sha256 = hashlib.sha256(diff_text.encode("utf-8")).hexdigest()
+    assert len(expected_diff_sha256) == 64
+    assert expected_diff_sha256 != hashlib.sha256(b"").hexdigest()
+
+    # Environment fingerprint
+    env_info = inspect_repository_environment(repo)
+    assert "requirements.txt" in env_info.dependency_manifests
+    assert len(env_info.dependency_lock_hash) == 64
+    assert len(env_info.environment_fingerprint) == 64
+
+    # Fail closed on invalid ref
+    bad_res = subprocess.run(["git", "rev-parse", "--verify", "invalid_ref_xyz_123"], cwd=repo, capture_output=True, text=True)
+    assert bad_res.returncode != 0
+
+
 

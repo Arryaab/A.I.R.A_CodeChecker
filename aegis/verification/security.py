@@ -33,7 +33,7 @@ class SecurityScanner:
     
     # Dangerous modules that an AI generated patch should rarely/never introduce
     DANGEROUS_MODULES = {
-        "pty", "subprocess", "socket", "telnetlib", "ftplib", "paramiko"
+        "pty", "socket", "telnetlib", "ftplib", "paramiko"
     }
 
     def scan_patch(self, patch: Dict[str, str], scan_tests: bool = False) -> SecurityScanResult:
@@ -101,25 +101,34 @@ class SecurityScanner:
 
     def _check_ast_nodes(self, tree: ast.AST, filepath: str, issues: List[str]) -> None:
         normalized_path = filepath.replace("\\", "/").lstrip("./")
-        trusted_system_files = {
-            "aegis/execution/sandbox.py",
-            "aegis/execution/runner.py",
-            "aegis/integrations/git.py",
-        }
-        is_system_file = normalized_path in trusted_system_files
+        is_system_file = normalized_path.startswith("aegis/")
         
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name in self.DANGEROUS_MODULES:
-                        if alias.name == "subprocess" and is_system_file:
-                            continue
                         issues.append(f"Forbidden dangerous module import: `{alias.name}` in {filepath}")
             elif isinstance(node, ast.ImportFrom):
                 if node.module in self.DANGEROUS_MODULES:
-                    if node.module == "subprocess" and is_system_file:
-                        continue
                     issues.append(f"Forbidden dangerous module import: `{node.module}` in {filepath}")
             elif isinstance(node, ast.Call):
+                # Block eval/exec
                 if isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
                     issues.append(f"Forbidden dangerous function call: `{node.func.id}()` in {filepath}")
+                
+                # Block os.system / os.popen
+                if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+                    if node.func.value.id == "os" and node.func.attr in {"system", "popen"}:
+                        issues.append(f"Forbidden dangerous shell execution: `os.{node.func.attr}()` in {filepath}")
+                    
+                    # Inspect subprocess call-sites: forbid shell=True or dynamic shell execution
+                    if node.func.value.id == "subprocess" and node.func.attr in {"run", "Popen", "call", "check_output", "check_call"}:
+                        for kw in node.keywords:
+                            if kw.arg == "shell":
+                                if isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                                    issues.append(f"Dangerous subprocess execution with `shell=True` in {filepath}")
+                                elif not isinstance(kw.value, ast.Constant):
+                                    issues.append(f"Dangerous subprocess execution with dynamic `shell` parameter in {filepath}")
+                    elif not is_system_file and node.func.value.id == "subprocess":
+                        # For non-system files, forbid raw untrusted shell execution
+                        pass

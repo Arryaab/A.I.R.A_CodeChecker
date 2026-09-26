@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from aegis.evals.benchmark import Benchmark
 
 def test_benchmark_loading(tmp_path):
@@ -41,7 +42,7 @@ def test_benchmark_missing_metadata(tmp_path, caplog):
     
     bench = Benchmark.load(bench_dir)
     assert len(bench) == 1
-    assert bench[0].bug_id == "bug_1" # Falls back to dir name
+    assert bench[0].bug_id == "bug_1"
 
 def test_benchmark_summary(tmp_path):
     bench_dir = tmp_path / "bench"
@@ -61,18 +62,32 @@ def test_benchmark_validation(tmp_path):
     bench_dir.mkdir()
     bug1 = bench_dir / "bug_1"
     bug1.mkdir()
-    buggy_dir = bug1 / "buggy"
-    buggy_dir.mkdir()
-    (buggy_dir / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
-    tests_dir = bug1 / "tests"
-    tests_dir.mkdir()
-    (tests_dir / "test_calc.py").write_text("def test_add(): pass\n", encoding="utf-8")
-    (bug1 / "hidden_tests").mkdir()
-    (bug1 / "metadata.json").write_text(json.dumps({
+
+    # Public task
+    task_dir = bug1 / "task"
+    (task_dir / "buggy").mkdir(parents=True)
+    (task_dir / "buggy" / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    (task_dir / "tests").mkdir(parents=True)
+    (task_dir / "tests" / "test_calc.py").write_text("def test_add(): pass\n", encoding="utf-8")
+    (task_dir / "problem.md").write_text("# Add two numbers\nDescription here\n", encoding="utf-8")
+    (task_dir / "metadata.json").write_text(json.dumps({
         "bug_id": "bug_1",
         "category": "arithmetic",
+        "difficulty": "easy",
         "description": "valid task"
     }), encoding="utf-8")
+
+    # Private evaluator
+    priv_dir = bug1 / "private"
+    (priv_dir / "hidden_tests").mkdir(parents=True)
+    (priv_dir / "hidden_tests" / "test_calc.py").write_text("def test_hidden(): pass\n", encoding="utf-8")
+    (priv_dir / "provenance.json").write_text(json.dumps({
+        "repository": "https://github.com/aegis-verifier/aegis-benchmarks",
+        "base_commit": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "verified_by": "test_suite"
+    }), encoding="utf-8")
+    (priv_dir / "constraints.yaml").write_text("constraints:\n  max_files_modified: 1\n", encoding="utf-8")
+    (priv_dir / "oracle_patch.diff").write_text("--- a/calc.py\n+++ b/calc.py\n@@ -1 +1 @@\n", encoding="utf-8")
     
     bench = Benchmark.load(bench_dir)
     issues = bench.validate()
@@ -96,3 +111,35 @@ def test_benchmark_validation_failure(tmp_path):
     assert len(errors) > 0
     assert any("Syntax error" in e.issue for e in errors)
 
+def test_benchmark_contamination_detection(tmp_path):
+    bench_dir = tmp_path / "contaminated_bench"
+    bench_dir.mkdir()
+    bug1 = bench_dir / "bug_leaked"
+    bug1.mkdir()
+
+    task_dir = bug1 / "task"
+    (task_dir / "buggy").mkdir(parents=True)
+    (task_dir / "buggy" / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    (task_dir / "tests").mkdir(parents=True)
+    (task_dir / "tests" / "test_calc.py").write_text("def test_add(): pass\n", encoding="utf-8")
+    (task_dir / "problem.md").write_text("description", encoding="utf-8")
+    (task_dir / "metadata.json").write_text(json.dumps({
+        "bug_id": "bug_leaked", "category": "arithmetic", "difficulty": "easy", "description": "desc"
+    }), encoding="utf-8")
+
+    # Contamination: hidden_tests leaked into public task directory
+    (task_dir / "hidden_tests").mkdir(parents=True)
+
+    priv_dir = bug1 / "private"
+    (priv_dir / "hidden_tests").mkdir(parents=True)
+    (priv_dir / "hidden_tests" / "test_calc.py").write_text("def test_hidden(): pass\n", encoding="utf-8")
+    (priv_dir / "provenance.json").write_text(json.dumps({
+        "repository": "repo", "base_commit": "abc", "verified_by": "test"
+    }), encoding="utf-8")
+    (priv_dir / "constraints.yaml").write_text("constraints: none\n", encoding="utf-8")
+    (priv_dir / "oracle_patch.diff").write_text("diff\n", encoding="utf-8")
+
+    bench = Benchmark.load(bench_dir)
+    issues = bench.validate()
+    errors = [i for i in issues if i.severity == "ERROR"]
+    assert any("Benchmark contamination error" in e.issue for e in errors)

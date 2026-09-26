@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_003_missing_return",
+  "category": "missing_return",
+  "difficulty": "easy",
+  "description": "A is_even(n) function that checks if n is even but forgets to return False for odd numbers.",
+  "expected_behavior": "Add `return False` or just `return n % 2 == 0`",
+  "tags": [
+    "boolean",
+    "control-flow",
+    "modulo"
+  ]
+}

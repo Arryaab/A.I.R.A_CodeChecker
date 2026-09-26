@@ -1,0 +1,12 @@
+{
+  "bug_id": "bug_005_wrong_variable",
+  "category": "variable_error",
+  "difficulty": "easy",
+  "description": "A celsius_to_fahrenheit(celsius) function that uses the wrong variable in the formula.",
+  "expected_behavior": "Change the wrongly named variable to celsius",
+  "tags": [
+    "math",
+    "variable-scope",
+    "conversion"
+  ]
+}

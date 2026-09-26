@@ -1,0 +1,10 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,6 +2,6 @@
+     max_val = a
+     if b > max_val:
+         max_val = b
+-    if c < max_val:
++    if c > max_val:
+         max_val = c
+     return max_val

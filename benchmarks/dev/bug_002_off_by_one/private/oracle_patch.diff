@@ -1,0 +1,9 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,5 +1,5 @@
+ def range_sum(start, end):
+     total = 0
+-    for i in range(start, end):
++    for i in range(start, end + 1):
+         total += i
+     return total

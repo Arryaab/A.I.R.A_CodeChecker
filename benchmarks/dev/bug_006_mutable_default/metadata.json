@@ -1,7 +1,0 @@
-{
-    "bug_id": "bug_006_mutable_default",
-    "description": "A append_to_list(item, lst=[]) function with the classic mutable default argument bug.",
-    "category": "mutable_default",
-    "difficulty": "medium",
-    "expected_fix": "Change lst=[] to lst=None and initialize inside"
-}

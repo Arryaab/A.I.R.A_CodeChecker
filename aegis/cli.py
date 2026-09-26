@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
-import sys
-import logging
+import hashlib
 import json
+import logging
+import subprocess
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +18,7 @@ from aegis.evals.evaluation import evaluate_benchmark, generate_json_report, gen
 from aegis.core.orchestrator import repair_bug
 from aegis.verification.validator import validate_python
 from aegis.llm import GeminiProvider, OllamaProvider
+from aegis.execution.environment import inspect_repository_environment
 
 def get_provider_for_cli(config: AegisConfig):
     if config.model.startswith("ollama/"):
@@ -405,7 +408,8 @@ def main() -> None:
                     perf_verdict = f"⚡ Skipped ({active_tier} Tier)"
 
             # Print Verification Card
-            print(f"Correctness:        {correctness_verdict} ({len(selected_tests)} targeted test files passed in {selected_res.test_result.duration_seconds}s)")
+            targeted_status = "passed" if targeted_passed else "failed"
+            print(f"Correctness:        {correctness_verdict} ({len(selected_tests)} targeted test files {targeted_status} in {selected_res.test_result.duration_seconds}s)")
             print(f"Regression:         {regression_verdict}")
             print(f"Security:           {security_verdict} (AST imports + added lines scanned)")
             print(f"Mutation Score:     {mutation_verdict}")
@@ -467,24 +471,48 @@ def main() -> None:
 
             print(f"Release Policy:     {release_policy} {policy_icon} ({policy_reason})")
 
-            # Exact Git SHAs and diff provenance
-            def _get_exact_sha(repo: Path, ref_name: str) -> str:
-                try:
-                    res = subprocess.run(["git", "rev-parse", ref_name], cwd=repo, capture_output=True, text=True, check=True)
-                    return res.stdout.strip()
-                except Exception:
-                    return ref_name
-
-            base_sha = _get_exact_sha(proj, args.base or "HEAD~1")
-            head_sha = _get_exact_sha(proj, args.head or "HEAD")
-            try:
-                raw_diff_content = raw if args.diff else subprocess.check_output(
-                    ["git", "diff", f"{args.base or 'HEAD~1'}..{args.head or 'HEAD'}"],
-                    cwd=proj, text=True, errors="replace"
+            # Exact Git SHAs and diff provenance (fail-closed, no silent fallback)
+            def _resolve_git_sha(repo: Path, ref_name: str) -> str:
+                res = subprocess.run(
+                    ["git", "rev-parse", "--verify", ref_name],
+                    cwd=repo,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace"
                 )
-            except Exception:
+                if res.returncode != 0:
+                    err = res.stderr.strip() if res.stderr else f"exit code {res.returncode}"
+                    raise RuntimeError(
+                        f"Commit-pure verification error: Failed to resolve Git ref '{ref_name}' into commit SHA ({err}). "
+                        "Aegis refuses to proceed without verified Git commit provenance."
+                    )
+                sha = res.stdout.strip()
+                if len(sha) != 40 or not all(c in "0123456789abcdefABCDEF" for c in sha):
+                    raise RuntimeError(
+                        f"Commit-pure verification error: Ref '{ref_name}' resolved to invalid commit SHA '{sha}' "
+                        "(expected 40-character hexadecimal SHA)."
+                    )
+                return sha.lower()
+
+            if args.diff:
+                base_sha = _resolve_git_sha(proj, args.base or "HEAD")
+                raw_diff_content = raw
+                diff_sha256 = hashlib.sha256(raw_diff_content.encode("utf-8")).hexdigest()
+                head_sha = f"patch:{diff_sha256[:12]}"
+            elif args.base:
+                base_sha = _resolve_git_sha(proj, args.base)
+                head_sha = _resolve_git_sha(proj, args.head or "HEAD")
+                raw_diff_content = git_change.raw_diff if git_change else ""
+                diff_sha256 = hashlib.sha256(raw_diff_content.encode("utf-8")).hexdigest()
+            else:
+                base_sha = _resolve_git_sha(proj, "HEAD")
+                head_sha = base_sha
                 raw_diff_content = ""
-            diff_sha256 = hashlib.sha256(raw_diff_content.encode("utf-8")).hexdigest()
+                diff_sha256 = hashlib.sha256(b"").hexdigest()
+
+            # Environment inspection & dependency hashing
+            env_info = inspect_repository_environment(proj)
 
             # Generate Machine-Readable Audit Report Artifact (Schema 1.0)
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -510,12 +538,18 @@ def main() -> None:
                     "base_sha": base_sha,
                     "head_sha": head_sha,
                     "diff_sha256": diff_sha256,
-                    "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-                    "platform": sys.platform,
+                    "python_version": env_info.python_version,
+                    "platform": env_info.platform,
                     "sandbox": {
                         "required": require_sandbox,
                         "used": use_docker,
                         "docker_available": is_docker_available(),
+                    },
+                    "environment": {
+                        "dependency_manifests": env_info.dependency_manifests,
+                        "dependency_lock_hash": env_info.dependency_lock_hash,
+                        "environment_fingerprint": env_info.environment_fingerprint,
+                        "sandbox_engine": env_info.sandbox,
                     },
                 },
                 "change": {
