@@ -153,11 +153,17 @@ def fix_code():
     """Send code + error to LLM and get a fix."""
     code = request.json.get("code", "")
     error_info = request.json.get("error", "")
+    model_override = request.json.get("model", MODEL)
 
-    if not API_KEY:
+    # Use explicitly requested model, or fallback to environment config
+    requested_model = model_override if model_override else MODEL
+    
+    use_ollama = not API_KEY or requested_model.startswith("ollama/")
+    
+    if not use_ollama and not API_KEY:
         return jsonify({
             "success": False,
-            "error": "No API key configured. Set AEGIS_API_KEY environment variable.",
+            "error": "No API key configured for Gemini. Switch to Ollama or set AEGIS_API_KEY.",
         })
 
     # If no error info provided, try running the code to get one
@@ -203,11 +209,8 @@ Return ONLY valid JSON in this exact format (wrapped in ```json fences):
 ```"""
 
     try:
-        # Determine if we should use Ollama or Gemini
-        use_ollama = not API_KEY or MODEL.startswith("ollama/")
-        
         if use_ollama:
-            ollama_model = MODEL.replace("ollama/", "") if MODEL.startswith("ollama/") else "qwen2.5-coder"
+            ollama_model = requested_model.replace("ollama/", "") if requested_model.startswith("ollama/") else "qwen2.5-coder"
             payload = {
                 "model": ollama_model,
                 "prompt": prompt,
@@ -228,14 +231,14 @@ Return ONLY valid JSON in this exact format (wrapped in ```json fences):
             import google.generativeai as genai
             genai.configure(api_key=API_KEY)
             model = genai.GenerativeModel(
-                model_name=MODEL,
+                model_name=requested_model,
                 system_instruction=SYSTEM_PROMPT
             )
             gen_config = genai.types.GenerationConfig(temperature=0.2)
 
             response = model.generate_content(prompt, generation_config=gen_config)
             content = response.text.strip()
-            actual_model = MODEL
+            actual_model = requested_model
 
         # Extract JSON from code fences
         json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', content, re.DOTALL)
@@ -348,6 +351,19 @@ EDITOR_HTML = r"""<!DOCTYPE html>
         }
         .status-badge.connected { background: rgba(46, 213, 115, 0.2); color: var(--success); }
         .status-badge.disconnected { background: rgba(255, 71, 87, 0.2); color: var(--error); }
+        
+        .model-select {
+            background: var(--bg-primary);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+        .model-select:focus { border-color: var(--accent); }
 
         /* Main Layout */
         .main {
@@ -575,11 +591,11 @@ EDITOR_HTML = r"""<!DOCTYPE html>
         <span>AI-Powered Python Editor</span>
     </h1>
     <div class="header-controls">
-        {% if mode == 'gemini' %}
-        <span class="status-badge connected">🟢 Gemini Connected</span>
-        {% else %}
-        <span class="status-badge" style="background: rgba(255, 165, 2, 0.2); color: var(--warning);">🟡 Local AI (Ollama: {{ model_name }})</span>
-        {% endif %}
+        <select id="modelSelect" class="model-select" onchange="updateModelBadge()">
+            {% if mode == 'gemini' %}<option value="gemini-3.8-flash" selected>🟢 Gemini Cloud</option>{% endif %}
+            <option value="ollama/qwen2.5-coder" {% if mode == 'ollama' %}selected{% endif %}>🟡 Local AI (Ollama)</option>
+            <option value="ollama/llama3">🟡 Local AI (llama3)</option>
+        </select>
         <div class="btn-group">
             <button class="btn btn-run" onclick="runCode()" id="btnRun">▶ Run</button>
             <button class="btn btn-fix" onclick="fixCode()" id="btnFix">
@@ -790,12 +806,14 @@ print(greet("Aegis"))
         const origText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Fixing...';
+        
+        const selectedModel = document.getElementById('modelSelect').value;
 
         try {
             const res = await fetch('/api/fix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, error: errorInfo }),
+                body: JSON.stringify({ code, error: errorInfo, model: selectedModel }),
             });
             const data = await res.json();
 
@@ -925,6 +943,10 @@ print(greet("Aegis"))
 
     function showToast(msg, type) {
         spawnToast(msg, type);
+    }
+
+    function updateModelBadge() {
+        // Handled directly by the select element itself now
     }
 
     // Initial syntax check
