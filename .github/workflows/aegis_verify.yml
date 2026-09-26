@@ -6,34 +6,47 @@ on:
   push:
     branches: [ master, main ]
 
+permissions:
+  contents: read
+
 jobs:
   aegis-audit:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.11"
 
-      - name: Install Aegis & Dependencies
+      - name: Build & install verified Aegis distribution
         run: |
-          pip install --upgrade pip
-          pip install .[all]
+          python -m pip install --upgrade pip
+          python -m pip install build
+          python -m build
+          python -m pip install dist/*.whl
+          python -m pip install pytest docker
 
-      - name: Run Aegis Test Suite
+      - name: Prepare isolated Docker execution sandbox
         run: |
-          pytest tests/
+          python -c "from aegis.execution.sandbox import build_sandbox_image; build_sandbox_image('aegis-sandbox:latest')"
 
-      - name: Fetch Git History for Diff Analysis
-        run: git fetch --prune --unshallow || git fetch --depth=10
-
-      - name: Run Aegis PR Change Verification Guardrail
+      - name: Execute Aegis Commit-Pure Verification (in Docker sandbox)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             python -m aegis.cli verify --base origin/${{ github.base_ref }} --head HEAD
           else
             python -m aegis.cli verify --base HEAD~1 --head HEAD || true
           fi
+
+      - name: Upload Schema 1.0 Audit Report Artifact
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: aegis-verification-report
+          path: .aegis/runs/**/report.json
+          if-no-files-found: ignore

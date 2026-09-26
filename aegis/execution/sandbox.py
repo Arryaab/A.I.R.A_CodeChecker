@@ -18,6 +18,10 @@ from aegis.execution.runner import (
 
 logger = logging.getLogger(__name__)
 
+class SandboxUnavailableError(RuntimeError):
+    """Raised when sandbox execution is required by security policy but unavailable."""
+    pass
+
 @dataclass
 class SandboxResult:
     test_result: TestResult
@@ -28,12 +32,41 @@ def is_docker_available() -> bool:
     try:
         result = subprocess.run(["docker", "info"], capture_output=True, text=True)
         return result.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, Exception):
         return False
+
+def get_docker_create_command(
+    docker_image: str = "aegis-sandbox:latest",
+    test_files: list[str] | None = None
+) -> list[str]:
+    """
+    Constructs hardened Docker create command explicitly passing selected test files.
+    Applies zero-network, read-only rootfs, tmpfs, ulimits, dropped capabilities, and no-new-privileges.
+    """
+    pytest_args = ["python", "-m", "pytest", "-v", "--tb=short", "--color=no", "-p", "no:cacheprovider"]
+    if test_files:
+        pytest_args.extend([str(t).replace("\\", "/") for t in test_files])
+
+    return [
+        "docker", "create",
+        "--network", "none",
+        "--cpus", "1.0",
+        "--memory", "512m",
+        "--pids-limit", "50",
+        "--security-opt", "no-new-privileges",
+        "--cap-drop", "ALL",
+        "--read-only",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+        "--tmpfs", "/workspace/.pytest_cache:rw,noexec,nosuid,size=32m",
+        "--ulimit", "nofile=1024:2048",
+        "--ulimit", "fsize=50000000",
+        docker_image,
+        *pytest_args
+    ]
 
 def build_sandbox_image(docker_image: str = "aegis-sandbox:latest") -> bool:
     try:
-        dockerfile_content = "FROM python:3.12-slim\nRUN pip install pytest\nWORKDIR /workspace\nCMD [\"python\", \"-m\", \"pytest\", \"-v\", \"--tb=short\", \"--color=no\", \"-p\", \"no:cacheprovider\"]"
+        dockerfile_content = "FROM python:3.12-slim\nRUN pip install --no-cache-dir pytest==8.3.4\nWORKDIR /workspace\nCMD [\"python\", \"-m\", \"pytest\", \"-v\", \"--tb=short\", \"--color=no\", \"-p\", \"no:cacheprovider\"]"
         result = subprocess.run(
             ["docker", "build", "-t", docker_image, "-"],
             input=dockerfile_content,
@@ -53,27 +86,28 @@ def run_tests_sandboxed(
     *,
     timeout: int = 60,
     use_docker: bool = False,
+    require_sandbox: bool = False,
     docker_image: str = "aegis-sandbox:latest",
     test_files: list[str] | None = None,
 ) -> SandboxResult:
     project_dir = Path(project_dir)
     
+    if require_sandbox and not is_docker_available():
+        raise SandboxUnavailableError(
+            "Aegis Security Failure: Docker sandbox is required for executing untrusted changes, "
+            "but the Docker daemon is unavailable. To bypass for local non-production testing, "
+            "pass --unsafe-local."
+        )
+
     if not use_docker or not is_docker_available():
         test_result = run_tests(project_dir, timeout=timeout, test_files=test_files)
         return SandboxResult(test_result=test_result, used_sandbox=False)
 
+    container_id = ""
     try:
+        create_cmd = get_docker_create_command(docker_image=docker_image, test_files=test_files)
         create_res = subprocess.run(
-            [
-                "docker", "create",
-                "--network", "none",
-                "--cpus", "1.0",
-                "--memory", "512m",
-                "--pids-limit", "50",
-                "--security-opt", "no-new-privileges",
-                "--cap-drop", "ALL",
-                docker_image
-            ],
+            create_cmd,
             capture_output=True, text=True, check=True
         )
         container_id = create_res.stdout.strip()

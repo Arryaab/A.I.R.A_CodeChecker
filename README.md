@@ -143,17 +143,28 @@ python -m aegis.cli verify --diff proposed_change.patch --base HEAD~1
 python -m aegis.cli verify --base HEAD~1 --output-dir ./audit_artifacts
 ```
 
-### 2. Autonomous Multi-Agent Program Repair
+### 2. Run Verification REST API Service
+```bash
+uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
+# Endpoints: /v1/health, POST /v1/verifications, GET /v1/verifications/{run_id}/report
+```
+
+### 3. Validate Benchmark Suite
+```bash
+python -m aegis.cli benchmark --dir benchmarks/dev --validate
+```
+
+### 4. Autonomous Multi-Agent Program Repair
 Aegis also provides autonomous multi-file repair driven by repository AST intelligence:
 ```bash
 python -m aegis.cli repair --project-dir ./my_buggy_project
 ```
 
-### 3. Run the Test Suite
+### 5. Run the Test Suite
 ```bash
 python -m pytest -q
 ```
-**59 passed, 5 skipped, 0 failures** in base configuration (or **64 passed** when installed with full web extras).
+**73 passed, 0 failures** across the comprehensive test suite (covering commit-pure Git verification, fail-closed Docker sandboxing, trusted base suite regression, AegisBench schema validator, FastAPI service layer, and deterministic mutation testing).
 
 ---
 

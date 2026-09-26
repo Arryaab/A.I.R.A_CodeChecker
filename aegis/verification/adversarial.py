@@ -87,27 +87,43 @@ def generate_mutations(source_code: str, num_mutants: int = 3) -> List[str]:
                     
     return mutants
 
+import tempfile
+import shutil
+from typing import Optional
+
 @dataclass
 class MutationScoreResult:
     total_mutants: int
     killed_mutants: int
     survived_mutants: int
-    score: float  # 0.0 to 1.0
+    invalid_mutants: int = 0
+    infra_errors: int = 0
+    score: Optional[float] = None  # 0.0 to 1.0, or None if no valid mutants
 
 def run_mutation_tests(
     project_dir: Path,
     target_files: List[str],
     max_mutants_per_file: int = 2,
-    timeout: int = 15
+    timeout: int = 15,
+    use_docker: bool = False,
+    require_sandbox: bool = False,
 ) -> MutationScoreResult:
     """
-    Executes deterministic mutation testing:
-    Applies AST mutants to project files, runs pytest against them,
-    and calculates empirical mutation score (killed / total).
+    Executes deterministic mutation testing with fresh snapshot isolation per mutant.
+    Classifies outcomes into:
+      - KILLED: Test suite failed as expected when mutation was introduced.
+      - SURVIVED: Test suite passed despite the defect (test suite gap).
+      - INVALID: Mutation caused syntax/import error.
+      - INFRA_ERROR: Test execution encountered runner/sandbox infrastructure failure.
+    The empirical mutation score denominator is strictly (killed + survived).
     """
     total = 0
     killed = 0
     survived = 0
+    invalid = 0
+    infra_errors = 0
+
+    from aegis.execution.sandbox import run_tests_sandboxed
 
     for rel_path in target_files:
         f_path = project_dir / rel_path
@@ -119,27 +135,48 @@ def run_mutation_tests(
 
         for mutant in mutants:
             total += 1
-            try:
-                # Write mutant to disk
-                f_path.write_text(mutant, encoding="utf-8")
-                # Run test suite against mutant
-                res = run_tests(project_dir, timeout=timeout)
-                if not res.passed:
-                    # Test failed -> mutant was killed (Good test suite!)
-                    killed += 1
-                else:
-                    # Test passed -> mutant survived (Test suite missed the regression!)
-                    survived += 1
-            except Exception:
-                killed += 1
-            finally:
-                # Restore original file
-                f_path.write_text(orig_code, encoding="utf-8")
+            # Execute mutant in an isolated fresh copy
+            with tempfile.TemporaryDirectory() as td:
+                snap_dir = Path(td) / "mutant_snap"
+                shutil.copytree(project_dir, snap_dir, ignore=shutil.ignore_patterns(".git", ".pytest_cache", "__pycache__", ".aegis"))
+                target_in_snap = snap_dir / rel_path
+                
+                try:
+                    # Check syntax of mutant
+                    ast.parse(mutant)
+                except SyntaxError:
+                    invalid += 1
+                    continue
 
-    score = (killed / total) if total > 0 else 1.0
+                target_in_snap.write_text(mutant, encoding="utf-8")
+
+                try:
+                    res = run_tests_sandboxed(
+                        snap_dir,
+                        timeout=timeout,
+                        use_docker=use_docker,
+                        require_sandbox=require_sandbox
+                    )
+                    tr = res.test_result
+                    if tr.exit_code == 2:  # internal pytest error / usage error
+                        invalid += 1
+                    elif not tr.passed:
+                        # Test suite failed -> mutant killed
+                        killed += 1
+                    else:
+                        # Test suite passed -> mutant survived
+                        survived += 1
+                except Exception:
+                    infra_errors += 1
+
+    valid_evaluated = killed + survived
+    score = (killed / valid_evaluated) if valid_evaluated > 0 else None
+
     return MutationScoreResult(
         total_mutants=total,
         killed_mutants=killed,
         survived_mutants=survived,
-        score=score
+        invalid_mutants=invalid,
+        infra_errors=infra_errors,
+        score=round(score, 3) if score is not None else None
     )

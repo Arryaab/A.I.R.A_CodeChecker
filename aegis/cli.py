@@ -48,8 +48,9 @@ def main() -> None:
     val_parser.add_argument("--file", type=str, required=True)
     
     # Benchmark
-    bench_parser = subparsers.add_parser("benchmark", help="List and validate benchmark bugs")
-    bench_parser.add_argument("--dir", type=str, required=True)
+    bench_parser = subparsers.add_parser("benchmark", help="List and validate benchmark tasks")
+    bench_parser.add_argument("--dir", type=str, required=True, help="Directory containing benchmark tasks")
+    bench_parser.add_argument("--validate", action="store_true", help="Perform strict schema, provenance, and task integrity validation")
     
     # Verify (Production AI Change Verification Platform)
     verify_parser = subparsers.add_parser("verify", help="Verify proposed AI code changes for correctness, security, and risk")
@@ -69,6 +70,11 @@ def main() -> None:
         type=str,
         default=None,
         help="Directory to store audit artifacts, execution traces, and logs (default: .aegis/runs/<run-id>)"
+    )
+    verify_parser.add_argument(
+        "--unsafe-local",
+        action="store_true",
+        help="Allow running verification tests directly on host without Docker sandbox (DANGEROUS: use for local testing only)"
     )
     
     args = parser.parse_args()
@@ -123,24 +129,59 @@ def main() -> None:
         elif args.command == "benchmark":
             benchmark = Benchmark.load(args.dir)
             print(benchmark.summary())
-            for bug in benchmark:
-                print(f" - {bug.bug_id}: {bug.description}")
+            if getattr(args, "validate", False):
+                print(f"Validating {len(benchmark)} tasks in '{args.dir}' against canonical AegisBench schema...")
+                issues = benchmark.validate()
+                errors = [i for i in issues if i.severity == "ERROR"]
+                warnings = [i for i in issues if i.severity == "WARNING"]
+                if warnings:
+                    print(f"⚠️  {len(warnings)} benchmark warning(s):")
+                    for w in warnings:
+                        print(f"  - [{w.bug_id}] {w.issue}")
+                if errors:
+                    print(f"❌ {len(errors)} benchmark validation error(s):")
+                    for err in errors:
+                        print(f"  - [{err.bug_id}] {err.issue}")
+                    sys.exit(1)
+                else:
+                    print(f"✅ All {len(benchmark)} benchmark tasks strictly conform to AegisBench schema.")
+            else:
+                for bug in benchmark:
+                    print(f" - {bug.bug_id}: {bug.description}")
 
         elif args.command == "verify":
+            import hashlib
             from aegis.verification.security import SecurityScanner
             from aegis.evals.test_selection import TestSelector
             from aegis.evals.risk_model import PatchRiskModel
-            from aegis.execution.sandbox import run_tests_sandboxed
+            from aegis.execution.sandbox import run_tests_sandboxed, is_docker_available, SandboxUnavailableError
             from aegis.verification.adversarial import run_mutation_tests
             from aegis.integrations.git import get_git_diff, PatchChange
 
             proj = Path(args.project_dir).resolve()
             
+            # Check sandbox requirements (production fails closed if Docker is unavailable)
+            require_sandbox = not getattr(args, "unsafe_local", False)
+            use_docker = not getattr(args, "unsafe_local", False)
+
+            if getattr(args, "unsafe_local", False):
+                print("⚠️  SECURITY WARNING: Running with --unsafe-local. Docker sandbox disabled; untrusted code runs on host.")
+            elif not is_docker_available():
+                print(
+                    "\n❌ Aegis Security Error: Docker sandbox is required for executing untrusted changes, "
+                    "but the Docker daemon is unavailable.\n"
+                    "Aegis refuses to execute untrusted AI-generated code directly on the host in production mode.\n"
+                    "For local debugging without Docker, explicitly run with: --unsafe-local",
+                    file=sys.stderr
+                )
+                sys.exit(1)
+
             # Check if this is a diff / PR verification
             is_diff_mode = bool(args.base or args.diff)
             affected_files = []
             patches = {}
             target_desc = str(proj)
+            raw = ""
 
             if args.diff:
                 diff_path = Path(args.diff).resolve()
@@ -174,6 +215,21 @@ def main() -> None:
             # 1. Compute Heuristic Patch Risk Baseline to determine verification budget
             risk_model = PatchRiskModel()
             risk = risk_model.predict_risk(patches, patches, "")
+
+            # Check for test files or testing configuration modifications (elevate risk)
+            test_files_touched = [
+                f for f in affected_files
+                if f.startswith("tests/") or "/tests/" in f or Path(f).name.startswith("test_")
+                or Path(f).name in {"conftest.py", "pytest.ini", "pyproject.toml", "tox.ini"}
+                or f.startswith(".github/")
+            ]
+            if test_files_touched:
+                risk.factors.append(f"Test suite or testing configuration modified ({len(test_files_touched)} files)")
+                risk.risk_score = min(1.0, round(risk.risk_score + 0.25, 2))
+                if risk.risk_score >= 0.70:
+                    risk.risk_level = "HIGH"
+                elif risk.risk_score >= 0.30:
+                    risk.risk_level = "MEDIUM"
 
             # Resolve Verification Tier
             active_tier = args.tier.upper()
@@ -219,7 +275,12 @@ def main() -> None:
                 # 3a. Targeted Test Execution (Fast Feedback - All Tiers)
                 selector = TestSelector(exec_dir)
                 selected_tests = selector.select_tests_for_patch(affected_files)
-                selected_res = run_tests_sandboxed(exec_dir, test_files=selected_tests)
+                selected_res = run_tests_sandboxed(
+                    exec_dir,
+                    test_files=selected_tests,
+                    use_docker=use_docker,
+                    require_sandbox=require_sandbox
+                )
                 targeted_passed = selected_res.test_result.passed
                 correctness_verdict = "✅ Passed" if targeted_passed else "❌ FAILED"
 
@@ -229,6 +290,8 @@ def main() -> None:
                 mut_score = None
                 mut_killed = 0
                 mut_total = 0
+                trusted_base_passed = True
+                trusted_base_reason = ""
 
                 # Identify production source files for mutation analysis (exclude tests, docs, configs)
                 mutation_targets = [
@@ -242,48 +305,100 @@ def main() -> None:
                 ]
 
                 if active_tier in ("STANDARD", "DEEP"):
-                    full_res = run_tests_sandboxed(exec_dir)
+                    full_res = run_tests_sandboxed(exec_dir, use_docker=use_docker, require_sandbox=require_sandbox)
                     full_passed = full_res.test_result.passed
                     regression_verdict = f"✅ Passed (0 regressed, {full_res.test_result.summary_line})" if full_passed else "❌ FAILED (Regressions detected)"
+
+                    # Trusted Baseline Test Suite Verification: Run BASE tests against proposed HEAD snapshot
+                    base_ref_for_tests = args.base or ("HEAD~1" if is_diff_mode else "HEAD")
+                    try:
+                        with create_commit_snapshot(proj, commit_ref=base_ref_for_tests) as base_dir:
+                            base_test_files = [
+                                str(t.relative_to(base_dir)).replace("\\", "/")
+                                for t in base_dir.rglob("test_*.py")
+                                if "venv" not in t.parts and ".pytest_cache" not in t.parts
+                            ]
+                            if base_test_files:
+                                base_eval_res = run_tests_sandboxed(
+                                    exec_dir,
+                                    test_files=base_test_files,
+                                    use_docker=use_docker,
+                                    require_sandbox=require_sandbox
+                                )
+                                if not base_eval_res.test_result.passed:
+                                    trusted_base_passed = False
+                                    trusted_base_reason = f"Base test suite failed on HEAD: {base_eval_res.test_result.summary_line}"
+                    except Exception as e:
+                        logging.warning(f"Could not verify base test suite against HEAD: {e}")
                     
                     if mutation_targets:
                         max_mutants = 2 if active_tier == "STANDARD" else 4
-                        mut_res = run_mutation_tests(exec_dir, mutation_targets[:2], max_mutants_per_file=max_mutants)
-                        if mut_res.total_mutants > 0:
+                        mut_res = run_mutation_tests(
+                            exec_dir,
+                            mutation_targets[:2],
+                            max_mutants_per_file=max_mutants,
+                            use_docker=use_docker,
+                            require_sandbox=require_sandbox
+                        )
+                        if mut_res.score is not None:
                             mut_score = mut_res.score
                             mut_killed = mut_res.killed_mutants
-                            mut_total = mut_res.total_mutants
+                            mut_total = mut_res.killed_mutants + mut_res.survived_mutants
                             mut_pct = mut_res.score * 100
-                            mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_res.total_mutants} killed)"
+                            mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_total} killed)"
+                        elif mut_res.total_mutants > 0 and mut_res.invalid_mutants == mut_res.total_mutants:
+                            mutation_verdict = "➖ N/A (Mutations caused AST/import errors)"
                         else:
-                            mutation_verdict = "➖ N/A (No mutable AST nodes)"
+                            mutation_verdict = "➖ N/A (No mutable AST operators)"
                     else:
                         mutation_verdict = "➖ N/A (No production source files modified)"
                 else:
                     regression_verdict = "⚡ Skipped (FAST Tier)"
                     mutation_verdict = "⚡ Skipped (FAST Tier)"
 
-                # 3c. DEEP Tier: Performance Regression Benchmark
+                # 3c. DEEP Tier: Multi-Run Performance Regression Benchmark
                 perf_regression = False
                 perf_delta_pct = None
                 base_duration_s = None
                 head_duration_s = None
 
                 if active_tier == "DEEP" and selected_tests:
-                    head_duration_s = selected_res.test_result.duration_seconds
                     base_ref_for_perf = args.base or "HEAD~1"
                     try:
                         with create_commit_snapshot(proj, commit_ref=base_ref_for_perf) as base_dir:
-                            base_res = run_tests_sandboxed(base_dir, test_files=selected_tests)
-                            base_duration_s = base_res.test_result.duration_seconds
-                            delta_s = head_duration_s - base_duration_s
-                            perf_delta_pct = (delta_s / max(base_duration_s, 0.001)) * 100.0
-                            if perf_delta_pct > 15.0 and delta_s > 0.05:
-                                perf_regression = True
-                                perf_verdict = f"⚠️ Regression detected (+{perf_delta_pct:.1f}%: {base_duration_s:.3f}s -> {head_duration_s:.3f}s)"
-                                risk.factors.append(f"Performance latency regression (+{perf_delta_pct:.1f}%)")
+                            # Only benchmark common tests present in both BASE and HEAD snapshots
+                            common_tests = [
+                                t for t in selected_tests
+                                if (base_dir / t).exists() and (exec_dir / t).exists()
+                            ]
+                            if common_tests:
+                                import statistics
+                                # Warmup + 3 measured iterations on BASE
+                                run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox)
+                                base_runs = [
+                                    run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox).test_result.duration_seconds
+                                    for _ in range(3)
+                                ]
+                                base_duration_s = round(statistics.median(base_runs), 3)
+
+                                # Warmup + 3 measured iterations on HEAD
+                                run_tests_sandboxed(exec_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox)
+                                head_runs = [
+                                    run_tests_sandboxed(exec_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox).test_result.duration_seconds
+                                    for _ in range(3)
+                                ]
+                                head_duration_s = round(statistics.median(head_runs), 3)
+
+                                delta_s = head_duration_s - base_duration_s
+                                perf_delta_pct = (delta_s / max(base_duration_s, 0.001)) * 100.0
+                                if perf_delta_pct > 15.0 and delta_s > 0.05:
+                                    perf_regression = True
+                                    perf_verdict = f"⚠️ Regression detected (+{perf_delta_pct:.1f}% median: {base_duration_s:.3f}s -> {head_duration_s:.3f}s)"
+                                    risk.factors.append(f"Performance latency regression (+{perf_delta_pct:.1f}%)")
+                                else:
+                                    perf_verdict = f"✅ Passed ({perf_delta_pct:+.1f}% median: {base_duration_s:.3f}s -> {head_duration_s:.3f}s)"
                             else:
-                                perf_verdict = f"✅ Passed ({perf_delta_pct:+.1f}%: {base_duration_s:.3f}s -> {head_duration_s:.3f}s)"
+                                perf_verdict = "➖ Skipped (No common test files between BASE and HEAD)"
                     except Exception as e:
                         perf_verdict = f"➖ Skipped (Baseline benchmark error: {e})"
                 else:
@@ -311,6 +426,12 @@ def main() -> None:
             elif not full_passed:
                 technical_verdict = "FAILED"
                 tech_reason = "Regression detected in full test suite"
+            elif not trusted_base_passed:
+                technical_verdict = "FAILED"
+                tech_reason = trusted_base_reason
+            elif active_tier == "FAST":
+                technical_verdict = "QUALIFIED_WITHIN_SCOPE"
+                tech_reason = "Targeted checks passed within FAST scope (full regression & mutation skipped)"
             else:
                 technical_verdict = "QUALIFIED"
                 tech_reason = "All automated verification gates passed"
@@ -322,6 +443,9 @@ def main() -> None:
             elif perf_regression:
                 release_policy = "REVIEW"
                 policy_reason = f"Performance latency regression (+{perf_delta_pct:.1f}%) requires review"
+            elif active_tier == "FAST":
+                release_policy = "REVIEW"
+                policy_reason = "FAST tier provides targeted verification only; full regression & mutation required for automated production merge"
             elif risk.risk_level == "LOW":
                 release_policy = "AUTO_APPROVE"
                 policy_reason = "Low risk change meets criteria for automated production merge"
@@ -332,7 +456,7 @@ def main() -> None:
                 release_policy = "REVIEW"
                 policy_reason = "High risk change requires mandatory senior/security review"
 
-            tech_icon = "✅" if technical_verdict == "QUALIFIED" else "❌"
+            tech_icon = "✅" if "QUALIFIED" in technical_verdict else "❌"
             policy_icon = "🚀" if release_policy == "AUTO_APPROVE" else "⚠️" if release_policy == "REVIEW" else "⛔"
 
             print(f"Technical Verdict:  {technical_verdict} {tech_icon}")
@@ -342,6 +466,25 @@ def main() -> None:
                     print(f"  - Security issue:  {issue}")
 
             print(f"Release Policy:     {release_policy} {policy_icon} ({policy_reason})")
+
+            # Exact Git SHAs and diff provenance
+            def _get_exact_sha(repo: Path, ref_name: str) -> str:
+                try:
+                    res = subprocess.run(["git", "rev-parse", ref_name], cwd=repo, capture_output=True, text=True, check=True)
+                    return res.stdout.strip()
+                except Exception:
+                    return ref_name
+
+            base_sha = _get_exact_sha(proj, args.base or "HEAD~1")
+            head_sha = _get_exact_sha(proj, args.head or "HEAD")
+            try:
+                raw_diff_content = raw if args.diff else subprocess.check_output(
+                    ["git", "diff", f"{args.base or 'HEAD~1'}..{args.head or 'HEAD'}"],
+                    cwd=proj, text=True, errors="replace"
+                )
+            except Exception:
+                raw_diff_content = ""
+            diff_sha256 = hashlib.sha256(raw_diff_content.encode("utf-8")).hexdigest()
 
             # Generate Machine-Readable Audit Report Artifact (Schema 1.0)
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -357,11 +500,24 @@ def main() -> None:
 
             audit_report = {
                 "schema_version": "1.0",
+                "aegis_version": "1.0.0",
                 "run_id": run_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "repository": proj.name,
                 "base": args.base or "HEAD~1",
                 "head": args.head or "HEAD",
+                "provenance": {
+                    "base_sha": base_sha,
+                    "head_sha": head_sha,
+                    "diff_sha256": diff_sha256,
+                    "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                    "platform": sys.platform,
+                    "sandbox": {
+                        "required": require_sandbox,
+                        "used": use_docker,
+                        "docker_available": is_docker_available(),
+                    },
+                },
                 "change": {
                     "files_affected": len(affected_files),
                     "files_added": sum(1 for p in patches.values() if getattr(p, "status", "") == "A"),
@@ -380,10 +536,10 @@ def main() -> None:
                         "duration_seconds": selected_res.test_result.duration_seconds,
                     },
                     "regression": {
-                        "passed": full_passed,
-                        "status": "passed" if full_passed and active_tier in ("STANDARD", "DEEP") else "failed" if not full_passed else "skipped",
-                        "summary": full_res.test_result.summary_line if full_res else "Skipped (FAST tier)",
-                        "duration_seconds": full_res.test_result.duration_seconds if full_res else 0.0,
+                        "passed": full_passed if active_tier in ("STANDARD", "DEEP") else None,
+                        "status": ("passed" if full_passed else "failed") if active_tier in ("STANDARD", "DEEP") else "skipped",
+                        "summary": full_res.test_result.summary_line if full_res else None,
+                        "duration_seconds": full_res.test_result.duration_seconds if full_res else None,
                     },
                     "mutation": {
                         "status": "completed" if active_tier in ("STANDARD", "DEEP") and mut_total > 0 else "skipped" if active_tier == "FAST" else "not_applicable",

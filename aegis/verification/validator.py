@@ -57,8 +57,18 @@ def validate_patch(patch: dict[str, str], project_dir: Path) -> ValidationResult
             errors.append(f"Path outside project directory: {filepath_str}")
             continue
             
-        if filepath.name.startswith("test_") and filepath.name.endswith(".py"):
-            errors.append(f"Modifying test files is not allowed: {filepath_str}")
+        norm_str = filepath_str.replace("\\", "/").lower()
+        is_test_or_config = (
+            norm_str.startswith("tests/")
+            or "/tests/" in norm_str
+            or norm_str.startswith("test/")
+            or "/test/" in norm_str
+            or filepath.name.startswith("test_")
+            or filepath.name.endswith("_test.py")
+            or filepath.name in {"conftest.py", "pytest.ini", "tox.ini"}
+        )
+        if is_test_or_config:
+            errors.append(f"Modifying test files or testing configuration is not allowed: {filepath_str}")
             continue
             
         if filepath.suffix == ".py":

@@ -98,7 +98,7 @@ def test_apply_patch_file_fail_closed(tmp_path: Path):
     from aegis.integrations.git import apply_patch_file
     bad_patch = tmp_path / "corrupt.patch"
     bad_patch.write_text("invalid diff header\n@@ bogus @@\n", encoding="utf-8")
-    with pytest.raises(RuntimeError, match="Failed to apply patch"):
+    with pytest.raises(RuntimeError, match="(Failed to apply patch|Strict patch check failed)"):
         apply_patch_file(tmp_path, bad_patch)
 
 

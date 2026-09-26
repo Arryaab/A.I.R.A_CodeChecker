@@ -100,8 +100,13 @@ class SecurityScanner:
         return SecurityScanResult(safe=len(issues) == 0, issues=issues)
 
     def _check_ast_nodes(self, tree: ast.AST, filepath: str, issues: List[str]) -> None:
-        normalized_path = filepath.replace("\\", "/")
-        is_system_file = any(normalized_path.endswith(f) for f in {"git.py", "sandbox.py", "runner.py"})
+        normalized_path = filepath.replace("\\", "/").lstrip("./")
+        trusted_system_files = {
+            "aegis/execution/sandbox.py",
+            "aegis/execution/runner.py",
+            "aegis/integrations/git.py",
+        }
+        is_system_file = normalized_path in trusted_system_files
         
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
