@@ -206,5 +206,55 @@ def test_diff_mode_applies_patch_before_environment_build(tmp_path: Path):
     # Verified environment inspection detected requirements.txt from the applied patch
     assert "requirements.txt" in report["provenance"]["environment"]["dependency_manifests"]
 
+def test_baseline_verification_executes_base_on_base_and_head_on_head(tmp_path: Path):
+    import json
+    import sys
+
+    repo = tmp_path / "baseline_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Tester"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "tester@aegis.dev"], cwd=repo, check=True, capture_output=True)
+
+    # Base commit: calc returns 10, test expects 10 (passes on BASE)
+    (repo / "calc.py").write_text("def compute():\n    return 10\n", encoding="utf-8")
+    tests_dir = repo / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_calc.py").write_text("from calc import compute\ndef test_compute():\n    assert compute() == 10\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "base commit"], cwd=repo, check=True, capture_output=True)
+
+    # Head commit: calc returns 20, test expects 20 (passes on HEAD)
+    # If BASE tests were erroneously run on HEAD, test_compute() would assert 20 == 10 and FAIL!
+    (repo / "calc.py").write_text("def compute():\n    return 20\n", encoding="utf-8")
+    (tests_dir / "test_calc.py").write_text("from calc import compute\ndef test_compute():\n    assert compute() == 20\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "head commit"], cwd=repo, check=True, capture_output=True)
+
+    out_dir = tmp_path / "baseline_runs"
+    cmd = [
+        sys.executable, "-m", "aegis.cli", "verify",
+        "--project-dir", str(repo),
+        "--base", "HEAD~1",
+        "--head", "HEAD",
+        "--tier", "standard",
+        "--output-dir", str(out_dir),
+        "--unsafe-local"
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+    report_file = out_dir / "report.json"
+    assert report_file.exists(), f"Stderr: {res.stderr}\nStdout: {res.stdout}"
+    report = json.loads(report_file.read_text(encoding="utf-8"))
+
+    # BASE tests executed on BASE and passed
+    # HEAD tests executed on HEAD and passed
+    # Overall regression check passed
+    assert report["verification"]["regression"]["baseline_passed"] is True
+    assert report["verification"]["regression"]["head_passed"] is True
+    assert report["verification"]["regression"]["passed"] is True
+    assert report["decision"]["technical_verdict"] == "QUALIFIED"
+
+
 
 

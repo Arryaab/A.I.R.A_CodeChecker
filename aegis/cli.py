@@ -303,6 +303,7 @@ def main() -> None:
                 # 3b. Regression & Mutation Verification (STANDARD & DEEP Tiers)
                 full_passed = True
                 full_res = None
+                base_eval_res = None
                 mut_score = None
                 mut_killed = 0
                 mut_total = 0
@@ -321,6 +322,26 @@ def main() -> None:
                 ]
 
                 if active_tier in ("STANDARD", "DEEP"):
+                    # 1. Baseline Test Suite Verification: Run BASE tests against BASE snapshot in BASE environment
+                    base_ref_for_tests = args.base or ("HEAD~1" if is_diff_mode else "HEAD")
+                    try:
+                        with create_commit_snapshot(proj, commit_ref=base_ref_for_tests) as base_dir:
+                            base_docker_image = "aegis-sandbox:latest"
+                            if use_docker:
+                                base_docker_image = build_sandbox_environment_image(base_dir)
+                            base_eval_res = run_tests_sandboxed(
+                                base_dir,
+                                use_docker=use_docker,
+                                require_sandbox=require_sandbox,
+                                docker_image=base_docker_image,
+                            )
+                            trusted_base_passed = base_eval_res.test_result.passed
+                            if not trusted_base_passed:
+                                trusted_base_reason = f"Pre-existing baseline test failure on {base_ref_for_tests}: {base_eval_res.test_result.summary_line}"
+                    except Exception as e:
+                        logging.warning(f"Could not verify baseline test suite on {base_ref_for_tests}: {e}")
+
+                    # 2. Proposed Change Test Suite Verification: Run tests against proposed HEAD snapshot in HEAD environment
                     full_res = run_tests_sandboxed(
                         exec_dir,
                         use_docker=use_docker,
@@ -328,30 +349,19 @@ def main() -> None:
                         docker_image=docker_image,
                     )
                     full_passed = full_res.test_result.passed
-                    regression_verdict = f"✅ Passed (0 regressed, {full_res.test_result.summary_line})" if full_passed else "❌ FAILED (Regressions detected)"
 
-                    # Trusted Baseline Test Suite Verification: Run BASE tests against proposed HEAD snapshot
-                    base_ref_for_tests = args.base or ("HEAD~1" if is_diff_mode else "HEAD")
-                    try:
-                        with create_commit_snapshot(proj, commit_ref=base_ref_for_tests) as base_dir:
-                            base_test_files = [
-                                str(t.relative_to(base_dir)).replace("\\", "/")
-                                for t in base_dir.rglob("test_*.py")
-                                if not any(p in t.parts for p in ("venv", ".venv", ".pytest_cache", "benchmarks", "benchmark", "data"))
-                            ]
-                            if base_test_files:
-                                base_eval_res = run_tests_sandboxed(
-                                    exec_dir,
-                                    test_files=base_test_files,
-                                    use_docker=use_docker,
-                                    require_sandbox=require_sandbox,
-                                    docker_image=docker_image,
-                                )
-                                if not base_eval_res.test_result.passed:
-                                    trusted_base_passed = False
-                                    trusted_base_reason = f"Base test suite failed on HEAD: {base_eval_res.test_result.summary_line}"
-                    except Exception as e:
-                        logging.warning(f"Could not verify base test suite against HEAD: {e}")
+                    # 3. Grounded Regression Evaluation
+                    if trusted_base_passed:
+                        if full_passed:
+                            base_summary = base_eval_res.test_result.summary_line if base_eval_res else "passed"
+                            head_summary = full_res.test_result.summary_line
+                            regression_verdict = f"✅ Passed (0 regressed, BASE: {base_summary} | HEAD: {head_summary})"
+                        else:
+                            base_summary = base_eval_res.test_result.summary_line if base_eval_res else "passed"
+                            head_summary = full_res.test_result.summary_line
+                            regression_verdict = f"❌ FAILED (Regressions detected: BASE passed ({base_summary}), HEAD failed ({head_summary}))"
+                    else:
+                        regression_verdict = f"❌ FAILED ({trusted_base_reason})"
                     
                     if mutation_targets:
                         max_mutants = 2 if active_tier == "STANDARD" else 4
@@ -389,6 +399,9 @@ def main() -> None:
                     base_ref_for_perf = args.base or "HEAD~1"
                     try:
                         with create_commit_snapshot(proj, commit_ref=base_ref_for_perf) as base_dir:
+                            base_perf_image = "aegis-sandbox:latest"
+                            if use_docker:
+                                base_perf_image = build_sandbox_environment_image(base_dir)
                             # Only benchmark common tests present in both BASE and HEAD snapshots
                             common_tests = [
                                 t for t in selected_tests
@@ -397,9 +410,9 @@ def main() -> None:
                             if common_tests:
                                 import statistics
                                 # Warmup + 3 measured iterations on BASE
-                                run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=docker_image)
+                                run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=base_perf_image)
                                 base_runs = [
-                                    run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=docker_image).test_result.duration_seconds
+                                    run_tests_sandboxed(base_dir, test_files=common_tests, use_docker=use_docker, require_sandbox=require_sandbox, docker_image=base_perf_image).test_result.duration_seconds
                                     for _ in range(3)
                                 ]
                                 base_duration_s = round(statistics.median(base_runs), 3)
@@ -607,8 +620,11 @@ def main() -> None:
                         "duration_seconds": selected_res.test_result.duration_seconds,
                     },
                     "regression": {
-                        "passed": full_passed if active_tier in ("STANDARD", "DEEP") else None,
-                        "status": ("passed" if full_passed else "failed") if active_tier in ("STANDARD", "DEEP") else "skipped",
+                        "passed": (full_passed and trusted_base_passed) if active_tier in ("STANDARD", "DEEP") else None,
+                        "status": ("passed" if (full_passed and trusted_base_passed) else "failed") if active_tier in ("STANDARD", "DEEP") else "skipped",
+                        "baseline_passed": trusted_base_passed if active_tier in ("STANDARD", "DEEP") else None,
+                        "baseline_summary": base_eval_res.test_result.summary_line if base_eval_res else None,
+                        "head_passed": full_passed if active_tier in ("STANDARD", "DEEP") else None,
                         "summary": full_res.test_result.summary_line if full_res else None,
                         "duration_seconds": full_res.test_result.duration_seconds if full_res else None,
                     },

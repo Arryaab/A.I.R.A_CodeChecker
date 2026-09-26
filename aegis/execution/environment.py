@@ -85,6 +85,8 @@ def resolve_executed_environment(
 ) -> ExecutedEnvironment:
     if use_docker:
         image_digest = None
+        observed_python = "3.11-slim"
+        observed_platform = "linux"
         try:
             import subprocess
             # Query RepoDigests or image Id for cryptographic container runtime provenance
@@ -107,21 +109,38 @@ def resolve_executed_environment(
                 id_out = id_res.stdout.strip()
                 if id_res.returncode == 0 and id_out:
                     image_digest = id_out
+
+            # Introspect actual container runtime environment (observed from running container)
+            py_res = subprocess.run(
+                [
+                    "docker", "run", "--rm", "--network", "none", docker_image,
+                    "python", "-c",
+                    "import platform, sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}|{platform.platform()}')"
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if py_res.returncode == 0 and "|" in py_res.stdout:
+                parts = py_res.stdout.strip().split("|", 1)
+                observed_python = parts[0].strip()
+                observed_platform = parts[1].strip()
         except Exception:
             pass
 
         return ExecutedEnvironment(
             sandbox_engine="docker",
             sandbox_image=docker_image,
-            python_version="3.11-slim",
-            platform="linux",
+            python_version=observed_python,
+            platform=observed_platform,
             network_isolated=True,
             container_id=container_id,
             image_digest=image_digest,
         )
 
+    import platform
     py_ver = host_env.python_version if host_env else f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    plat = host_env.platform if host_env else sys.platform
+    plat = platform.platform() if hasattr(platform, "platform") else (host_env.platform if host_env else sys.platform)
     return ExecutedEnvironment(
         sandbox_engine="host",
         sandbox_image="host",
