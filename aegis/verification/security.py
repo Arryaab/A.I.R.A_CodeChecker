@@ -65,7 +65,10 @@ class SecurityScanner:
         """
         issues = []
         for filepath, change in patches.items():
-            if not scan_tests and ("tests/" in filepath.replace("\\", "/") or filepath.startswith("tests")):
+            norm_p = filepath.replace("\\", "/")
+            if not norm_p.endswith(".py"):
+                continue
+            if not scan_tests and ("tests/" in norm_p or norm_p.startswith("tests")):
                 continue
             
             # Check for suspicious security-critical file deletions

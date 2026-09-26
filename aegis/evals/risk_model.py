@@ -43,6 +43,8 @@ class HeuristicPatchRiskModel:
         for filepath, code in patch.items():
             # Skip test files and system infrastructure files
             norm_path = filepath.replace("\\", "/")
+            if not norm_path.endswith(".py"):
+                continue
             if any(norm_path.endswith(f) for f in {"git.py", "sandbox.py", "runner.py", "security.py", "risk_model.py"}):
                 continue
             if "tests/" in norm_path or norm_path.startswith("tests"):
