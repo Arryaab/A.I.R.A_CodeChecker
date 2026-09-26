@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+import logging
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO, format="AEGIS-AGENT [%(levelname)s]: %(message)s")
 
 from aegis.evals.benchmark import Benchmark
 from aegis.config import load_config, AegisConfig
