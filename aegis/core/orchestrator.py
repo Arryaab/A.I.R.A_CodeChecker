@@ -82,15 +82,6 @@ def repair_bug(
     )
     original_result = sandbox_result.test_result
     
-    # Read buggy source
-    source_code = ""
-    target_file = ""
-    for py_file in work_dir.glob("*.py"):
-        if "test_" not in py_file.name:
-            source_code = py_file.read_text(encoding="utf-8")
-            target_file = str(py_file.relative_to(work_dir))
-            break
-            
     # ----- AEGIS 0.3: ORCHESTRATOR & PLANNER -----
     planner = PlannerAgent(provider)
     critic = CriticAgent(provider)
@@ -98,6 +89,23 @@ def repair_bug(
     initial_test_output = original_result.stdout + original_result.stderr if original_result else ""
     plan = planner.plan(repo_map or "No repo map", initial_test_output)
     logger.info(f"Planner strategy: {plan.strategy}")
+    
+    # Read target files based on the plan
+    target_files = {}
+    if not plan.files_to_modify:
+        # Fallback: grab all non-test Python files if planner failed to specify
+        for py_file in work_dir.rglob("*.py"):
+            if "test_" not in py_file.name and "venv" not in py_file.parts:
+                rel = str(py_file.relative_to(work_dir)).replace("\\", "/")
+                target_files[rel] = py_file.read_text(encoding="utf-8")
+    else:
+        for f in plan.files_to_modify:
+            p = work_dir / f
+            if p.exists() and p.is_file():
+                rel = str(p.relative_to(work_dir)).replace("\\", "/")
+                target_files[rel] = p.read_text(encoding="utf-8")
+            else:
+                logger.warning(f"Planner requested file {f} but it does not exist.")
             
     attempts = []
     visible_pass = False
@@ -108,10 +116,9 @@ def repair_bug(
     for attempt_num in range(1, config.max_retries + 1):
         attempt_start = time.time()
         
-        # Inject the Planner's strategy into the Repair Agent's prompt
+        # Inject the Planner's strategy and target files into the Repair Agent's prompt
         prompt = build_repair_prompt(
-            source_code=source_code,
-            file_path=target_file,
+            files=target_files,
             test_output=final_visible_result.stdout + final_visible_result.stderr if final_visible_result else "",
             previous_attempt=previous_attempt,
             repo_map=repo_map
@@ -159,7 +166,7 @@ def repair_bug(
             
             # ----- AEGIS 0.3: CRITIC EVALUATION -----
             test_out = test_res.stdout + "\n" + test_res.stderr
-            feedback = critic.critique(source_code, patch, test_out)
+            feedback = critic.critique(target_files, patch, test_out)
             
             attempts.append(RepairAttempt(
                 attempt_number=attempt_num,
@@ -177,7 +184,9 @@ def repair_bug(
             if test_res.passed:
                 if feedback.approved:
                     visible_pass = True
-                    source_code = patch.get(target_file, source_code)
+                    for k, v in patch.items():
+                        if k in target_files:
+                            target_files[k] = v
                     logger.info("Patch accepted by tests AND Critic.")
                     break
                 else:

@@ -43,8 +43,8 @@ def main():
     md_path = generate_markdown_report(report, out_dir)
     
     print(f"\nEvaluation complete!")
-    print(f"Pass@1: {report.metrics.pass_at_1:.2f}%")
-    print(f"Overall Success (Pass@3): {report.metrics.pass_at_3:.2f}%")
+    print(f"Success@1: {report.metrics.pass_at_1:.2f}%")
+    print(f"Overall Success (Success@3): {report.metrics.pass_at_3:.2f}%")
     print(f"Reports saved to {json_path} and {md_path}")
 
 if __name__ == "__main__":

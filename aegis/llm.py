@@ -263,8 +263,7 @@ class MockProvider(LLMProvider):
 
 
 def build_repair_prompt(
-    source_code: str,
-    file_path: str,
+    files: dict[str, str],
     test_output: str,
     previous_attempt: str | None = None,
     repo_map: str | None = None,
@@ -280,8 +279,10 @@ def build_repair_prompt(
     if repo_map:
         prompt += f"Repository Context:\n```\n{repo_map}\n```\n\n"
         
-    prompt += f"Buggy file: `{file_path}`\n\n"
-    prompt += f"```python\n{source_code}\n```\n\n"
+    prompt += "Target files for repair:\n"
+    for file_path, source_code in files.items():
+        prompt += f"File: `{file_path}`\n```python\n{source_code}\n```\n\n"
+        
     prompt += f"Test output:\n```\n{test_output}\n```\n\n"
     
     if previous_attempt:

@@ -88,8 +88,8 @@ def main():
     metrics = calculate_metrics(results)
 
     print(f"  Total bugs:          {metrics.total_bugs}")
-    print(f"  Pass@1:              {metrics.pass_at_1:.1f}%")
-    print(f"  Pass@3:              {metrics.pass_at_3:.1f}%")
+    print(f"  Success@1:              {metrics.pass_at_1:.1f}%")
+    print(f"  Success@3:              {metrics.pass_at_3:.1f}%")
     print(f"  Visible pass rate:   {metrics.visible_pass_rate:.1f}%")
     print(f"  Hidden pass rate:    {metrics.hidden_pass_rate:.1f}%")
     print(f"  Invalid Python rate: {metrics.invalid_python_rate:.1f}%")

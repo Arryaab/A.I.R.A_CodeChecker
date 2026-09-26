@@ -52,9 +52,12 @@ class CriticAgent:
         self.provider = provider
         self.system = "You are the Aegis Critic. Review the proposed patch against the original code. Check for logic regressions, security issues, and correctness. Return ONLY JSON wrapped in ```json fences."
 
-    def critique(self, original_code: str, patch: Dict[str, str], test_output: str) -> CriticFeedback:
-        prompt = (
-            f"Original Code:\n```python\n{original_code}\n```\n\n"
+    def critique(self, original_files: Dict[str, str], patch: Dict[str, str], test_output: str) -> CriticFeedback:
+        prompt = "Original Files:\n"
+        for filepath, code in original_files.items():
+            prompt += f"File: `{filepath}`\n```python\n{code}\n```\n\n"
+        
+        prompt += (
             f"Proposed Patch:\n```json\n{json.dumps(patch, indent=2)}\n```\n\n"
             f"Resulting Test Output:\n```\n{test_output}\n```\n\n"
             "If the patch successfully fixes the issue and introduces no new regressions, set 'approved': true.\n"
@@ -70,7 +73,7 @@ class CriticAgent:
             )
         except Exception as e:
             logger.warning(f"Critic failed: {e}")
-            return CriticFeedback(approved=True, feedback="Critic failed to respond, defaulting to approval.")
+            return CriticFeedback(approved=False, feedback=f"Critic verification failed: {e}. Defaulting to REJECT.")
 
     def _extract_json(self, text: str) -> str:
         match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)

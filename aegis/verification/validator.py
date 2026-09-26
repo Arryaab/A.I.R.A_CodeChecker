@@ -35,12 +35,16 @@ def validate_patch(patch: dict[str, str], project_dir: Path) -> ValidationResult
     
     for filepath_str, code in patch.items():
         filepath = Path(filepath_str)
+        import pathlib
         
-        if filepath.is_absolute():
+        posix_path = pathlib.PurePosixPath(filepath_str)
+        windows_path = pathlib.PureWindowsPath(filepath_str)
+        
+        if posix_path.is_absolute() or windows_path.is_absolute():
             errors.append(f"Path must be relative, got absolute: {filepath_str}")
             continue
             
-        if ".." in filepath.parts:
+        if ".." in posix_path.parts or ".." in windows_path.parts:
             errors.append(f"Path traversal detected in path: {filepath_str}")
             continue
             

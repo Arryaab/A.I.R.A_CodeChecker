@@ -79,7 +79,7 @@ def main() -> None:
             md_path = generate_markdown_report(report, out_dir)
             
             print(f"Evaluation complete. Saved to {json_path} and {md_path}")
-            print(f"Pass@1: {report.metrics.pass_at_1:.2f}% | Overall: {report.metrics.pass_at_3:.2f}%")
+            print(f"Success@1: {report.metrics.pass_at_1:.2f}% | Overall: {report.metrics.pass_at_3:.2f}%")
             
         elif args.command == "validate":
             code = Path(args.file).read_text(encoding="utf-8")
