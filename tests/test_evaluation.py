@@ -122,7 +122,7 @@ def test_audit_report_schema_1_0(tmp_path):
     assert "decision" in data
     assert "technical_verdict" in data["decision"]
     assert "release_policy" in data["decision"]
-    assert data["decision"]["technical_verdict"] in ("QUALIFIED", "QUALIFIED_WITHIN_SCOPE", "FAILED")
+    assert data["decision"]["technical_verdict"] in ("QUALIFIED", "QUALIFIED_WITHIN_SCOPE", "FAILED", "INDETERMINATE")
     assert data["decision"]["release_policy"] in ("AUTO_APPROVE", "REVIEW", "BLOCK")
     if "provenance" in data:
         assert "base_sha" in data["provenance"]

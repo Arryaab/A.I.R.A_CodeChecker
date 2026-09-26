@@ -255,6 +255,73 @@ def test_baseline_verification_executes_base_on_base_and_head_on_head(tmp_path: 
     assert report["verification"]["regression"]["passed"] is True
     assert report["decision"]["technical_verdict"] == "QUALIFIED"
 
+def test_baseline_verification_fail_closed_when_unverifiable(tmp_path: Path):
+    import json
+    import sys
+    from unittest.mock import patch
+    import aegis.cli as cli
+    from aegis.execution.sandbox import run_tests_sandboxed as original_run
+
+    repo = tmp_path / "indeterminate_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Tester"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "tester@aegis.dev"], cwd=repo, check=True, capture_output=True)
+
+    # Base commit
+    (repo / "calc.py").write_text("def compute():\n    return 1\n", encoding="utf-8")
+    tests_dir = repo / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_calc.py").write_text("from calc import compute\ndef test_compute():\n    assert compute() == 1\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "base commit"], cwd=repo, check=True, capture_output=True)
+
+    # Head commit
+    (repo / "calc.py").write_text("def compute():\n    return 2\n", encoding="utf-8")
+    (tests_dir / "test_calc.py").write_text("from calc import compute\ndef test_compute():\n    assert compute() == 2\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "head commit"], cwd=repo, check=True, capture_output=True)
+
+    out_dir = tmp_path / "indeterminate_runs"
+    out_dir.mkdir()
+
+    # Fail closed simulation: base_dir test execution throws an unexpected infrastructure / environment error
+    def mock_run(target_dir, *args, **kwargs):
+        calc_file = target_dir / "calc.py"
+        if calc_file.exists() and "return 1" in calc_file.read_text(encoding="utf-8"):
+            raise RuntimeError("Sandbox failure: container image build failed due to corrupted base layer")
+        return original_run(target_dir, *args, **kwargs)
+
+    test_args = [
+        "cli.py", "verify",
+        "--project-dir", str(repo),
+        "--base", "HEAD~1",
+        "--head", "HEAD",
+        "--tier", "standard",
+        "--output-dir", str(out_dir),
+        "--unsafe-local"
+    ]
+
+    with patch("sys.argv", test_args), patch("aegis.execution.sandbox.run_tests_sandboxed", side_effect=mock_run):
+        import pytest
+        with pytest.raises(SystemExit) as exc_info:
+            cli.main()
+        # release_policy == "REVIEW" causes exit code 2
+        assert exc_info.value.code == 2
+
+    report_file = out_dir / "report.json"
+    assert report_file.exists()
+    report = json.loads(report_file.read_text(encoding="utf-8"))
+
+    # Fail closed assertions:
+    assert report["decision"]["technical_verdict"] == "INDETERMINATE"
+    assert report["decision"]["release_policy"] == "REVIEW"
+    assert report["verification"]["regression"]["status"] == "baseline_unverified"
+    assert report["verification"]["regression"]["baseline_passed"] is None
+    assert report["verification"]["regression"]["error"]["type"] == "ENVIRONMENT_BUILD_FAILURE"
+    assert "corrupted base layer" in report["verification"]["regression"]["error"]["message"]
+
+
 
 
 

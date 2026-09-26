@@ -304,6 +304,7 @@ def main() -> None:
                 full_passed = True
                 full_res = None
                 base_eval_res = None
+                baseline_error = None
                 mut_score = None
                 mut_killed = 0
                 mut_total = 0
@@ -324,6 +325,7 @@ def main() -> None:
                 if active_tier in ("STANDARD", "DEEP"):
                     # 1. Baseline Test Suite Verification: Run BASE tests against BASE snapshot in BASE environment
                     base_ref_for_tests = args.base or ("HEAD~1" if is_diff_mode else "HEAD")
+                    baseline_error = None
                     try:
                         with create_commit_snapshot(proj, commit_ref=base_ref_for_tests) as base_dir:
                             base_docker_image = "aegis-sandbox:latest"
@@ -339,7 +341,14 @@ def main() -> None:
                             if not trusted_base_passed:
                                 trusted_base_reason = f"Pre-existing baseline test failure on {base_ref_for_tests}: {base_eval_res.test_result.summary_line}"
                     except Exception as e:
-                        logging.warning(f"Could not verify baseline test suite on {base_ref_for_tests}: {e}")
+                        trusted_base_passed = None
+                        trusted_base_reason = f"Baseline test suite could not be verified on {base_ref_for_tests}: {e}"
+                        err_type = "ENVIRONMENT_BUILD_FAILURE" if any(k in str(e).lower() for k in ("build", "image", "docker", "sandbox")) else "BASELINE_EXECUTION_FAILURE"
+                        baseline_error = {
+                            "type": err_type,
+                            "message": str(e),
+                        }
+                        logging.error(f"Aegis Verification: Baseline test suite unverified on {base_ref_for_tests}: {e}")
 
                     # 2. Proposed Change Test Suite Verification: Run tests against proposed HEAD snapshot in HEAD environment
                     full_res = run_tests_sandboxed(
@@ -351,7 +360,9 @@ def main() -> None:
                     full_passed = full_res.test_result.passed
 
                     # 3. Grounded Regression Evaluation
-                    if trusted_base_passed:
+                    if trusted_base_passed is None:
+                        regression_verdict = f"⚠️ BASELINE_UNVERIFIED ({trusted_base_reason})"
+                    elif trusted_base_passed:
                         if full_passed:
                             base_summary = base_eval_res.test_result.summary_line if base_eval_res else "passed"
                             head_summary = full_res.test_result.summary_line
@@ -460,12 +471,15 @@ def main() -> None:
             elif not targeted_passed:
                 technical_verdict = "FAILED"
                 tech_reason = "Targeted test failure in modified modules"
-            elif not full_passed:
-                technical_verdict = "FAILED"
-                tech_reason = "Regression detected in full test suite"
+            elif active_tier in ("STANDARD", "DEEP") and trusted_base_passed is None:
+                technical_verdict = "INDETERMINATE"
+                tech_reason = f"Baseline test suite could not be verified on {base_ref_for_tests}: {baseline_error.get('message') if baseline_error else 'baseline verification error'}"
             elif not trusted_base_passed:
                 technical_verdict = "FAILED"
                 tech_reason = trusted_base_reason
+            elif not full_passed:
+                technical_verdict = "FAILED"
+                tech_reason = "Regression detected in full test suite"
             elif active_tier == "FAST":
                 technical_verdict = "QUALIFIED_WITHIN_SCOPE"
                 tech_reason = "Targeted checks passed within FAST scope (full regression & mutation skipped)"
@@ -477,6 +491,9 @@ def main() -> None:
             if technical_verdict == "FAILED":
                 release_policy = "BLOCK"
                 policy_reason = tech_reason
+            elif technical_verdict == "INDETERMINATE":
+                release_policy = "REVIEW"
+                policy_reason = f"Verification indeterminate: {tech_reason}; requires manual review"
             elif perf_regression:
                 release_policy = "REVIEW"
                 policy_reason = f"Performance latency regression (+{perf_delta_pct:.1f}%) requires review"
@@ -493,12 +510,12 @@ def main() -> None:
                 release_policy = "REVIEW"
                 policy_reason = "High risk change requires mandatory senior/security review"
 
-            tech_icon = "✅" if "QUALIFIED" in technical_verdict else "❌"
+            tech_icon = "✅" if "QUALIFIED" in technical_verdict else "⚠️" if technical_verdict == "INDETERMINATE" else "❌"
             policy_icon = "🚀" if release_policy == "AUTO_APPROVE" else "⚠️" if release_policy == "REVIEW" else "⛔"
 
             print(f"Technical Verdict:  {technical_verdict} {tech_icon}")
-            if technical_verdict == "FAILED":
-                print(f"  - Failure cause:   {tech_reason}")
+            if technical_verdict in ("FAILED", "INDETERMINATE"):
+                print(f"  - Cause:           {tech_reason}")
                 for issue in sec_res.issues:
                     print(f"  - Security issue:  {issue}")
 
@@ -620,13 +637,14 @@ def main() -> None:
                         "duration_seconds": selected_res.test_result.duration_seconds,
                     },
                     "regression": {
-                        "passed": (full_passed and trusted_base_passed) if active_tier in ("STANDARD", "DEEP") else None,
-                        "status": ("passed" if (full_passed and trusted_base_passed) else "failed") if active_tier in ("STANDARD", "DEEP") else "skipped",
+                        "passed": (full_passed and trusted_base_passed) if (active_tier in ("STANDARD", "DEEP") and trusted_base_passed is not None) else None,
+                        "status": "baseline_unverified" if (active_tier in ("STANDARD", "DEEP") and trusted_base_passed is None) else (("passed" if (full_passed and trusted_base_passed) else "failed") if active_tier in ("STANDARD", "DEEP") else "skipped"),
                         "baseline_passed": trusted_base_passed if active_tier in ("STANDARD", "DEEP") else None,
                         "baseline_summary": base_eval_res.test_result.summary_line if base_eval_res else None,
                         "head_passed": full_passed if active_tier in ("STANDARD", "DEEP") else None,
                         "summary": full_res.test_result.summary_line if full_res else None,
                         "duration_seconds": full_res.test_result.duration_seconds if full_res else None,
+                        **({"error": baseline_error} if baseline_error else {})
                     },
                     "mutation": {
                         "status": "completed" if active_tier in ("STANDARD", "DEEP") and mut_total > 0 else "skipped" if active_tier == "FAST" else "not_applicable",
