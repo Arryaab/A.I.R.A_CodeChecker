@@ -71,6 +71,7 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
+.aegis/
 reports/
 aegis_*/
 aegis-report.json

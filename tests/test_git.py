@@ -54,3 +54,9 @@ def test_create_commit_snapshot_fail_closed(sample_git_repo: Path):
         with create_commit_snapshot(sample_git_repo, commit_ref="non_existent_ref_12345"):
             pass
 
+def test_git_show_object_fail_closed(sample_git_repo: Path):
+    from aegis.integrations.git import _git_show_object
+    with pytest.raises(RuntimeError, match="Commit-pure verification error"):
+        _git_show_object(sample_git_repo, "HEAD", "non_existent_file_xyz.py")
+
+

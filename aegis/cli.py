@@ -4,6 +4,8 @@ import argparse
 import sys
 import logging
 import json
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="AEGIS-AGENT [%(levelname)s]: %(message)s")
@@ -61,6 +63,12 @@ def main() -> None:
         choices=["fast", "standard", "deep", "auto"],
         default="auto",
         help="Verification depth: fast, standard, deep, or auto (adaptive based on patch risk)"
+    )
+    verify_parser.add_argument(
+        "-o", "--output-dir",
+        type=str,
+        default=None,
+        help="Directory to store audit artifacts, execution traces, and logs (default: .aegis/runs/<run-id>)"
     )
     
     args = parser.parse_args()
@@ -292,8 +300,21 @@ def main() -> None:
             print(f"Release Policy:     {release_policy} {policy_icon} ({policy_reason})")
 
             # Generate Machine-Readable Audit Report Artifact (Schema 1.0)
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            run_id = f"run_{timestamp}_{uuid.uuid4().hex[:6]}"
+
+            if args.output_dir:
+                run_dir = Path(args.output_dir).resolve()
+            else:
+                run_dir = proj / ".aegis" / "runs" / run_id
+
+            run_dir.mkdir(parents=True, exist_ok=True)
+            report_path = run_dir / "report.json"
+
             audit_report = {
                 "schema_version": "1.0",
+                "run_id": run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "repository": proj.name,
                 "base": args.base or "HEAD~1",
                 "head": args.head or "HEAD",
@@ -344,10 +365,27 @@ def main() -> None:
                     "reason": policy_reason,
                 },
             }
-            report_path = proj / "aegis-report.json"
+
             try:
                 report_path.write_text(json.dumps(audit_report, indent=2), encoding="utf-8")
-                print(f"Audit Artifact:     {report_path.name} (Schema v1.0)")
+                
+                # Write supplementary execution traces artifact
+                traces = {
+                    "run_id": run_id,
+                    "timestamp": audit_report["timestamp"],
+                    "targeted_tests": selected_tests,
+                    "targeted_duration_seconds": selected_res.test_result.duration_seconds,
+                    "regression_summary": full_res.test_result.summary_line if full_res else None,
+                    "regression_duration_seconds": full_res.test_result.duration_seconds if full_res else None,
+                    "mutation_targets": mutation_targets[:2] if active_tier in ("STANDARD", "DEEP") else [],
+                }
+                (run_dir / "traces.json").write_text(json.dumps(traces, indent=2), encoding="utf-8")
+
+                try:
+                    display_path = report_path.relative_to(proj)
+                except ValueError:
+                    display_path = report_path
+                print(f"Audit Artifact:     {display_path} (Schema v1.0)")
             except Exception as e:
                 logging.warning(f"Failed to write audit artifact: {e}")
 

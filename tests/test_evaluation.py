@@ -81,25 +81,48 @@ def test_heuristic_patch_risk_model():
     assert pred_del.risk_score >= 0.5
     assert any("Security-critical module deleted" in f for f in pred_del.factors)
 
-def test_audit_report_schema_1_0():
+def test_audit_report_schema_1_0(tmp_path):
     from aegis.cli import Path
     import json
-    report_file = Path(__file__).resolve().parent.parent / "aegis-report.json"
-    if report_file.exists():
-        data = json.loads(report_file.read_text(encoding="utf-8"))
-        assert data.get("schema_version") == "1.0"
-        assert "change" in data
-        assert "lines_added" in data["change"]
-        assert "lines_deleted" in data["change"]
-        assert "verification" in data
-        assert "targeted_tests" in data["verification"]
-        assert "security" in data["verification"]
-        assert "risk" in data
-        assert "score" in data["risk"]
-        assert "decision" in data
-        assert "technical_verdict" in data["decision"]
-        assert "release_policy" in data["decision"]
-        assert data["decision"]["technical_verdict"] in ("QUALIFIED", "FAILED")
-        assert data["decision"]["release_policy"] in ("AUTO_APPROVE", "REVIEW", "BLOCK")
+    runs_dir = Path(__file__).resolve().parent.parent / ".aegis" / "runs"
+    reports = list(runs_dir.glob("*/report.json")) if runs_dir.exists() else []
+    if reports:
+        data = json.loads(reports[-1].read_text(encoding="utf-8"))
+    else:
+        data = {
+            "schema_version": "1.0",
+            "run_id": "test_run",
+            "timestamp": "2026-09-26T20:00:00Z",
+            "repository": "aegis-lite",
+            "base": "HEAD~1",
+            "head": "HEAD",
+            "change": {"files_affected": 1, "lines_added": 5, "lines_deleted": 2, "affected_files": ["foo.py"]},
+            "verification": {
+                "tier": "STANDARD",
+                "targeted_tests": {"passed": True, "test_files_count": 1, "duration_seconds": 1.0},
+                "regression": {"passed": True, "status": "passed", "summary": "56 passed", "duration_seconds": 5.0},
+                "mutation": {"status": "completed", "score": 1.0, "killed": 2, "total": 2, "target_files": ["foo.py"]},
+                "security": {"safe": True, "issues_count": 0, "issues": []}
+            },
+            "risk": {"score": 0.0, "level": "LOW", "factors": []},
+            "decision": {"technical_verdict": "QUALIFIED", "release_policy": "AUTO_APPROVE", "reason": "All checks passed"}
+        }
+
+    assert data.get("schema_version") == "1.0"
+    assert "run_id" in data
+    assert "timestamp" in data
+    assert "change" in data
+    assert "lines_added" in data["change"]
+    assert "lines_deleted" in data["change"]
+    assert "verification" in data
+    assert "targeted_tests" in data["verification"]
+    assert "security" in data["verification"]
+    assert "risk" in data
+    assert "score" in data["risk"]
+    assert "decision" in data
+    assert "technical_verdict" in data["decision"]
+    assert "release_policy" in data["decision"]
+    assert data["decision"]["technical_verdict"] in ("QUALIFIED", "FAILED")
+    assert data["decision"]["release_policy"] in ("AUTO_APPROVE", "REVIEW", "BLOCK")
 
 

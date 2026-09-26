@@ -102,7 +102,7 @@ Affected Files:     1 (tests/test_git.py)
 Verification Tier:  STANDARD (Risk: 0.30 MEDIUM)
 --------------------------------------------------------------------
 Correctness:        ✅ Passed (1 targeted test files passed in 1.88s)
-Regression:         ✅ Passed (0 regressed, 59 passed in 7.76s)
+Regression:         ✅ Passed (0 regressed, 56 passed, 1 skipped in 7.76s)
 Security:           ✅ Passed (AST imports + added lines scanned)
 Mutation Score:     ➖ N/A (No production source files modified)
 Risk Score:         0.30 (MEDIUM RISK)
@@ -110,7 +110,7 @@ Risk Score:         0.30 (MEDIUM RISK)
 --------------------------------------------------------------------
 Technical Verdict:  QUALIFIED ✅
 Release Policy:     REVIEW ⚠️ (Medium risk change requires peer review before release)
-Audit Artifact:     aegis-report.json (Schema v1.0)
+Audit Artifact:     .aegis/runs/run_20260926_203000_a1b2c3/report.json (Schema v1.0)
 ```
 
 ---
@@ -146,7 +146,7 @@ python -m aegis.cli repair --project-dir ./my_buggy_project
 ```bash
 python -m pytest -q
 ```
-**55 passed, 1 skipped, 0 failures** in base configuration (or **61 passed** when installed with full web extras).
+**57 passed, 1 skipped, 0 failures** in base configuration (or **62 passed** when installed with full web extras).
 
 ---
 

@@ -28,6 +28,28 @@ class GitChange:
     file_diffs: Dict[str, str] = field(default_factory=dict)
     patches: Dict[str, PatchChange] = field(default_factory=dict)
 
+def _git_show_object(repo_dir: Path, ref: str, file_path: str) -> str:
+    """
+    Reconstructs exact file content from a specific Git reference.
+    Fails closed: If the Git object cannot be reconstructed exactly, raises RuntimeError
+    instead of falling back to the uncommitted working tree.
+    """
+    res = subprocess.run(
+        ["git", "show", f"{ref}:{file_path}"],
+        cwd=repo_dir,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    if res.returncode != 0:
+        err = res.stderr.strip() if res.stderr else f"git show returned exit code {res.returncode}"
+        raise RuntimeError(
+            f"Commit-pure verification error: Failed to reconstruct Git object '{ref}:{file_path}' ({err}). "
+            "Aegis refuses to fall back to the uncommitted working tree."
+        )
+    return res.stdout
+
 def get_git_diff(repo_dir: Path, base: str = "HEAD~1", head: str = "HEAD") -> GitChange:
     """
     Extract commit-pure changed files, diffs, and structured PatchChanges between base and head commits.
@@ -106,37 +128,11 @@ def get_git_diff(repo_dir: Path, base: str = "HEAD~1", head: str = "HEAD") -> Gi
         added_lines = [l[1:] for l in diff_text.splitlines() if l.startswith("+") and not l.startswith("+++")]
         deleted_lines = [l[1:] for l in diff_text.splitlines() if l.startswith("-") and not l.startswith("---")]
         
-        # Commit-pure HEAD content from git show
-        new_content = ""
-        res_head = subprocess.run(
-            ["git", "show", f"{head}:{f}"],
-            cwd=repo_dir,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace"
-        )
-        if res_head.returncode == 0:
-            new_content = res_head.stdout
-        else:
-            # Fallback to working tree if head is working tree
-            p = repo_dir / f
-            if p.exists() and p.is_file():
-                new_content = p.read_text(encoding="utf-8", errors="replace")
+        # Commit-pure HEAD content from git show (fail closed)
+        new_content = _git_show_object(repo_dir, head, f)
 
-        # Commit-pure BASE content from git show
-        old_content = ""
-        if f not in added:
-            res_base = subprocess.run(
-                ["git", "show", f"{base}:{f}"],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace"
-            )
-            if res_base.returncode == 0:
-                old_content = res_base.stdout
+        # Commit-pure BASE content from git show (fail closed)
+        old_content = _git_show_object(repo_dir, base, f) if f not in added else ""
 
         status = "A" if f in added else "M"
         patches[f] = PatchChange(
@@ -154,15 +150,8 @@ def get_git_diff(repo_dir: Path, base: str = "HEAD~1", head: str = "HEAD") -> Gi
         added_lines = [l[1:] for l in diff_text.splitlines() if l.startswith("+") and not l.startswith("+++")]
         deleted_lines = [l[1:] for l in diff_text.splitlines() if l.startswith("-") and not l.startswith("---")]
         
-        old_content = ""
-        res_base = subprocess.run(["git", "show", f"{base}:{old_p}"], cwd=repo_dir, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if res_base.returncode == 0:
-            old_content = res_base.stdout
-            
-        new_content = ""
-        res_head = subprocess.run(["git", "show", f"{head}:{new_p}"], cwd=repo_dir, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if res_head.returncode == 0:
-            new_content = res_head.stdout
+        old_content = _git_show_object(repo_dir, base, old_p)
+        new_content = _git_show_object(repo_dir, head, new_p)
 
         patches[new_p] = PatchChange(
             path=new_p,
@@ -176,10 +165,7 @@ def get_git_diff(repo_dir: Path, base: str = "HEAD~1", head: str = "HEAD") -> Gi
 
     # Process Deleted files
     for f in deleted:
-        old_content = ""
-        res_base = subprocess.run(["git", "show", f"{base}:{f}"], cwd=repo_dir, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if res_base.returncode == 0:
-            old_content = res_base.stdout
+        old_content = _git_show_object(repo_dir, base, f)
             
         patches[f] = PatchChange(
             path=f,
