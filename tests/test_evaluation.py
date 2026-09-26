@@ -81,3 +81,25 @@ def test_heuristic_patch_risk_model():
     assert pred_del.risk_score >= 0.5
     assert any("Security-critical module deleted" in f for f in pred_del.factors)
 
+def test_audit_report_schema_1_0():
+    from aegis.cli import Path
+    import json
+    report_file = Path(__file__).resolve().parent.parent / "aegis-report.json"
+    if report_file.exists():
+        data = json.loads(report_file.read_text(encoding="utf-8"))
+        assert data.get("schema_version") == "1.0"
+        assert "change" in data
+        assert "lines_added" in data["change"]
+        assert "lines_deleted" in data["change"]
+        assert "verification" in data
+        assert "targeted_tests" in data["verification"]
+        assert "security" in data["verification"]
+        assert "risk" in data
+        assert "score" in data["risk"]
+        assert "decision" in data
+        assert "technical_verdict" in data["decision"]
+        assert "release_policy" in data["decision"]
+        assert data["decision"]["technical_verdict"] in ("QUALIFIED", "FAILED")
+        assert data["decision"]["release_policy"] in ("AUTO_APPROVE", "REVIEW", "BLOCK")
+
+

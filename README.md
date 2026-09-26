@@ -68,15 +68,16 @@ Unlike naive tools that audit the local dirty working directory, Aegis inspects 
 
 ### 3. Adaptive Verification Tiers (`FAST`, `STANDARD`, `DEEP`)
 Aegis automatically balances developer velocity and verification depth:
-- `FAST`: Sub-second feedback. Evaluates Git diffs, AST syntax, security guardrails, and runs **only** the targeted tests affected by the patch.
-- `STANDARD`: FAST checks + full repository regression test suite + empirical AST mutation sample.
+- `FAST`: Fast targeted verification. Evaluates Git diffs, AST syntax, security guardrails, and runs **only** the targeted tests affected by the patch (skips full regression and mutation testing).
+- `STANDARD`: FAST checks + full repository regression test suite + empirical AST mutation sample on changed production modules.
 - `DEEP`: STANDARD checks + exhaustive mutation testing + execution timing regression monitoring.
 - `AUTO` (Default): Adaptively selects the verification budget based on the patch's computed risk score.
 
 ### 4. 100% Deterministic Mutation Testing
 Measures whether the repository test suite is robust enough to catch regressions or if it is overfitting:
 - Uses `DeterministicMutator` to mutate AST comparison and binary operators in consistent sequential order.
-- Replaces modified files, executes the test suite, and calculates the true empirical score:
+- Filters mutation candidates strictly to affected production source files (excluding test suites and configuration).
+- Replaces modified files in the isolated snapshot, executes the test suite, and calculates the true empirical score:
   $$\text{Mutation Score} = \frac{\text{Killed Mutants}}{\text{Total Mutants}}$$
 
 ### 5. Hardened Sandbox Isolation
@@ -97,17 +98,19 @@ When running `aegis verify --base HEAD~1 --head HEAD`:
 🛡️  AEGIS AI CHANGE VERIFICATION PLATFORM
 ====================================================================
 Target:             Git Diff: HEAD~1..HEAD
-Affected Files:     2 (aegis/evals/risk_model.py, aegis/verification/security.py)
-Verification Tier:  FAST (Risk: 0.00 LOW)
+Affected Files:     1 (tests/test_git.py)
+Verification Tier:  STANDARD (Risk: 0.30 MEDIUM)
 --------------------------------------------------------------------
-Correctness:        ✅ Passed (1 targeted test files passed in 0.721s)
-Regression:         ⚡ Skipped (FAST Tier)
+Correctness:        ✅ Passed (1 targeted test files passed in 1.88s)
+Regression:         ✅ Passed (0 regressed, 59 passed in 7.76s)
 Security:           ✅ Passed (AST imports + added lines scanned)
-Mutation Score:     ⚡ Skipped (FAST Tier)
-Risk Score:         0.00 (LOW RISK)
+Mutation Score:     ➖ N/A (No production source files modified)
+Risk Score:         0.30 (MEDIUM RISK)
+  - Risk factor: Large diff size (64 lines changed)
 --------------------------------------------------------------------
-VERDICT: APPROVE 🚀 (Change qualified for production merge)
-Audit Artifact:     aegis-report.json
+Technical Verdict:  QUALIFIED ✅
+Release Policy:     REVIEW ⚠️ (Medium risk change requires peer review before release)
+Audit Artifact:     aegis-report.json (Schema v1.0)
 ```
 
 ---
@@ -126,7 +129,7 @@ pip install -e .[all]
 # Verify changes between base and head
 python -m aegis.cli verify --base origin/main --head HEAD
 
-# Run in FAST tier for immediate sub-second feedback
+# Run in FAST tier for rapid targeted feedback
 python -m aegis.cli verify --base HEAD~1 --tier fast
 
 # Verify a standalone patch file directly
@@ -143,7 +146,7 @@ python -m aegis.cli repair --project-dir ./my_buggy_project
 ```bash
 python -m pytest -q
 ```
-All **59 tests** pass cleanly with 0 failures (54 passed, 1 skipped if optional web extras are omitted).
+**55 passed, 1 skipped, 0 failures** in base configuration (or **61 passed** when installed with full web extras).
 
 ---
 

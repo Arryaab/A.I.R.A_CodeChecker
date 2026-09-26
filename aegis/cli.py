@@ -203,19 +203,40 @@ def main() -> None:
 
                 # 3b. Regression & Mutation Verification (STANDARD & DEEP Tiers)
                 full_passed = True
-                mut_pct = 100.0
+                full_res = None
+                mut_score = None
+                mut_killed = 0
+                mut_total = 0
+
+                # Identify production source files for mutation analysis (exclude tests, docs, configs)
+                mutation_targets = [
+                    f for f in affected_files
+                    if f.endswith(".py")
+                    and not f.startswith("tests/")
+                    and "tests" not in Path(f).parts
+                    and not Path(f).name.startswith("test_")
+                    and (exec_dir / f).exists()
+                    and getattr(patches.get(f), "status", "") != "D"
+                ]
+
                 if active_tier in ("STANDARD", "DEEP"):
                     full_res = run_tests_sandboxed(exec_dir)
                     full_passed = full_res.test_result.passed
                     regression_verdict = f"✅ Passed (0 regressed, {full_res.test_result.summary_line})" if full_passed else "❌ FAILED (Regressions detected)"
                     
-                    max_mutants = 2 if active_tier == "STANDARD" else 4
-                    mut_res = run_mutation_tests(exec_dir, affected_files[:2], max_mutants_per_file=max_mutants)
-                    if mut_res.total_mutants > 0:
-                        mut_pct = mut_res.score * 100
-                        mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_res.total_mutants} killed)"
+                    if mutation_targets:
+                        max_mutants = 2 if active_tier == "STANDARD" else 4
+                        mut_res = run_mutation_tests(exec_dir, mutation_targets[:2], max_mutants_per_file=max_mutants)
+                        if mut_res.total_mutants > 0:
+                            mut_score = mut_res.score
+                            mut_killed = mut_res.killed_mutants
+                            mut_total = mut_res.total_mutants
+                            mut_pct = mut_res.score * 100
+                            mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_res.total_mutants} killed)"
+                        else:
+                            mutation_verdict = "➖ N/A (No mutable AST nodes)"
                     else:
-                        mutation_verdict = "➖ N/A"
+                        mutation_verdict = "➖ N/A (No production source files modified)"
                 else:
                     regression_verdict = "⚡ Skipped (FAST Tier)"
                     mutation_verdict = "⚡ Skipped (FAST Tier)"
@@ -231,52 +252,108 @@ def main() -> None:
                     print(f"  - Risk factor: {factor}")
             print("-" * 68)
 
-            # Determine Verdict
+            # Determine Technical Verdict (Objective Verification Gates)
             if not sec_res.safe:
-                verdict = "REJECT"
-                print("VERDICT: REJECT ⛔ (Security vulnerabilities detected in change)")
-                for issue in sec_res.issues:
-                    print(f"  - {issue}")
+                technical_verdict = "FAILED"
+                tech_reason = "Security vulnerabilities detected in change"
             elif not targeted_passed:
-                verdict = "REJECT"
-                print("VERDICT: REJECT ⛔ (Targeted test failure in modified modules)")
+                technical_verdict = "FAILED"
+                tech_reason = "Targeted test failure in modified modules"
             elif not full_passed:
-                verdict = "REJECT"
-                print("VERDICT: REJECT ⛔ (Regression detected in full test suite)")
-            elif risk.risk_level == "HIGH":
-                verdict = "WARN"
-                print("VERDICT: WARN ⚠️ (High risk change — requires manual review)")
+                technical_verdict = "FAILED"
+                tech_reason = "Regression detected in full test suite"
             else:
-                verdict = "APPROVE"
-                print("VERDICT: APPROVE 🚀 (Change qualified for production merge)")
+                technical_verdict = "QUALIFIED"
+                tech_reason = "All automated verification gates passed"
 
-            # Generate Machine-Readable Audit Report Artifact
+            # Determine Release Policy (Governance & Risk Assessment)
+            if technical_verdict == "FAILED":
+                release_policy = "BLOCK"
+                policy_reason = tech_reason
+            elif risk.risk_level == "LOW":
+                release_policy = "AUTO_APPROVE"
+                policy_reason = "Low risk change meets criteria for automated production merge"
+            elif risk.risk_level == "MEDIUM":
+                release_policy = "REVIEW"
+                policy_reason = "Medium risk change requires peer review before release"
+            else:  # HIGH
+                release_policy = "REVIEW"
+                policy_reason = "High risk change requires mandatory senior/security review"
+
+            tech_icon = "✅" if technical_verdict == "QUALIFIED" else "❌"
+            policy_icon = "🚀" if release_policy == "AUTO_APPROVE" else "⚠️" if release_policy == "REVIEW" else "⛔"
+
+            print(f"Technical Verdict:  {technical_verdict} {tech_icon}")
+            if technical_verdict == "FAILED":
+                print(f"  - Failure cause:   {tech_reason}")
+                for issue in sec_res.issues:
+                    print(f"  - Security issue:  {issue}")
+
+            print(f"Release Policy:     {release_policy} {policy_icon} ({policy_reason})")
+
+            # Generate Machine-Readable Audit Report Artifact (Schema 1.0)
             audit_report = {
-                "base": args.base,
-                "head": args.head,
-                "affected_files": affected_files,
-                "lines_added": sum(len(getattr(p, 'added_lines', [])) for p in patches.values()),
-                "lines_deleted": sum(len(getattr(p, 'deleted_lines', [])) for p in patches.values()),
-                "targeted_tests_count": len(selected_tests),
-                "targeted_passed": targeted_passed,
-                "full_regression_passed": full_passed,
-                "security_findings_count": len(sec_res.issues),
-                "mutation_score_pct": mut_pct if active_tier in ("STANDARD", "DEEP") else None,
-                "risk_score": risk.risk_score,
-                "risk_level": risk.risk_level,
-                "verification_tier": active_tier,
-                "verdict": verdict,
+                "schema_version": "1.0",
+                "repository": proj.name,
+                "base": args.base or "HEAD~1",
+                "head": args.head or "HEAD",
+                "change": {
+                    "files_affected": len(affected_files),
+                    "files_added": sum(1 for p in patches.values() if getattr(p, "status", "") == "A"),
+                    "files_modified": sum(1 for p in patches.values() if getattr(p, "status", "") in ("M", "")),
+                    "files_deleted": sum(1 for p in patches.values() if getattr(p, "status", "") == "D"),
+                    "files_renamed": sum(1 for p in patches.values() if getattr(p, "status", "") == "R"),
+                    "lines_added": sum(len(getattr(p, "added_lines", [])) for p in patches.values()),
+                    "lines_deleted": sum(len(getattr(p, "deleted_lines", [])) for p in patches.values()),
+                    "affected_files": affected_files,
+                },
+                "verification": {
+                    "tier": active_tier,
+                    "targeted_tests": {
+                        "passed": targeted_passed,
+                        "test_files_count": len(selected_tests),
+                        "duration_seconds": selected_res.test_result.duration_seconds,
+                    },
+                    "regression": {
+                        "passed": full_passed,
+                        "status": "passed" if full_passed and active_tier in ("STANDARD", "DEEP") else "failed" if not full_passed else "skipped",
+                        "summary": full_res.test_result.summary_line if full_res else "Skipped (FAST tier)",
+                        "duration_seconds": full_res.test_result.duration_seconds if full_res else 0.0,
+                    },
+                    "mutation": {
+                        "status": "completed" if active_tier in ("STANDARD", "DEEP") and mut_total > 0 else "skipped" if active_tier == "FAST" else "not_applicable",
+                        "score": mut_score,
+                        "killed": mut_killed,
+                        "total": mut_total,
+                        "target_files": mutation_targets[:2] if active_tier in ("STANDARD", "DEEP") else [],
+                    },
+                    "security": {
+                        "safe": sec_res.safe,
+                        "issues_count": len(sec_res.issues),
+                        "issues": sec_res.issues,
+                    },
+                },
+                "risk": {
+                    "score": risk.risk_score,
+                    "level": risk.risk_level,
+                    "factors": risk.factors,
+                },
+                "decision": {
+                    "technical_verdict": technical_verdict,
+                    "release_policy": release_policy,
+                    "reason": policy_reason,
+                },
             }
             report_path = proj / "aegis-report.json"
             try:
                 report_path.write_text(json.dumps(audit_report, indent=2), encoding="utf-8")
-                print(f"Audit Artifact:     {report_path.name}")
-            except Exception:
-                pass
+                print(f"Audit Artifact:     {report_path.name} (Schema v1.0)")
+            except Exception as e:
+                logging.warning(f"Failed to write audit artifact: {e}")
 
-            if verdict == "REJECT":
+            if release_policy == "BLOCK":
                 sys.exit(1)
-            elif verdict == "WARN":
+            elif release_policy == "REVIEW":
                 sys.exit(2)
                 
     except Exception as e:

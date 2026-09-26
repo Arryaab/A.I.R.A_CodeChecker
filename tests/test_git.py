@@ -48,3 +48,9 @@ def test_create_commit_snapshot(sample_git_repo: Path):
         assert (snapshot_dir / "renamed.py").exists()
         assert not (snapshot_dir / "to_delete.py").exists()
         assert not (snapshot_dir / ".git").exists()
+
+def test_create_commit_snapshot_fail_closed(sample_git_repo: Path):
+    with pytest.raises(RuntimeError, match="Failed to create hermetic git snapshot"):
+        with create_commit_snapshot(sample_git_repo, commit_ref="non_existent_ref_12345"):
+            pass
+

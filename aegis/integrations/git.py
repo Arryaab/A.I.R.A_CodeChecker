@@ -214,6 +214,9 @@ def create_commit_snapshot(repo_dir: Path, commit_ref: str = "HEAD") -> Generato
     Creates an immutable, hermetic snapshot of the exact commit_ref in an ephemeral directory.
     Guarantees that test execution and mutation testing never contaminate or read from
     the developer's uncommitted/dirty working tree.
+
+    Fails closed: If git archive fails (e.g. invalid ref or uncommitted changes), an error
+    is raised immediately rather than falling back to copying the dirty working tree.
     """
     with tempfile.TemporaryDirectory(prefix="aegis_snapshot_") as temp_dir:
         temp_path = Path(temp_dir)
@@ -224,11 +227,21 @@ def create_commit_snapshot(repo_dir: Path, commit_ref: str = "HEAD") -> Generato
                 capture_output=True,
                 check=True
             )
+        except subprocess.CalledProcessError as e:
+            err_msg = e.stderr.decode("utf-8", errors="replace").strip() if e.stderr else str(e)
+            raise RuntimeError(
+                f"Failed to create hermetic git snapshot for ref '{commit_ref}' in {repo_dir}: {err_msg}. "
+                "Aegis refuses to fall back to uncommitted working tree."
+            ) from e
+        except Exception as e:
+            raise RuntimeError(
+                f"Unexpected error creating snapshot for ref '{commit_ref}' in {repo_dir}: {e}"
+            ) from e
+
+        try:
             with tarfile.open(fileobj=io.BytesIO(res.stdout)) as tar:
                 tar.extractall(temp_path)
-        except Exception:
-            # Fallback to copy if archive fails (e.g. invalid ref)
-            import shutil
-            shutil.copytree(repo_dir, temp_path, dirs_exist_ok=True)
-            
+        except Exception as e:
+            raise RuntimeError(f"Failed to extract git archive for ref '{commit_ref}': {e}") from e
+
         yield temp_path
