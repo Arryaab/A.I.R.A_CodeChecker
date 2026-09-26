@@ -20,7 +20,12 @@ def get_provider_for_cli(config: AegisConfig):
     return GeminiProvider(api_key=config.api_key, model=config.model)
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Aegis-Lite: LLM-based program repair")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        
+    parser = argparse.ArgumentParser(description="Aegis: Autonomous Engineering & Guardrail Intelligence System")
     subparsers = parser.add_subparsers(dest="command", required=True)
     
     # Repair
@@ -42,6 +47,10 @@ def main() -> None:
     # Benchmark
     bench_parser = subparsers.add_parser("benchmark", help="List and validate benchmark bugs")
     bench_parser.add_argument("--dir", type=str, required=True)
+    
+    # Verify (Production AI Change Verification Platform)
+    verify_parser = subparsers.add_parser("verify", help="Verify proposed AI code changes for correctness, security, and risk")
+    verify_parser.add_argument("--project-dir", type=str, required=True)
     
     args = parser.parse_args()
     
@@ -97,6 +106,66 @@ def main() -> None:
             print(benchmark.summary())
             for bug in benchmark:
                 print(f" - {bug.bug_id}: {bug.description}")
+
+        elif args.command == "verify":
+            from aegis.verification.security import SecurityScanner
+            from aegis.evals.test_selection import TestSelector
+            from aegis.evals.risk_model import PatchRiskModel
+            from aegis.execution.sandbox import run_tests_sandboxed
+
+            proj = Path(args.project_dir)
+            print(f"🛡️  AEGIS Verification Layer: Auditing {proj.resolve()}")
+            print("-" * 60)
+
+            # 1. Collect files
+            py_files = {
+                str(f.relative_to(proj)): f.read_text(encoding="utf-8")
+                for f in proj.rglob("*.py")
+                if "venv" not in f.parts and "test_" not in f.name
+            }
+
+            # 2. Security Guardrail
+            print("🔍 [1/4] Running Security Guardrail Scan...")
+            sec = SecurityScanner()
+            sec_res = sec.scan_patch(py_files)
+            if not sec_res.safe:
+                print("❌ SECURITY VULNERABILITIES DETECTED:")
+                for issue in sec_res.issues:
+                    print(f"   - {issue}")
+                print("\n⛔ VERIFICATION FAILED: UNTRUSTED CODE")
+                sys.exit(1)
+            print("   ✅ Security scan passed (No secrets, prompt injections, or dangerous imports)")
+
+            # 3. Intelligent Test Selection
+            print("🎯 [2/4] Selecting Relevant Test Suite...")
+            selector = TestSelector(proj)
+            selected_tests = selector.select_tests_for_patch(list(py_files.keys()))
+            print(f"   ✅ Selected {len(selected_tests)} relevant test files to execute first")
+
+            # 4. Sandboxed Execution
+            print("🔒 [3/4] Running Sandboxed Test Execution...")
+            sandbox_res = run_tests_sandboxed(proj)
+            if not sandbox_res.test_result.passed:
+                print("❌ TEST SUITE FAILED:")
+                print(sandbox_res.test_result.summary_line)
+                print("\n⛔ VERIFICATION FAILED: FUNCTIONAL REGRESSION")
+                sys.exit(1)
+            print(f"   ✅ Tests passed: {sandbox_res.test_result.summary_line}")
+
+            # 5. Risk Model Prediction
+            print("📊 [4/4] Computing AI Patch Risk Model Score...")
+            risk_model = PatchRiskModel()
+            risk = risk_model.predict_risk(py_files, py_files, sandbox_res.test_result.stdout)
+            print(f"   Risk Score: {risk.risk_score:.2f} ({risk.risk_level} RISK)")
+            for factor in risk.factors:
+                print(f"   - Factor: {factor}")
+
+            print("-" * 60)
+            if risk.risk_level == "HIGH":
+                print("⚠️  VERIFICATION WARN: High risk change. Requires manual human approval.")
+                sys.exit(2)
+            else:
+                print("🚀 VERIFICATION SUCCESS: Change qualified for production merge!")
                 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

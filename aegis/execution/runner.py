@@ -36,28 +36,8 @@ PYTEST_EXIT_NO_TESTS = 5       # No tests were collected
 
 @dataclass
 class TestResult:
-    """Structured result from a single pytest run.
-
-    This is the core data structure that flows through the entire
-    Aegis pipeline. The runner produces it, the repair loop reads it,
-    and the evaluation system aggregates it.
-
-    Attributes:
-        passed:           True if ALL tests passed (exit code 0).
-        exit_code:        Raw pytest exit code (0–5).
-        stdout:           Full captured standard output from pytest.
-        stderr:           Full captured standard error from pytest.
-        duration_seconds: Wall-clock time for the test run.
-        tests_passed:     Count of individual tests that passed.
-        tests_failed:     Count of individual tests that failed.
-        tests_error:      Count of tests that had collection/setup errors.
-        summary_line:     The final one-line summary pytest prints
-                          (e.g., "1 failed, 1 passed in 0.03s").
-        failure_messages: List of individual failure blocks extracted
-                          from pytest output. Each entry is the text
-                          of one failure (test name + traceback).
-                          This is what we will eventually send to the LLM.
-    """
+    """Structured result from a single pytest run."""
+    __test__ = False
 
     passed: bool
     exit_code: int

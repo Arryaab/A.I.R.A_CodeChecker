@@ -1,0 +1,32 @@
+name: Aegis AI Change Verification Guardrail
+
+on:
+  pull_request:
+    branches: [ master, main ]
+  push:
+    branches: [ master, main ]
+
+jobs:
+  aegis-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Aegis & Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install .[all]
+
+      - name: Run Aegis Test Suite
+        run: |
+          pytest tests/
+
+      - name: Run Aegis Change Verification Guardrail
+        run: |
+          python -m aegis.cli verify --project-dir examples/passing_project

@@ -41,8 +41,8 @@ class RepairResult:
     total_tokens: int = 0
 
 from aegis.intelligence.repo_mapper import RepoMapper
-
 from aegis.core.agents import PlannerAgent, CriticAgent
+from aegis.core.observability import start_trace
 
 def repair_bug(
     *,
@@ -55,25 +55,31 @@ def repair_bug(
 ) -> RepairResult:
     """Orchestrate the full repair loop."""
     start_time = time.time()
+    trace_id = f"trace_{bug_id or 'run'}_{int(start_time)}"
+    trace = start_trace(trace_id, str(bug_dir))
     
     # Create working directory
     work_dir = copy_project(bug_dir)
     
     # Generate repository intelligence map
+    repo_span = trace.add_span("repo_mapping")
     try:
         mapper = RepoMapper(work_dir)
         mapper.map_repository()
         repo_map = mapper.generate_prompt_context()
         logger.info(f"Generated repository intelligence map for {bug_id}")
+        repo_span.complete(status="success")
     except Exception as e:
         logger.warning(f"Failed to generate repository map: {e}")
         repo_map = None
+        repo_span.complete(status="error", error=str(e))
     
     # Copy visible tests if provided
     if visible_tests_dir and visible_tests_dir.exists():
         shutil.copytree(visible_tests_dir, work_dir, dirs_exist_ok=True)
         
     # Get initial visible test result
+    test_span = trace.add_span("initial_test")
     sandbox_result = run_tests_sandboxed(
         work_dir,
         timeout=config.timeout_seconds,
@@ -81,6 +87,7 @@ def repair_bug(
         docker_image=config.docker_image
     )
     original_result = sandbox_result.test_result
+    test_span.complete(passed=original_result.passed if original_result else False)
     
     # ----- AEGIS 0.3: ORCHESTRATOR & PLANNER -----
     planner = PlannerAgent(provider)
@@ -139,6 +146,26 @@ def repair_bug(
                 errors=patch_result.validation_errors
             )
             
+            # Security Scan Guardrail
+            from aegis.verification.security import SecurityScanner
+            security_scanner = SecurityScanner()
+            sec_res = security_scanner.scan_patch(patch)
+            if not sec_res.safe:
+                logger.warning(f"Security violations detected in patch: {sec_res.issues}")
+                validation_res = ValidationResult(valid=False, errors=sec_res.issues)
+                attempts.append(RepairAttempt(
+                    attempt_number=attempt_num,
+                    patch=patch,
+                    validation=validation_res,
+                    test_result=None,
+                    llm_response=llm_res,
+                    duration_seconds=time.time() - attempt_start,
+                    diagnosis=f"Security scan rejected patch: {', '.join(sec_res.issues)}"
+                ))
+                previous_attempt = f"Security violation: {sec_res.issues}"
+                shutil.rmtree(attempt_dir)
+                continue
+
             if not patch_result.success:
                 attempts.append(RepairAttempt(
                     attempt_number=attempt_num,
@@ -228,6 +255,12 @@ def repair_bug(
             validation=attempts[-1].validation if attempts else None,
             original_result=original_result
         )
+
+    # Save complete trace
+    try:
+        trace.save()
+    except Exception as e:
+        logger.warning(f"Failed to save trace: {e}")
 
     return RepairResult(
         bug_id=bug_id,
