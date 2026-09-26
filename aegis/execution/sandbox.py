@@ -3,10 +3,18 @@ from __future__ import annotations
 import logging
 import subprocess
 import json
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from aegis.execution.runner import TestResult, run_tests, PYTEST_EXIT_INTERNAL_ERROR
+from aegis.execution.runner import (
+    TestResult,
+    run_tests,
+    PYTEST_EXIT_INTERNAL_ERROR,
+    _parse_counts,
+    _extract_summary_line,
+    _extract_failures,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,24 +81,32 @@ def run_tests_sandboxed(
             ["docker", "cp", f"{project_dir}/.", f"{container_id}:/workspace/"],
             check=True, capture_output=True
         )
+        start_exec = time.monotonic()
         run_res = subprocess.run(
             ["docker", "start", "-a", container_id],
             capture_output=True, text=True, timeout=timeout
         )
+        duration_seconds = round(time.monotonic() - start_exec, 3)
         stdout = run_res.stdout
         stderr = run_res.stderr
         exit_code = run_res.returncode
         passed = exit_code == 0
+        
+        tests_passed, tests_failed, tests_error = _parse_counts(stdout)
+        summary_line = _extract_summary_line(stdout) or "Docker run completed"
+        failure_messages = _extract_failures(stdout)
+
         test_result = TestResult(
             passed=passed,
             exit_code=exit_code,
             stdout=stdout,
             stderr=stderr,
-            duration_seconds=timeout,
-            tests_passed=0,
-            tests_failed=0,
-            tests_error=0,
-            summary_line="Docker run completed",
+            duration_seconds=duration_seconds,
+            tests_passed=tests_passed,
+            tests_failed=tests_failed,
+            tests_error=tests_error,
+            summary_line=summary_line,
+            failure_messages=failure_messages,
         )
         return SandboxResult(test_result=test_result, used_sandbox=True, container_id=container_id)
     except subprocess.TimeoutExpired as e:

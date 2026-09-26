@@ -1,79 +1,91 @@
 import ast
-import random
 import copy
 from typing import List, Tuple
+from dataclasses import dataclass
+from pathlib import Path
+from aegis.execution.runner import run_tests
 
-class MutationTester(ast.NodeTransformer):
+class DeterministicMutator(ast.NodeTransformer):
     """
-    Adversarial verification: Mutates the AST of a Python file to test
-    if the test suite is robust enough to catch the regression.
+    Adversarial verification: Deterministically mutates the target-th operator
+    in the AST of a Python file to guarantee full reproducibility.
     """
-    def __init__(self):
-        self.mutations = 0
-        self.max_mutations = 1
+    def __init__(self, target_index: int):
+        self.target_index = target_index
+        self.current_index = 0
+        self.mutated = False
 
     def visit_Compare(self, node):
         self.generic_visit(node)
-        if self.mutations >= self.max_mutations:
+        if self.mutated:
             return node
             
-        if random.random() < 0.5:
-            # Swap operators
-            for i, op in enumerate(node.ops):
+        for i, op in enumerate(node.ops):
+            if self.current_index == self.target_index:
                 if isinstance(op, ast.Eq):
                     node.ops[i] = ast.NotEq()
-                    self.mutations += 1
                 elif isinstance(op, ast.NotEq):
                     node.ops[i] = ast.Eq()
-                    self.mutations += 1
                 elif isinstance(op, ast.Lt):
                     node.ops[i] = ast.LtE()
-                    self.mutations += 1
+                elif isinstance(op, ast.LtE):
+                    node.ops[i] = ast.Lt()
                 elif isinstance(op, ast.Gt):
                     node.ops[i] = ast.GtE()
-                    self.mutations += 1
+                elif isinstance(op, ast.GtE):
+                    node.ops[i] = ast.Gt()
+                self.mutated = True
+                break
+            self.current_index += 1
         return node
 
     def visit_BinOp(self, node):
         self.generic_visit(node)
-        if self.mutations >= self.max_mutations:
+        if self.mutated:
             return node
             
-        if random.random() < 0.5:
+        if self.current_index == self.target_index:
             if isinstance(node.op, ast.Add):
                 node.op = ast.Sub()
-                self.mutations += 1
             elif isinstance(node.op, ast.Sub):
                 node.op = ast.Add()
-                self.mutations += 1
             elif isinstance(node.op, ast.Mult):
                 node.op = ast.Div()
-                self.mutations += 1
+            elif isinstance(node.op, ast.Div):
+                node.op = ast.Mult()
+            self.mutated = True
+        self.current_index += 1
         return node
 
 def generate_mutations(source_code: str, num_mutants: int = 3) -> List[str]:
-    """Generate multiple mutant versions of the source code."""
+    """
+    Deterministically generate up to num_mutants unique mutant versions of source code.
+    Mutates nodes in consistent sequential AST order.
+    """
     try:
         tree = ast.parse(source_code)
     except SyntaxError:
         return []
         
     mutants = []
-    for _ in range(num_mutants):
-        # We need a fresh copy of the tree for each mutation pass
+    seen = {source_code}
+    
+    # Try successive indices until we reach num_mutants or exhaust operators
+    for idx in range(num_mutants * 3):
         tree_copy = copy.deepcopy(tree)
-        tester = MutationTester()
-        mutated_tree = tester.visit(tree_copy)
+        mutator = DeterministicMutator(target_index=idx)
+        mutated_tree = mutator.visit(tree_copy)
         ast.fix_missing_locations(mutated_tree)
         
-        if tester.mutations > 0:
-            mutants.append(ast.unparse(mutated_tree))
-            
-    return list(set(mutants)) # return unique mutants
-
-from dataclasses import dataclass
-from pathlib import Path
-from aegis.execution.runner import run_tests
+        if mutator.mutated:
+            code = ast.unparse(mutated_tree)
+            if code not in seen:
+                seen.add(code)
+                mutants.append(code)
+                if len(mutants) >= num_mutants:
+                    break
+                    
+    return mutants
 
 @dataclass
 class MutationScoreResult:
@@ -89,7 +101,7 @@ def run_mutation_tests(
     timeout: int = 15
 ) -> MutationScoreResult:
     """
-    Executes actual mutation testing:
+    Executes deterministic mutation testing:
     Applies AST mutants to project files, runs pytest against them,
     and calculates empirical mutation score (killed / total).
     """
