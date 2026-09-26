@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from aegis.validator import validate_patch
+from aegis.verification.validator import validate_patch
 
 logger = logging.getLogger(__name__)
 

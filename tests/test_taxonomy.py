@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
-from aegis.taxonomy import classify_failure, FailureType, FailureRecord
-from aegis.runner import TestResult
-from aegis.validator import ValidationResult
+from aegis.verification.taxonomy import classify_failure, FailureType, FailureRecord
+from aegis.execution.runner import TestResult
+from aegis.verification.validator import ValidationResult
 
 
 def make_test_result(passed: bool, exit_code: int = 0, messages: list[str] | None = None) -> TestResult:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import os
 from pathlib import Path
-from aegis.validator import validate_python, validate_patch
+from aegis.verification.validator import validate_python, validate_patch
 
 
 def test_valid_python():

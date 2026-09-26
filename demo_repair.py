@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 from aegis.config import load_config
 from aegis.llm import GeminiProvider
-from aegis.repair import repair_bug
+from aegis.core.orchestrator import repair_bug
 
 API_KEY = os.environ.get("AEGIS_API_KEY", "")
 

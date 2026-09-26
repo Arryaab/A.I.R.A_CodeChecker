@@ -9,10 +9,10 @@ from pathlib import Path
 from aegis.config import AegisConfig
 from aegis.llm import LLMProvider, LLMResponse, build_repair_prompt, SYSTEM_PROMPT
 from aegis.patcher import apply_patch, copy_project, parse_llm_patch
-from aegis.runner import TestResult
-from aegis.sandbox import run_tests_sandboxed
-from aegis.taxonomy import FailureRecord, classify_failure
-from aegis.validator import ValidationResult
+from aegis.execution.runner import TestResult
+from aegis.execution.sandbox import run_tests_sandboxed
+from aegis.verification.taxonomy import FailureRecord, classify_failure
+from aegis.verification.validator import ValidationResult
 
 logger = logging.getLogger(__name__)
 

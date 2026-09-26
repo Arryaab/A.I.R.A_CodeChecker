@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 from aegis.config import load_config
 from aegis.llm import GeminiProvider
-from aegis.repair import repair_bug
+from aegis.core.orchestrator import repair_bug
 
 def main():
     bug_name = sys.argv[1] if len(sys.argv) > 1 else "bug_014_logic_error"

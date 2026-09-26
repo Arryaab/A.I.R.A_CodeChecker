@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from aegis.runner import TestResult, run_tests, PYTEST_EXIT_INTERNAL_ERROR
+from aegis.execution.runner import TestResult, run_tests, PYTEST_EXIT_INTERNAL_ERROR
 
 logger = logging.getLogger(__name__)
 

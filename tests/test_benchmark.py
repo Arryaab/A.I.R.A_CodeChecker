@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from aegis.benchmark import Benchmark
+from aegis.evals.benchmark import Benchmark
 
 def test_benchmark_loading(tmp_path):
     bench_dir = tmp_path / "my_bench"

@@ -4,11 +4,11 @@ import argparse
 import sys
 from pathlib import Path
 
-from aegis.benchmark import Benchmark
+from aegis.evals.benchmark import Benchmark
 from aegis.config import load_config, AegisConfig
-from aegis.evaluation import evaluate_benchmark, generate_json_report, generate_markdown_report
-from aegis.repair import repair_bug
-from aegis.validator import validate_python
+from aegis.evals.evaluation import evaluate_benchmark, generate_json_report, generate_markdown_report
+from aegis.core.orchestrator import repair_bug
+from aegis.verification.validator import validate_python
 from aegis.llm import GeminiProvider, OllamaProvider
 
 def get_provider_for_cli(config: AegisConfig):

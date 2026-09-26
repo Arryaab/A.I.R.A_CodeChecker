@@ -1,4 +1,4 @@
-"""Tests for aegis.runner — verifying the test runner itself.
+"""Tests for aegis.execution.runner — verifying the test runner itself.
 
 These tests run the runner against our sample_project and verify
 that the returned TestResult has correct values for every field.
@@ -7,17 +7,13 @@ Why test the runner? Because every later stage trusts the runner's
 output. If the runner incorrectly reports "all tests passed" when
 they didn't, the entire repair loop is broken. Trust starts here.
 """
-
 import sys
 from pathlib import Path
 
-# Add the aegis package to the import path so we can import runner.
-# In a real installed package, this wouldn't be needed, but for
-# development it lets us run tests directly.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "aegis"))
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from runner import run_tests, PYTEST_EXIT_OK, PYTEST_EXIT_TESTS_FAILED
-
+from aegis.execution.runner import run_tests, PYTEST_EXIT_OK, PYTEST_EXIT_TESTS_FAILED
 
 # Path to the sample project with one passing and one failing test.
 SAMPLE_PROJECT = Path(__file__).resolve().parent.parent / "examples" / "sample_project"

@@ -9,8 +9,8 @@ from pathlib import Path
 
 from aegis.config import load_config
 from aegis.llm import GeminiProvider
-from aegis.benchmark import Benchmark
-from aegis.evaluation import evaluate_benchmark, generate_json_report, generate_markdown_report
+from aegis.evals.benchmark import Benchmark
+from aegis.evals.evaluation import evaluate_benchmark, generate_json_report, generate_markdown_report
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate Aegis-Lite")

@@ -7,11 +7,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from aegis.benchmark import Benchmark
+from aegis.evals.benchmark import Benchmark
 from aegis.config import AegisConfig
 from aegis.llm import LLMProvider
-from aegis.repair import RepairResult, repair_bug
-from aegis.taxonomy import FailureType
+from aegis.core.orchestrator import RepairResult, repair_bug
+from aegis.verification.taxonomy import FailureType
 
 logger = logging.getLogger(__name__)
 

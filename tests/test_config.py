@@ -7,7 +7,7 @@ from aegis.config import AegisConfig, load_config, save_config
 
 def test_default_config():
     config = AegisConfig()
-    assert config.model == "gemini-2.0-flash"
+    assert config.model == "gemini-3.8-flash"
     assert config.max_retries == 3
     assert config.timeout_seconds == 60
     assert config.sandbox_enabled is False

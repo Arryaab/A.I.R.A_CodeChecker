@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from aegis.runner import TestResult
-from aegis.validator import ValidationResult
+from aegis.execution.runner import TestResult
+from aegis.verification.validator import ValidationResult
 
 
 class FailureType(str, Enum):

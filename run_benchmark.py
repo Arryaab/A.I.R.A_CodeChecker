@@ -14,10 +14,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(mes
 
 from aegis.config import load_config
 from aegis.llm import GeminiProvider
-from aegis.benchmark import Benchmark
-from aegis.evaluation import evaluate_benchmark, calculate_metrics, generate_markdown_report
-from aegis.repair import repair_bug
-from aegis.taxonomy import FailureType
+from aegis.evals.benchmark import Benchmark
+from aegis.evals.evaluation import evaluate_benchmark, calculate_metrics, generate_markdown_report
+from aegis.core.orchestrator import repair_bug
+from aegis.verification.taxonomy import FailureType
 
 DELAY_BETWEEN_BUGS = 65  # seconds — ensures rate limit resets between bugs
 

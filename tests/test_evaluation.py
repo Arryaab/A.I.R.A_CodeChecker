@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from aegis.evaluation import calculate_metrics
-from aegis.repair import RepairResult, RepairAttempt
-from aegis.taxonomy import FailureRecord, FailureType
-from aegis.runner import TestResult
+from aegis.evals.evaluation import calculate_metrics
+from aegis.core.orchestrator import RepairResult, RepairAttempt
+from aegis.verification.taxonomy import FailureRecord, FailureType
+from aegis.execution.runner import TestResult
 
 def _create_mock_result(success=True, attempt_success=True, hidden_success=True, fail_type=None):
     tr = TestResult(passed=attempt_success, exit_code=0, stdout="", stderr="", duration_seconds=1.0, tests_passed=1, tests_failed=0, tests_error=0, summary_line="")
