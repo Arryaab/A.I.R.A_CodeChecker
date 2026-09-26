@@ -24,6 +24,7 @@ import sys
 import time
 import re
 import subprocess
+import urllib.request
 from pathlib import Path
 
 from flask import Flask, request, jsonify, render_template_string
