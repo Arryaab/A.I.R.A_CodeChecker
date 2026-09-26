@@ -40,6 +40,8 @@ class RepairResult:
     total_duration_seconds: float = 0.0
     total_tokens: int = 0
 
+from aegis.intelligence.repo_mapper import RepoMapper
+
 def repair_bug(
     *,
     bug_dir: Path,
@@ -54,6 +56,16 @@ def repair_bug(
     
     # Create working directory
     work_dir = copy_project(bug_dir)
+    
+    # Generate repository intelligence map
+    try:
+        mapper = RepoMapper(work_dir)
+        mapper.map_repository()
+        repo_map = mapper.generate_prompt_context()
+        logger.info(f"Generated repository intelligence map for {bug_id}")
+    except Exception as e:
+        logger.warning(f"Failed to generate repository map: {e}")
+        repo_map = None
     
     # Copy visible tests if provided
     if visible_tests_dir and visible_tests_dir.exists():
@@ -90,7 +102,8 @@ def repair_bug(
             source_code=source_code,
             file_path=target_file,
             test_output=final_visible_result.stdout + final_visible_result.stderr if final_visible_result else "",
-            previous_attempt=previous_attempt
+            previous_attempt=previous_attempt,
+            repo_map=repo_map
         )
         
         try:

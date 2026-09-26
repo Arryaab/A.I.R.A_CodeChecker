@@ -267,6 +267,7 @@ def build_repair_prompt(
     file_path: str,
     test_output: str,
     previous_attempt: str | None = None,
+    repo_map: str | None = None,
 ) -> str:
     """Build the prompt sent to the LLM for repair.
     Returns a prompt instructing the LLM to return JSON:
@@ -275,7 +276,11 @@ def build_repair_prompt(
         "patch": {"relative/path.py": "entire corrected file content"}
     }
     """
-    prompt = f"Buggy file: `{file_path}`\n\n"
+    prompt = ""
+    if repo_map:
+        prompt += f"Repository Context:\n```\n{repo_map}\n```\n\n"
+        
+    prompt += f"Buggy file: `{file_path}`\n\n"
     prompt += f"```python\n{source_code}\n```\n\n"
     prompt += f"Test output:\n```\n{test_output}\n```\n\n"
     
