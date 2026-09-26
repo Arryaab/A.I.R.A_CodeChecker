@@ -13,3 +13,12 @@ def test_get_git_diff():
     assert isinstance(change.patches, dict)
     assert change.base == "HEAD~1"
     assert change.head == "HEAD"
+
+def test_create_commit_snapshot():
+    from aegis.integrations.git import create_commit_snapshot
+    repo_dir = Path(__file__).resolve().parent.parent
+    with create_commit_snapshot(repo_dir, commit_ref="HEAD") as snapshot_dir:
+        assert snapshot_dir.exists()
+        assert (snapshot_dir / "pyproject.toml").exists()
+        assert (snapshot_dir / "aegis").exists()
+

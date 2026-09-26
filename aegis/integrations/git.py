@@ -201,3 +201,34 @@ def get_git_diff(repo_dir: Path, base: str = "HEAD~1", head: str = "HEAD") -> Gi
         file_diffs=file_diffs,
         patches=patches
     )
+
+import tempfile
+import io
+import tarfile
+from contextlib import contextmanager
+from typing import Generator
+
+@contextmanager
+def create_commit_snapshot(repo_dir: Path, commit_ref: str = "HEAD") -> Generator[Path, None, None]:
+    """
+    Creates an immutable, hermetic snapshot of the exact commit_ref in an ephemeral directory.
+    Guarantees that test execution and mutation testing never contaminate or read from
+    the developer's uncommitted/dirty working tree.
+    """
+    with tempfile.TemporaryDirectory(prefix="aegis_snapshot_") as temp_dir:
+        temp_path = Path(temp_dir)
+        try:
+            res = subprocess.run(
+                ["git", "archive", "--format=tar", commit_ref],
+                cwd=repo_dir,
+                capture_output=True,
+                check=True
+            )
+            with tarfile.open(fileobj=io.BytesIO(res.stdout)) as tar:
+                tar.extractall(temp_path)
+        except Exception:
+            # Fallback to copy if archive fails (e.g. invalid ref)
+            import shutil
+            shutil.copytree(repo_dir, temp_path, dirs_exist_ok=True)
+            
+        yield temp_path

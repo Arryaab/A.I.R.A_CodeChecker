@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import logging
+import json
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="AEGIS-AGENT [%(levelname)s]: %(message)s")
@@ -146,7 +147,12 @@ def main() -> None:
             elif args.base:
                 target_desc = f"Git Diff: {args.base}..{args.head}"
                 git_change = get_git_diff(proj, base=args.base, head=args.head)
-                affected_files = git_change.modified_files + git_change.added_files
+                affected_files = list(dict.fromkeys(
+                    git_change.modified_files + 
+                    git_change.added_files + 
+                    git_change.deleted_files + 
+                    [new_p for _, new_p in git_change.renamed_files]
+                ))
                 patches = git_change.patches
             else:
                 affected_files = [
@@ -157,10 +163,10 @@ def main() -> None:
                 for f in affected_files:
                     code = (proj / f).read_text(encoding="utf-8", errors="replace")
                     patches[f] = PatchChange(path=f, new_content=code, added_lines=code.splitlines())
+
             # 1. Compute Heuristic Patch Risk Baseline to determine verification budget
             risk_model = PatchRiskModel()
-            raw_patch_dict = {k: v.new_content for k, v in patches.items()}
-            risk = risk_model.predict_risk(raw_patch_dict, raw_patch_dict, "")
+            risk = risk_model.predict_risk(patches, patches, "")
 
             # Resolve Verification Tier
             active_tier = args.tier.upper()
@@ -185,30 +191,34 @@ def main() -> None:
             sec_res = sec.scan_patch_changes(patches)
             security_verdict = "✅ Passed" if sec_res.safe else "❌ FAILED"
 
-            # 3. Targeted Test Execution (Fast Feedback - All Tiers)
-            selector = TestSelector(proj)
-            selected_tests = selector.select_tests_for_patch(affected_files)
-            selected_res = run_tests_sandboxed(proj, test_files=selected_tests)
-            targeted_passed = selected_res.test_result.passed
-            correctness_verdict = "✅ Passed" if targeted_passed else "❌ FAILED"
+            # 3. Hermetic Commit-Pure Execution Sandbox
+            from aegis.integrations.git import create_commit_snapshot
+            with create_commit_snapshot(proj, commit_ref=args.head if is_diff_mode else "HEAD") as exec_dir:
+                # 3a. Targeted Test Execution (Fast Feedback - All Tiers)
+                selector = TestSelector(exec_dir)
+                selected_tests = selector.select_tests_for_patch(affected_files)
+                selected_res = run_tests_sandboxed(exec_dir, test_files=selected_tests)
+                targeted_passed = selected_res.test_result.passed
+                correctness_verdict = "✅ Passed" if targeted_passed else "❌ FAILED"
 
-            # 4. Regression & Mutation Verification (STANDARD & DEEP Tiers)
-            full_passed = True
-            if active_tier in ("STANDARD", "DEEP"):
-                full_res = run_tests_sandboxed(proj)
-                full_passed = full_res.test_result.passed
-                regression_verdict = f"✅ Passed (0 regressed, {full_res.test_result.summary_line})" if full_passed else "❌ FAILED (Regressions detected)"
-                
-                max_mutants = 2 if active_tier == "STANDARD" else 4
-                mut_res = run_mutation_tests(proj, affected_files[:2], max_mutants_per_file=max_mutants)
-                if mut_res.total_mutants > 0:
-                    mut_pct = mut_res.score * 100
-                    mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_res.total_mutants} killed)"
+                # 3b. Regression & Mutation Verification (STANDARD & DEEP Tiers)
+                full_passed = True
+                mut_pct = 100.0
+                if active_tier in ("STANDARD", "DEEP"):
+                    full_res = run_tests_sandboxed(exec_dir)
+                    full_passed = full_res.test_result.passed
+                    regression_verdict = f"✅ Passed (0 regressed, {full_res.test_result.summary_line})" if full_passed else "❌ FAILED (Regressions detected)"
+                    
+                    max_mutants = 2 if active_tier == "STANDARD" else 4
+                    mut_res = run_mutation_tests(exec_dir, affected_files[:2], max_mutants_per_file=max_mutants)
+                    if mut_res.total_mutants > 0:
+                        mut_pct = mut_res.score * 100
+                        mutation_verdict = f"✅ {mut_pct:.1f}% ({mut_res.killed_mutants}/{mut_res.total_mutants} killed)"
+                    else:
+                        mutation_verdict = "➖ N/A"
                 else:
-                    mutation_verdict = "➖ N/A"
-            else:
-                regression_verdict = "⚡ Skipped (FAST Tier)"
-                mutation_verdict = "⚡ Skipped (FAST Tier)"
+                    regression_verdict = "⚡ Skipped (FAST Tier)"
+                    mutation_verdict = "⚡ Skipped (FAST Tier)"
 
             # Print Verification Card
             print(f"Correctness:        {correctness_verdict} ({len(selected_tests)} targeted test files passed in {selected_res.test_result.duration_seconds}s)")
@@ -221,23 +231,53 @@ def main() -> None:
                     print(f"  - Risk factor: {factor}")
             print("-" * 68)
 
-            # Final Decision Gate
+            # Determine Verdict
             if not sec_res.safe:
+                verdict = "REJECT"
                 print("VERDICT: REJECT ⛔ (Security vulnerabilities detected in change)")
                 for issue in sec_res.issues:
                     print(f"  - {issue}")
-                sys.exit(1)
             elif not targeted_passed:
+                verdict = "REJECT"
                 print("VERDICT: REJECT ⛔ (Targeted test failure in modified modules)")
-                sys.exit(1)
             elif not full_passed:
+                verdict = "REJECT"
                 print("VERDICT: REJECT ⛔ (Regression detected in full test suite)")
-                sys.exit(1)
             elif risk.risk_level == "HIGH":
+                verdict = "WARN"
                 print("VERDICT: WARN ⚠️ (High risk change — requires manual review)")
-                sys.exit(2)
             else:
+                verdict = "APPROVE"
                 print("VERDICT: APPROVE 🚀 (Change qualified for production merge)")
+
+            # Generate Machine-Readable Audit Report Artifact
+            audit_report = {
+                "base": args.base,
+                "head": args.head,
+                "affected_files": affected_files,
+                "lines_added": sum(len(getattr(p, 'added_lines', [])) for p in patches.values()),
+                "lines_deleted": sum(len(getattr(p, 'deleted_lines', [])) for p in patches.values()),
+                "targeted_tests_count": len(selected_tests),
+                "targeted_passed": targeted_passed,
+                "full_regression_passed": full_passed,
+                "security_findings_count": len(sec_res.issues),
+                "mutation_score_pct": mut_pct if active_tier in ("STANDARD", "DEEP") else None,
+                "risk_score": risk.risk_score,
+                "risk_level": risk.risk_level,
+                "verification_tier": active_tier,
+                "verdict": verdict,
+            }
+            report_path = proj / "aegis-report.json"
+            try:
+                report_path.write_text(json.dumps(audit_report, indent=2), encoding="utf-8")
+                print(f"Audit Artifact:     {report_path.name}")
+            except Exception:
+                pass
+
+            if verdict == "REJECT":
+                sys.exit(1)
+            elif verdict == "WARN":
+                sys.exit(2)
                 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

@@ -73,6 +73,7 @@ Thumbs.db
 # Project specific
 reports/
 aegis_*/
+aegis-report.json
 
 # Docker
 .dockerignore

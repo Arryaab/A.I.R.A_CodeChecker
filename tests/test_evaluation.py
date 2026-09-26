@@ -42,3 +42,42 @@ def test_calculate_metrics_edge_cases():
     metrics = calculate_metrics([])
     assert metrics.total_bugs == 0
     assert metrics.pass_at_1 == 0.0
+
+def test_heuristic_patch_risk_model():
+    from aegis.evals.risk_model import PatchRiskModel
+    from aegis.integrations.git import PatchChange
+
+    model = PatchRiskModel()
+
+    # Small patch - LOW risk
+    small_change = PatchChange(
+        path="math_utils.py",
+        new_content="def add(a, b):\n    return a + b\n",
+        added_lines=["def add(a, b):", "    return a + b"],
+        deleted_lines=[]
+    )
+    pred_low = model.predict_risk({"math_utils.py": small_change}, {"math_utils.py": small_change})
+    assert pred_low.risk_score == 0.0
+    assert pred_low.risk_level == "LOW"
+
+    # Dangerous pattern introduced - HIGH/MEDIUM risk
+    danger_change = PatchChange(
+        path="service.py",
+        new_content="import os\nos.system('rm -rf /')",
+        added_lines=["import os", "os.system('rm -rf /')"],
+        deleted_lines=[]
+    )
+    pred_danger = model.predict_risk({"service.py": danger_change}, {"service.py": danger_change})
+    assert pred_danger.risk_score >= 0.4
+    assert any("os.system" in f for f in pred_danger.factors)
+
+    # Security module deletion - critical risk factor
+    del_auth = PatchChange(
+        path="auth/token_guardrail.py",
+        status="D",
+        deleted_lines=["deleted lines..."]
+    )
+    pred_del = model.predict_risk({"auth/token_guardrail.py": del_auth}, {"auth/token_guardrail.py": del_auth})
+    assert pred_del.risk_score >= 0.5
+    assert any("Security-critical module deleted" in f for f in pred_del.factors)
+

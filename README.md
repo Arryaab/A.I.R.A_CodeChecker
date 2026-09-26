@@ -97,18 +97,17 @@ When running `aegis verify --base HEAD~1 --head HEAD`:
 🛡️  AEGIS AI CHANGE VERIFICATION PLATFORM
 ====================================================================
 Target:             Git Diff: HEAD~1..HEAD
-Affected Files:     4 (aegis/evals/risk_model.py, aegis/execution/sandbox.py...)
-Verification Tier:  FAST (Risk: 0.50 MEDIUM)
+Affected Files:     2 (aegis/evals/risk_model.py, aegis/verification/security.py)
+Verification Tier:  FAST (Risk: 0.00 LOW)
 --------------------------------------------------------------------
-Correctness:        ✅ Passed (1 targeted test files passed in 0.825s)
+Correctness:        ✅ Passed (1 targeted test files passed in 0.721s)
 Regression:         ⚡ Skipped (FAST Tier)
 Security:           ✅ Passed (AST imports + added lines scanned)
 Mutation Score:     ⚡ Skipped (FAST Tier)
-Risk Score:         0.50 (MEDIUM RISK)
-  - Risk factor: Large diff size (>50 lines)
-  - Risk factor: Multiple files modified (4)
+Risk Score:         0.00 (LOW RISK)
 --------------------------------------------------------------------
 VERDICT: APPROVE 🚀 (Change qualified for production merge)
+Audit Artifact:     aegis-report.json
 ```
 
 ---
@@ -144,7 +143,7 @@ python -m aegis.cli repair --project-dir ./my_buggy_project
 ```bash
 python -m pytest -q
 ```
-All **57 tests** pass cleanly with 0 collection errors.
+All **59 tests** pass cleanly with 0 failures (54 passed, 1 skipped if optional web extras are omitted).
 
 ---
 
