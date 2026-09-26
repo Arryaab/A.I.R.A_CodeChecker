@@ -18,7 +18,14 @@ class TestSelector:
         Given a list of modified files (relative paths), returns a prioritized list
         of test files that should be executed first.
         """
-        all_tests = list(self.project_dir.rglob("test_*.py"))
+        all_candidates = list(self.project_dir.rglob("test_*.py"))
+        all_tests = []
+        for t in all_candidates:
+            parts = [p.lower() for p in t.relative_to(self.project_dir).parts]
+            if any(p in parts for p in ("benchmarks", "benchmark", "venv", ".venv", ".git", ".pytest_cache", "site-packages", "data")):
+                continue
+            all_tests.append(t)
+
         if not all_tests:
             return []
             

@@ -319,7 +319,7 @@ def main() -> None:
                             base_test_files = [
                                 str(t.relative_to(base_dir)).replace("\\", "/")
                                 for t in base_dir.rglob("test_*.py")
-                                if "venv" not in t.parts and ".pytest_cache" not in t.parts
+                                if not any(p in t.parts for p in ("venv", ".venv", ".pytest_cache", "benchmarks", "benchmark", "data"))
                             ]
                             if base_test_files:
                                 base_eval_res = run_tests_sandboxed(
