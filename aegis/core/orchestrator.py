@@ -42,6 +42,8 @@ class RepairResult:
 
 from aegis.intelligence.repo_mapper import RepoMapper
 
+from aegis.core.agents import PlannerAgent, CriticAgent
+
 def repair_bug(
     *,
     bug_dir: Path,
@@ -89,6 +91,14 @@ def repair_bug(
             target_file = str(py_file.relative_to(work_dir))
             break
             
+    # ----- AEGIS 0.3: ORCHESTRATOR & PLANNER -----
+    planner = PlannerAgent(provider)
+    critic = CriticAgent(provider)
+    
+    initial_test_output = original_result.stdout + original_result.stderr if original_result else ""
+    plan = planner.plan(repo_map or "No repo map", initial_test_output)
+    logger.info(f"Planner strategy: {plan.strategy}")
+            
     attempts = []
     visible_pass = False
     final_visible_result = original_result
@@ -98,6 +108,7 @@ def repair_bug(
     for attempt_num in range(1, config.max_retries + 1):
         attempt_start = time.time()
         
+        # Inject the Planner's strategy into the Repair Agent's prompt
         prompt = build_repair_prompt(
             source_code=source_code,
             file_path=target_file,
@@ -105,6 +116,7 @@ def repair_bug(
             previous_attempt=previous_attempt,
             repo_map=repo_map
         )
+        prompt = f"PLANNER STRATEGY: {plan.strategy}\n\n" + prompt
         
         try:
             llm_res = provider.ask(prompt, system=SYSTEM_PROMPT)
@@ -145,25 +157,35 @@ def repair_bug(
             )
             test_res = sandbox_res.test_result
             
+            # ----- AEGIS 0.3: CRITIC EVALUATION -----
+            test_out = test_res.stdout + "\n" + test_res.stderr
+            feedback = critic.critique(source_code, patch, test_out)
+            
             attempts.append(RepairAttempt(
                 attempt_number=attempt_num,
                 patch=patch,
                 validation=validation_res,
                 test_result=test_res,
                 llm_response=llm_res,
-                duration_seconds=time.time() - attempt_start
+                duration_seconds=time.time() - attempt_start,
+                diagnosis=feedback.feedback
             ))
             
             final_visible_result = test_res
             shutil.rmtree(attempt_dir)
             
             if test_res.passed:
-                visible_pass = True
-                source_code = patch.get(target_file, source_code) # update for hidden tests
-                break
+                if feedback.approved:
+                    visible_pass = True
+                    source_code = patch.get(target_file, source_code)
+                    logger.info("Patch accepted by tests AND Critic.")
+                    break
+                else:
+                    previous_attempt = f"Tests passed, but Critic rejected the patch: {feedback.feedback}"
+                    logger.info("Tests passed but Critic rejected.")
+            else:
+                previous_attempt = f"Tests failed. Output:\n{test_res.stdout}\n{test_res.stderr}"
                 
-            previous_attempt = f"Tests failed. Output:\n{test_res.stdout}\n{test_res.stderr}"
-            
         except Exception as e:
             logger.error(f"Attempt {attempt_num} failed due to error: {e}")
             previous_attempt = f"System error: {e}"
