@@ -1,0 +1,13 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,3 +1,8 @@
+ def is_domain_match(request_domain: str, cookie_domain: str) -> bool:
+-    # BUG: simple endswith allows attackerexample.com to match example.com
+-    return request_domain.endswith(cookie_domain)
++    req = request_domain.lower()
++    cookie = cookie_domain.lower().lstrip(".")
++    if req == cookie:
++        return True
++    if req.endswith("." + cookie):
++        return True
++    return False

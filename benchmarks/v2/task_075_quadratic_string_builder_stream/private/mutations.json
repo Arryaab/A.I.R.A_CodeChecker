@@ -1,0 +1,12 @@
+[
+  {
+    "mutation_id": "task_075_quadratic_string_builder_stream_mut1",
+    "type": "operator_flip",
+    "description": "Flip boundary comparison operator"
+  },
+  {
+    "mutation_id": "task_075_quadratic_string_builder_stream_mut2",
+    "type": "return_default",
+    "description": "Return empty default on boundary"
+  }
+]

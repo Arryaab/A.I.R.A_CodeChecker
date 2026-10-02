@@ -1,0 +1,21 @@
+{
+  "task_id": "task_053_ip_subnet_cidr_matching",
+  "bug_id": "task_053_ip_subnet_cidr_matching",
+  "category": "boundary_violation",
+  "difficulty": "medium",
+  "description": "Fix bitmask matching for IPv4 subnets across network and broadcast boundaries",
+  "expected_behavior": "Correctly parses CIDR and validates IP inclusion across edge addresses",
+  "tags": [
+    "networking",
+    "cidr",
+    "ipv4"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

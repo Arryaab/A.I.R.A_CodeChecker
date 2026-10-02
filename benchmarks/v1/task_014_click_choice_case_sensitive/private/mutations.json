@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_ignore_case_sensitive_flag",
+    "type": "flag_ignored",
+    "description": "Always performs case-sensitive match",
+    "code": "def match_choice(val: str, choices: list[str], case_sensitive: bool = True) -> str:\n    if val in choices:\n        return val\n    raise ValueError(f\"'{val}' is not in {choices}\")\n"
+  }
+]

@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,8 +1,7 @@
+ def matrix_power(matrix: list[list[float]], power: int) -> list[list[float]]:
+     n = len(matrix)
+     if power == 0:
+-        # BUG: returns zero matrix instead of identity matrix
+-        return [[0.0 for _ in range(n)] for _ in range(n)]
++        return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
+     res = [row[:] for row in matrix]
+     for _ in range(power - 1):
+         new_res = [[0.0 for _ in range(n)] for _ in range(n)]

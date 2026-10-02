@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -5,6 +5,6 @@
+         self.training = True
+ 
+     def forward(self, batch_mean: float):
+-        # BUG: updates running_mean even when self.training is False
+-        self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean
++        if self.training:
++            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean
+         return self.running_mean

@@ -1,0 +1,21 @@
+{
+  "task_id": "task_069_http_status_enum_backward_compat",
+  "bug_id": "task_069_http_status_enum_backward_compat",
+  "category": "regression_defect",
+  "difficulty": "medium",
+  "description": "Ensure HTTPStatus type maintains int inheritance and integer comparisons for backward compatibility",
+  "expected_behavior": "HTTPStatus instance compares equal to int (status == 200) and supports int() conversion",
+  "tags": [
+    "http",
+    "enum",
+    "backward-compatibility"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

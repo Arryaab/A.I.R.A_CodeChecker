@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_equality_only",
+    "description": "Returns length equality only",
+    "code": "def constant_time_compare(val1: bytes, val2: bytes) -> bool:\n    return len(val1) == len(val2)\n"
+  }
+]

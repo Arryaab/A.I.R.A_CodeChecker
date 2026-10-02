@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_unconditional_latin1",
+    "type": "wrong_codec_order",
+    "description": "Always decodes as latin-1 first, corrupting multi-byte UTF-8",
+    "code": "def decode_header(raw_bytes: bytes) -> str:\n    return raw_bytes.decode('latin-1')\n"
+  }
+]

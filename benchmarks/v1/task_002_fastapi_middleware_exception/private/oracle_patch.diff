@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -7,7 +7,6 @@
+     try:
+         return handler(request)
+     except Exception as exc:
+-        # BUG: re-raises CustomHTTPException instead of formatting dict response
+         if isinstance(exc, CustomHTTPException):
+-            raise exc
++            return {"status": exc.status_code, "detail": exc.detail}
+         return {"status": 500, "error": "Internal Server Error"}

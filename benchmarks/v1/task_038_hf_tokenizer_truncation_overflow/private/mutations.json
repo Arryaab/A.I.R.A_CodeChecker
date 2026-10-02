@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_naive_slice_drops_sep",
+    "type": "token_truncation_defect",
+    "description": "Slices concatenated tokens directly, dropping the trailing [SEP]",
+    "code": "def truncate_token_pair(seq_a: list[str], seq_b: list[str], max_length: int) -> list[str]:\n    merged = [\"[CLS]\"] + seq_a + [\"[SEP]\"] + seq_b + [\"[SEP]\"]\n    return merged[:max_length]\n"
+  }
+]

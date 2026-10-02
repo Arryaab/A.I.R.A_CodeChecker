@@ -1,0 +1,19 @@
+task_id: task_012_click_context_leak
+oracle_version: 1.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: Context.child() performs a shallow copy of context data
+  ensuring child mutations never leak to parent.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  max_latency_regression_pct: 10.0

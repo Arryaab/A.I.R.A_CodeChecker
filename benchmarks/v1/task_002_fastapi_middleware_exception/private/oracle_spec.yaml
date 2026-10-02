@@ -1,0 +1,19 @@
+task_id: task_002_fastapi_middleware_exception
+oracle_version: 1.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: execute_middleware_chain catches CustomHTTPException formatting
+  it into a dict response with status and detail keys.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  max_latency_regression_pct: 10.0

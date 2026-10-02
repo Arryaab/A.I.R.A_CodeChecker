@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_always_200",
+    "description": "Always returns 200 success without checking exception type",
+    "code": "class CustomHTTPException(Exception):\n    def __init__(self, status_code: int, detail: str):\n        self.status_code = status_code\n        self.detail = detail\n\ndef execute_middleware_chain(handler, request):\n    return {\"status\": 200, \"data\": \"ok\"}\n"
+  }
+]

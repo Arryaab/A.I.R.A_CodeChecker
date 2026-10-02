@@ -1,0 +1,16 @@
+--- a/solution.py
++++ b/solution.py
+@@ -9,9 +9,11 @@
+         self._listeners[event_name].append(callback)
+ 
+     def unsubscribe(self, event_name: str, callback: Callable) -> None:
+-        # BUG: Clears all listeners for event_name or crashes if callback missing
+         if event_name in self._listeners:
+-            self._listeners[event_name].clear()
++            try:
++                self._listeners[event_name].remove(callback)
++            except ValueError:
++                pass
+ 
+     def dispatch(self, event_name: str, payload: dict) -> None:
+         for cb in list(self._listeners.get(event_name, [])):

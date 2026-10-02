@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_original_fields",
+    "type": "data_loss",
+    "description": "Returns dictionary with full_name only, omitting original fields",
+    "code": "def validate_user_payload(data: dict) -> dict:\n    if \"first_name\" in data and \"last_name\" in data:\n        return {\"full_name\": f\"{data['first_name']} {data['last_name']}\"}\n    return data\n"
+  }
+]

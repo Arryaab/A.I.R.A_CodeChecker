@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_001_fastapi_async_scope",
+  "category": "framework_lifecycle",
+  "difficulty": "medium",
+  "description": "Fix async generator dependency scope cleanup in dependency resolution engine",
+  "expected_behavior": "Properly executes cleanup of async generator after request completion",
+  "tags": [
+    "fastapi",
+    "async",
+    "dependency-injection"
+  ],
+  "task_id": "task_001_fastapi_async_scope",
+  "difficulty_dimensions": {
+    "LOCALITY": "class_method",
+    "ALGORITHM_COMPLEXITY": "O(N)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "standard",
+    "TESTING_COMPLEXITY": "async_generator",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateful_object",
+    "CONCURRENCY": "async",
+    "DIFFICULTY_BUCKET": "medium"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

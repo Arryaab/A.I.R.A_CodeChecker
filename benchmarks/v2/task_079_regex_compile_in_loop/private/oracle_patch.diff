@@ -1,0 +1,19 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,13 +1,13 @@
+ import re
+ from typing import List
++
++LOG_SEVERITY_PATTERN = re.compile(r"\[(INFO|WARN|ERROR)\]")
+ 
+ def extract_log_severities(lines: List[str]) -> List[str]:
+     """Extracts severity tags [INFO], [WARN], [ERROR] from log stream."""
+     severities = []
+-    # BUG: Compiles regex on every single line inside the loop
+     for line in lines:
+-        pattern = re.compile(r"\[(INFO|WARN|ERROR)\]")
+-        match = pattern.search(line)
++        match = LOG_SEVERITY_PATTERN.search(line)
+         if match:
+             severities.append(match.group(1))
+     return severities

@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "framework_lifecycle",
+  "source": "https://github.com/tiangolo/fastapi",
+  "repository": "https://github.com/tiangolo/fastapi",
+  "base_commit": "5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d",
+  "issue_id": "#task_005_fastapi_lifespan_state",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

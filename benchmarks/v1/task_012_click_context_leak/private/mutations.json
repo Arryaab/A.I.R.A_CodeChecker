@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_shared_reference",
+    "type": "reference_leak",
+    "description": "Passes self.data reference without copying",
+    "code": "class Context:\n    def __init__(self, data=None):\n        self.data = data if data is not None else {}\n    def child(self):\n        return Context(self.data)\n"
+  }
+]

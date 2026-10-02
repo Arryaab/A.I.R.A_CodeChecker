@@ -1,0 +1,23 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,8 +2,15 @@
+ import json
+ 
+ def decode_cursor(cursor_token: str) -> int:
+-    """Decodes cursor token into integer record offset."""
+-    # BUG: Assumes cursor is always base64 JSON, failing on legacy integer string offsets like '50'
+-    raw = base64.b64decode(cursor_token.encode()).decode()
+-    data = json.loads(raw)
+-    return int(data["offset"])
++    """Decodes cursor token into integer record offset with legacy fallback."""
++    if not cursor_token:
++        return 0
++    # Try legacy integer string first
++    if cursor_token.isdigit():
++        return int(cursor_token)
++    try:
++        raw = base64.b64decode(cursor_token.encode()).decode()
++        data = json.loads(raw)
++        return int(data.get("offset", 0))
++    except Exception:
++        raise ValueError(f"Invalid cursor format: {cursor_token}")

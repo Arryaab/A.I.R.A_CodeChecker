@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -5,7 +5,6 @@
+     total = 0
+     for v in values:
+         total += v
+-        # BUG: only checks upper bound, fails to check lower bound
+-        if total > INT32_MAX:
++        if total > INT32_MAX or total < INT32_MIN:
+             raise OverflowError("32-bit integer overflow")
+     return total

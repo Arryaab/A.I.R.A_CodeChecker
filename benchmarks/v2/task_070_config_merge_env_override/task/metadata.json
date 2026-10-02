@@ -1,0 +1,21 @@
+{
+  "task_id": "task_070_config_merge_env_override",
+  "bug_id": "task_070_config_merge_env_override",
+  "category": "regression_defect",
+  "difficulty": "medium",
+  "description": "Implement recursive deep merge for application config to avoid dropping sibling keys",
+  "expected_behavior": "Overriding a nested key retains non-overridden sibling keys in the dictionary",
+  "tags": [
+    "config",
+    "deep-merge",
+    "regression"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

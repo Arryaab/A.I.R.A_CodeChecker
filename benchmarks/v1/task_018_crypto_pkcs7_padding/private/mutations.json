@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_check_last_byte_only",
+    "type": "security_flaw",
+    "description": "Checks only the final byte without verifying all padding bytes",
+    "code": "def pkcs7_unpad(data: bytes, block_size: int = 16) -> bytes:\n    if not data or len(data) % block_size != 0:\n        raise ValueError(\"Invalid block length\")\n    pad_len = data[-1]\n    if pad_len == 0 or pad_len > block_size:\n        raise ValueError(\"Invalid padding value\")\n    return data[:-pad_len]\n"
+  }
+]

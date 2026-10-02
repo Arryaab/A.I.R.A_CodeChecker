@@ -1,0 +1,19 @@
+task_id: task_024_numpy_masked_array_nan
+oracle_version: 1.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: Computes arithmetic mean filtering out both Boolean-masked
+  entries and IEEE-754 NaN floats, returning NaN if zero valid numbers exist.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  max_latency_regression_pct: 10.0

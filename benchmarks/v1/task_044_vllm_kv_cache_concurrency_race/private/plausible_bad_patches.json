@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_never_free",
+    "description": "Never adds block back to free_blocks",
+    "code": "class BlockAllocator:\n    def __init__(self, num_blocks=10):\n        self.free_blocks = set(range(num_blocks))\n        self.ref_counts = {i: 0 for i in range(num_blocks)}\n    def allocate(self) -> int:\n        return self.free_blocks.pop()\n    def share(self, block_id: int):\n        pass\n    def free(self, block_id: int):\n        pass\n"
+  }
+]

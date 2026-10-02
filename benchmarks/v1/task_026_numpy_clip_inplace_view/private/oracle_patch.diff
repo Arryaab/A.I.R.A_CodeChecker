@@ -1,0 +1,7 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,3 +1,2 @@
+ def clip_array(arr: list[float], a_min: float, a_max: float) -> list[float]:
+-    # BUG: inverts condition logic
+-    return [a_min if x > a_max else a_max if x < a_min else x for x in arr]
++    return [a_max if x > a_max else a_min if x < a_min else x for x in arr]

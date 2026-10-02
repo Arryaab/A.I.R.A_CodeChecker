@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_first_group_only",
+    "type": "loop_omission",
+    "description": "Only updates the first parameter group",
+    "code": "def step_lr_scheduler(param_groups: list[dict], decay_factor: float):\n    if param_groups:\n        param_groups[0][\"lr\"] *= decay_factor\n"
+  }
+]

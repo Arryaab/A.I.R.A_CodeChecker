@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_str_everything",
+    "description": "Stringifies everything",
+    "code": "def custom_serializer(obj):\n    return str(obj)\n"
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_invert_clip_conditions",
+    "type": "inverted_clamping",
+    "description": "Clamps x > a_max to a_min and x < a_min to a_max",
+    "code": "def clip_array(arr: list[float], a_min: float, a_max: float) -> list[float]:\n    return [a_min if x > a_max else a_max if x < a_min else x for x in arr]\n"
+  }
+]

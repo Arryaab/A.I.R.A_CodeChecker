@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_reassign_dict",
+    "type": "reference_break",
+    "description": "Reassigns _state to a new empty dict breaking existing references",
+    "code": "class AppState:\n    def __init__(self):\n        self._state = {}\n    def set(self, key, value):\n        self._state[key] = value\n    def get(self, key, default=None):\n        return self._state.get(key, default)\n    def clear(self):\n        self._state = {}\n"
+  }
+]

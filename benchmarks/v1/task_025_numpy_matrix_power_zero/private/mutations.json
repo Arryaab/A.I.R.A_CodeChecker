@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_zero_matrix_on_power_zero",
+    "type": "wrong_identity",
+    "description": "Returns zero matrix when power == 0",
+    "code": "def matrix_power(matrix: list[list[float]], power: int) -> list[list[float]]:\n    n = len(matrix)\n    if power == 0:\n        return [[0.0 for _ in range(n)] for _ in range(n)]\n    res = [row[:] for row in matrix]\n    for _ in range(power - 1):\n        new_res = [[0.0 for _ in range(n)] for _ in range(n)]\n        for i in range(n):\n            for j in range(n):\n                for k in range(n):\n                    new_res[i][j] += res[i][k] * matrix[k][j]\n        res = new_res\n    return res\n"
+  }
+]

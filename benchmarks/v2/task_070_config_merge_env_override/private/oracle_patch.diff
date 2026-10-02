@@ -1,0 +1,17 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,8 +1,11 @@
+ from typing import Any, Dict
+ 
+ def merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+-    """Merges override dictionary into base dictionary."""
++    """Recursively merges override dictionary into base dictionary."""
+     result = dict(base)
+-    # BUG: Shallow update overwrites nested dictionaries completely
+-    result.update(override)
++    for k, v in override.items():
++        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
++            result[k] = merge_configs(result[k], v)
++        else:
++            result[k] = v
+     return result

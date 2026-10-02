@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_integer_division",
+    "type": "precision_truncation",
+    "description": "Uses integer division w // scale truncating floats",
+    "code": "def dequantize_weights(qweights: list[int], scale: float) -> list[float]:\n    return [float(w // scale) for w in qweights]\n"
+  }
+]

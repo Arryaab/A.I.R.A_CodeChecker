@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_060_json_canonical_key_sorting_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

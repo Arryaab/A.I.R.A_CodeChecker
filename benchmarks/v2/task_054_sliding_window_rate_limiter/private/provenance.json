@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "boundary_violation",
+  "source": "https://github.com/aegis-benchmark/api-gateway",
+  "repository": "https://github.com/aegis-benchmark/api-gateway",
+  "base_commit": "d4e5f60102030405060708091011121314151617",
+  "issue_id": "#task_054_sliding_window_rate_limiter",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_empty_items",
+    "description": "Always returns empty items",
+    "code": "class GenericEnvelope:\n    def __init__(self, item_cls):\n        self.item_cls = item_cls\n    def parse(self, payload: dict):\n        return {\"count\": 0, \"items\": []}\n"
+  }
+]

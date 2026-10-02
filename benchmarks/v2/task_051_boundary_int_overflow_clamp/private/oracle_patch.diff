@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -6,7 +6,6 @@
+         raise ValueError("low must be <= high")
+     if value < low:
+         return low
+-    # BUG: off-by-one boundary comparison treats high as exclusive
+-    if value >= high:
+-        return high - 1
++    if value > high:
++        return high
+     return value

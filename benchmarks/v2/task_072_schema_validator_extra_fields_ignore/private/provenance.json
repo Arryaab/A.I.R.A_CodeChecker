@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "regression_defect",
+  "source": "https://github.com/aegis-benchmark/schema-tools",
+  "repository": "https://github.com/aegis-benchmark/schema-tools",
+  "base_commit": "5667788990011223344556677889900112233445",
+  "issue_id": "#task_072_schema_validator_extra_fields_ignore",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

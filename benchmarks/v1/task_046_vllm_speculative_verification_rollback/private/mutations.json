@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_break_on_mismatch",
+    "type": "out_of_order_acceptance",
+    "description": "Fails to break on mismatch, accepting subsequent tokens out of order",
+    "code": "def verify_draft_tokens(draft_tokens: list[int], target_tokens: list[int]) -> tuple[list[int], int]:\n    accepted = []\n    for d, t in zip(draft_tokens, target_tokens):\n        if d == t:\n            accepted.append(d)\n    rollback = len(draft_tokens) - len(accepted)\n    return accepted, rollback\n"
+  }
+]

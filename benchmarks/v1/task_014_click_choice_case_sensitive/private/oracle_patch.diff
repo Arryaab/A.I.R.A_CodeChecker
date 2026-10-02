@@ -1,0 +1,15 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,5 +1,9 @@
+ def match_choice(val: str, choices: list[str], case_sensitive: bool = True) -> str:
+-    # BUG: ignores case_sensitive flag completely
+-    if val in choices:
+-        return val
++    if case_sensitive:
++        if val in choices:
++            return val
++    else:
++        norm_map = {c.lower(): c for c in choices}
++        if val.lower() in norm_map:
++            return norm_map[val.lower()]
+     raise ValueError(f"'{val}' is not in {choices}")

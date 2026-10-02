@@ -1,0 +1,14 @@
+--- a/solution.py
++++ b/solution.py
+@@ -3,7 +3,9 @@
+ 
+ def resolve_safe_extract_path(dest_dir: str, member_filename: str) -> str:
+     """Calculates extraction path ensuring no breakout from dest_dir."""
+-    # BUG: Simply joins paths without verifying whether resolved path is inside dest_dir
+     dest_path = os.path.abspath(dest_dir)
+-    target = os.path.join(dest_path, member_filename)
++    # Resolve target path and verify prefix containment
++    target = os.path.abspath(os.path.join(dest_path, member_filename))
++    if not (target == dest_path or target.startswith(dest_path + os.sep)):
++        raise ValueError(f"Path traversal detected: {member_filename} attempts to escape {dest_dir}")
+     return target

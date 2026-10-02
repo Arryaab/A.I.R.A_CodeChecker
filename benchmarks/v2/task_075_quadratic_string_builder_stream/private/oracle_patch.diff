@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,8 +2,4 @@
+ 
+ def assemble_stream_chunks(chunks: List[str]) -> str:
+     """Concatenates list of text chunks into complete document."""
+-    # BUG: Repeated quadratic string re-allocation in loop O(N^2)
+-    result = ""
+-    for chunk in chunks:
+-        result += chunk
+-    return result
++    return "".join(chunks)

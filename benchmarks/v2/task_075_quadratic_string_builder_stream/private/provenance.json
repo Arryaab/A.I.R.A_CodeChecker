@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "performance_defect",
+  "source": "https://github.com/aegis-benchmark/stream-buffer",
+  "repository": "https://github.com/aegis-benchmark/stream-buffer",
+  "base_commit": "8990011223344556677889900112233445566778",
+  "issue_id": "#task_075_quadratic_string_builder_stream",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,21 @@
+{
+  "task_id": "task_057_rle_roundtrip_empty_tokens",
+  "bug_id": "task_057_rle_roundtrip_empty_tokens",
+  "category": "test_overfitting",
+  "difficulty": "medium",
+  "description": "Ensure run-length encoder/decoder satisfies roundtrip identity decode(encode(s)) == s",
+  "expected_behavior": "Handles empty strings, single characters, and multi-digit counts without crashing",
+  "tags": [
+    "compression",
+    "roundtrip",
+    "invariants"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

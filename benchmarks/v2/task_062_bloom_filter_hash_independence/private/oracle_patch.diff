@@ -1,0 +1,16 @@
+--- a/solution.py
++++ b/solution.py
+@@ -7,9 +7,10 @@
+         self.bit_array = [0] * size
+ 
+     def _get_hashes(self, item: str):
+-        # BUG: Generates dependent hashes by simple linear addition
+-        base_h = int(hashlib.md5(item.encode()).hexdigest(), 16)
+-        return [(base_h + i) % self.size for i in range(self.hash_count)]
++        # Kirsch-Mitzenmacher optimization: generate two independent hashes
++        h1 = int(hashlib.sha256(item.encode()).hexdigest(), 16)
++        h2 = int(hashlib.md5(item.encode()).hexdigest(), 16)
++        return [(h1 + i * h2) % self.size for i in range(self.hash_count)]
+ 
+     def add(self, item: str) -> None:
+         for idx in self._get_hashes(item):

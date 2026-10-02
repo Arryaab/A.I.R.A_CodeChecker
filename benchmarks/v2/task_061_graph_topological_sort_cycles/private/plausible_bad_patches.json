@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_061_graph_topological_sort_cycles_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

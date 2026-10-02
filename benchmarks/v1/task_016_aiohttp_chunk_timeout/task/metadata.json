@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_016_aiohttp_chunk_timeout",
+  "category": "async_network",
+  "difficulty": "medium",
+  "description": "Handle read timeouts during chunked HTTP transfer stream",
+  "expected_behavior": "Yields partial buffer or raises TimeoutError when deadline is exceeded",
+  "tags": [
+    "aiohttp",
+    "chunked",
+    "timeout"
+  ],
+  "task_id": "task_016_aiohttp_chunk_timeout",
+  "difficulty_dimensions": {
+    "LOCALITY": "class_method",
+    "ALGORITHM_COMPLEXITY": "O(N)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "timing_and_buffer",
+    "SECURITY_SENSITIVITY": "medium",
+    "STATEFULNESS": "stateful_object",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "medium"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

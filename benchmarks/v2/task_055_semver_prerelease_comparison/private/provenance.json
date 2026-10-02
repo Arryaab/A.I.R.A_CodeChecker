@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "boundary_violation",
+  "source": "https://github.com/aegis-benchmark/package-registry",
+  "repository": "https://github.com/aegis-benchmark/package-registry",
+  "base_commit": "e5f6010203040506070809101112131415161718",
+  "issue_id": "#task_055_semver_prerelease_comparison",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

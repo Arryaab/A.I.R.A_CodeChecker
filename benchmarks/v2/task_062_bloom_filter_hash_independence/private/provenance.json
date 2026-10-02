@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "test_overfitting",
+  "source": "https://github.com/aegis-benchmark/prob-structs",
+  "repository": "https://github.com/aegis-benchmark/prob-structs",
+  "base_commit": "5607080910111213141516171819202122232425",
+  "issue_id": "#task_062_bloom_filter_hash_independence",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

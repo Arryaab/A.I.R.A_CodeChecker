@@ -1,0 +1,21 @@
+{
+  "task_id": "task_067_regex_dos_catastrophic_backtrack",
+  "bug_id": "task_067_regex_dos_catastrophic_backtrack",
+  "category": "security_defect",
+  "difficulty": "medium",
+  "description": "Replace catastrophic backtracking regex with linear-time token matcher",
+  "expected_behavior": "Regex pattern operates in O(N) time without exponential catastrophic backtracking",
+  "tags": [
+    "redos",
+    "security",
+    "regex"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

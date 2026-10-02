@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_024_numpy_masked_array_nan",
+  "category": "array_reduction",
+  "difficulty": "medium",
+  "description": "Compute arithmetic mean of array excluding both masked elements and NaN values",
+  "expected_behavior": "Returns mean of valid elements, or float('nan') if all are masked or NaN",
+  "tags": [
+    "numpy",
+    "nan",
+    "reduction"
+  ],
+  "task_id": "task_024_numpy_masked_array_nan",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(N)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "numeric_validation",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

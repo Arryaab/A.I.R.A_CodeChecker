@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "ml_serving",
+  "source": "https://github.com/huggingface/transformers",
+  "repository": "https://github.com/huggingface/transformers",
+  "base_commit": "7f6e5d4c3b2a1f0a9f8e7d6c5b4a3f2e1d0c9b8a",
+  "issue_id": "#task_039_hf_pipeline_batch_leak",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -15,8 +15,7 @@
+         queue = self.clients[client_id]
+ 
+         cutoff = timestamp - self.window_seconds
+-        # BUG: Uses <= instead of <, purging events that occurred exactly at window boundary
+-        while queue and queue[0] <= cutoff:
++        while queue and queue[0] < cutoff:
+             queue.popleft()
+ 
+         if len(queue) < self.max_requests:

@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_075_quadratic_string_builder_stream_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "task_id": "task_059_lru_cache_eviction_idempotence",
+  "bug_id": "task_059_lru_cache_eviction_idempotence",
+  "category": "test_overfitting",
+  "difficulty": "medium",
+  "description": "Ensure LRU cache marks accessed entries as most-recently-used during get operations",
+  "expected_behavior": "Calling get(k) promotes k to MRU so it is not evicted by subsequent put operations",
+  "tags": [
+    "lru",
+    "cache",
+    "data-structures"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

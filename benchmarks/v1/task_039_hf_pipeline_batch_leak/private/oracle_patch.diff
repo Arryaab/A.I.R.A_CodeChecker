@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -3,7 +3,7 @@
+         self.buffer = []
+ 
+     def predict(self, texts: list[str]) -> list[str]:
+-        # BUG: fails to clear self.buffer before processing texts
++        self.buffer.clear()
+         for t in texts:
+             self.buffer.append(f"pred({t})")
+         return list(self.buffer)

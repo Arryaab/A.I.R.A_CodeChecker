@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -5,8 +5,7 @@
+         self.prev = prev or []
+ 
+ def square_node(x: Node) -> Node:
+-    # BUG: creates new detached node without setting prev linkage
+-    return Node(x.val ** 2, prev=[])
++    return Node(x.val ** 2, prev=[x])
+ 
+ def backward(out: Node):
+     out.grad = 1.0

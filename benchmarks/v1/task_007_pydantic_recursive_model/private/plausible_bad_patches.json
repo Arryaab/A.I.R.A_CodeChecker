@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_truncate_depth_one",
+    "description": "Always returns empty children",
+    "code": "class TreeNode:\n    def __init__(self, value, children=None):\n        self.value = value\n        self.children = children or []\n\ndef serialize_tree(node: TreeNode, seen=None):\n    return {\"value\": node.value, \"children\": []}\n"
+  }
+]

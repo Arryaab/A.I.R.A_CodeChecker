@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "security_defect",
+  "source": "https://github.com/aegis-benchmark/config-loader",
+  "repository": "https://github.com/aegis-benchmark/config-loader",
+  "base_commit": "8901020304050607080910111213141516171819",
+  "issue_id": "#task_065_yaml_unsafe_constructor_load",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from aegis.execution.runner import TestResult, run_tests
 from aegis.config import AegisConfig, load_config
 from aegis.verification.validator import ValidationResult, validate_python, validate_patch  

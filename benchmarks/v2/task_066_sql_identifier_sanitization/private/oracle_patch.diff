@@ -1,0 +1,13 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,5 +2,8 @@
+     """Quotes a SQL identifier according to ANSI SQL standards."""
+     if not identifier:
+         raise ValueError("Identifier cannot be empty")
+-    # BUG: Wraps in quotes but fails to escape internal double quotes, permitting injection breakout
+-    return f'"{identifier}"'
++    if "\x00" in identifier:
++        raise ValueError("Identifier cannot contain null bytes")
++    # ANSI SQL: escape double quotes by doubling them
++    escaped = identifier.replace('"', '""')
++    return f'"{escaped}"'

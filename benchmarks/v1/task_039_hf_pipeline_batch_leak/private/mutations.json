@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_buffer_clear",
+    "type": "buffer_leak",
+    "description": "Fails to clear self.buffer before processing batch",
+    "code": "class InferencePipeline:\n    def __init__(self):\n        self.buffer = []\n    def predict(self, texts: list[str]) -> list[str]:\n        for t in texts:\n            self.buffer.append(f\"pred({t})\")\n        return list(self.buffer)\n"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "task_id": "task_079_regex_compile_in_loop",
+  "bug_id": "task_079_regex_compile_in_loop",
+  "category": "performance_defect",
+  "difficulty": "medium",
+  "description": "Hoist regex compilation outside inner log processing loop to prevent compilation churn",
+  "expected_behavior": "Pre-compiles regex once to process thousands of log entries efficiently",
+  "tags": [
+    "regex",
+    "performance",
+    "log-parsing"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

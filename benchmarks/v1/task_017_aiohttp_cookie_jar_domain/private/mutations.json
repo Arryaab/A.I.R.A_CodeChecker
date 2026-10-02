@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_naive_endswith",
+    "type": "security_flaw",
+    "description": "Uses naive endswith permitting suffix spoofing attacks",
+    "code": "def is_domain_match(request_domain: str, cookie_domain: str) -> bool:\n    return request_domain.endswith(cookie_domain)\n"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_all_zeros",
+    "description": "Returns zero matrix",
+    "code": "def pairwise_euclidean(points: list[tuple[float, float]]) -> list[list[float]]:\n    n = len(points)\n    return [[0.0] * n for _ in range(n)]\n"
+  }
+]

@@ -1,0 +1,7 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,3 +1,2 @@
+ def dequantize_weights(qweights: list[int], scale: float) -> list[float]:
+-    # BUG: integer division truncates float values
+-    return [float(w // scale) for w in qweights]
++    return [float(w * scale) for w in qweights]

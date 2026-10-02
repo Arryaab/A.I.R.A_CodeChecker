@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_always_idle",
+    "description": "Always returns True for is_idle",
+    "code": "class StreamManager:\n    def __init__(self):\n        self.pending_tasks = []\n    def record_event(self, task_name):\n        pass\n    def synchronize(self):\n        pass\n    def is_idle(self) -> bool:\n        return True\n"
+  }
+]

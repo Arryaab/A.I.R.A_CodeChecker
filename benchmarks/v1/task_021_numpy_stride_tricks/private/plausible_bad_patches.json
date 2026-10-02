@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_hardcode_window_shape",
+    "description": "Hardcodes window shape",
+    "code": "def compute_sliding_window_shape(n_elements: int, window_size: int, step: int = 1) -> tuple[int, int]:\n    return (8, 3)\n"
+  }
+]

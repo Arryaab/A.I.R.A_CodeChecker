@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_hardcode_parent_id",
+    "description": "Hardcodes parentRunId",
+    "code": "class RunContext:\n    def __init__(self, run_id: str, parent_id: str | None = None):\n        self.run_id = run_id\n        self.parent_id = parent_id\n        self.tags = {\"mlflow.parentRunId\": \"hardcoded_parent\", \"run_id\": run_id}\n    def init_tags(self):\n        pass\n"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_049_mlflow_metric_step_timestamp_sort",
+  "category": "mlops_metrics",
+  "difficulty": "easy",
+  "description": "Sort out-of-order metric logs chronologically by step index",
+  "expected_behavior": "Returns metric list ordered monotonically by step integer",
+  "tags": [
+    "mlflow",
+    "metrics",
+    "sorting"
+  ],
+  "task_id": "task_049_mlflow_metric_step_timestamp_sort",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(N log N)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "ordering_invariant",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "mutation_id": "task_056_date_recurrence_leap_year_mut1",
+    "type": "operator_flip",
+    "description": "Flip boundary comparison operator"
+  },
+  {
+    "mutation_id": "task_056_date_recurrence_leap_year_mut2",
+    "type": "return_default",
+    "description": "Return empty default on boundary"
+  }
+]

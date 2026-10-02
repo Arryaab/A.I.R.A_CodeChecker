@@ -1,0 +1,10 @@
+--- a/solution.py
++++ b/solution.py
+@@ -5,5 +5,6 @@
+         self.tags = {}
+ 
+     def init_tags(self):
+-        # BUG: forgets to set mlflow.parentRunId when parent_id is present
+         self.tags["run_id"] = self.run_id
++        if self.parent_id:
++            self.tags["mlflow.parentRunId"] = self.parent_id

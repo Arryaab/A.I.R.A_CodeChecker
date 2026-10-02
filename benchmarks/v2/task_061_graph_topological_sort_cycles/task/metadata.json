@@ -1,0 +1,21 @@
+{
+  "task_id": "task_061_graph_topological_sort_cycles",
+  "bug_id": "task_061_graph_topological_sort_cycles",
+  "category": "test_overfitting",
+  "difficulty": "medium",
+  "description": "Detect cycles in dependency graph and raise CycleDetectedError during topological sort",
+  "expected_behavior": "Returns topological order for DAGs; raises CycleDetectedError if cycle exists",
+  "tags": [
+    "graph",
+    "dag",
+    "topological-sort"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

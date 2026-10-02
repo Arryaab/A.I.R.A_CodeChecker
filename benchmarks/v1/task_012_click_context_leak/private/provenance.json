@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "cli",
+  "source": "https://github.com/pallets/click",
+  "repository": "https://github.com/pallets/click",
+  "base_commit": "e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2b1a0f9",
+  "issue_id": "#task_012_click_context_leak",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

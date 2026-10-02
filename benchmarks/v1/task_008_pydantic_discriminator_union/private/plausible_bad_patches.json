@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_hardcode_click",
+    "description": "Hardcodes click event return",
+    "code": "def parse_event(data: dict):\n    return {\"kind\": \"click\", \"x\": 0, \"y\": 0}\n"
+  }
+]

@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -10,7 +10,8 @@
+             res.append(d1)
+         elif d1 == 1:
+             res.append(d2)
+-        # BUG: forgot to handle d2 == 1, erroneously raises mismatch
++        elif d2 == 1:
++            res.append(d1)
+         else:
+             raise ValueError(f"Shapes {s1} and {s2} not broadcastable")
+     return tuple(reversed(res))

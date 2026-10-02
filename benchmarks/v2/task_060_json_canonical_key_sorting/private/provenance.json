@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "test_overfitting",
+  "source": "https://github.com/aegis-benchmark/crypto-msg",
+  "repository": "https://github.com/aegis-benchmark/crypto-msg",
+  "base_commit": "3405060708091011121314151617181920212223",
+  "issue_id": "#task_060_json_canonical_key_sorting",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_set_grad_directly",
+    "description": "Sets grad directly in square_node without backward traversal",
+    "code": "class Node:\n    def __init__(self, val, grad=0.0, prev=None):\n        self.val = val\n        self.grad = grad\n        self.prev = prev or []\n\ndef square_node(x: Node) -> Node:\n    x.grad = 2 * x.val\n    return Node(x.val ** 2, prev=[])\n\ndef backward(out: Node):\n    out.grad = 1.0\n"
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_invert_min_max_clamping",
+    "type": "inverted_clamping",
+    "description": "Inverts min and max nesting: min(l, max(u, val))",
+    "code": "def project_box_bounds(x: list[float], bounds: list[tuple[float, float]]) -> list[float]:\n    projected = []\n    for val, (l, u) in zip(x, bounds):\n        projected.append(min(l, max(u, val)))\n    return projected\n"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_sync_return_constant",
+    "description": "Bypasses generator resolution and returns constant string",
+    "code": "class AsyncDependencyResolver:\n    def __init__(self):\n        self.cleanups = []\n    async def resolve(self, dep_func):\n        return \"resource\"\n    async def cleanup(self):\n        self.cleanups.clear()\n"
+  }
+]

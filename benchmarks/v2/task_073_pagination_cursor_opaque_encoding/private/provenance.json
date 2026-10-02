@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "regression_defect",
+  "source": "https://github.com/aegis-benchmark/api-paginate",
+  "repository": "https://github.com/aegis-benchmark/api-paginate",
+  "base_commit": "6778899001122334455667788990011223344556",
+  "issue_id": "#task_073_pagination_cursor_opaque_encoding",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

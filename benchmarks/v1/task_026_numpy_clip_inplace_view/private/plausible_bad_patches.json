@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_arr_unchanged",
+    "description": "Returns array without clipping",
+    "code": "def clip_array(arr: list[float], a_min: float, a_max: float) -> list[float]:\n    return list(arr)\n"
+  }
+]

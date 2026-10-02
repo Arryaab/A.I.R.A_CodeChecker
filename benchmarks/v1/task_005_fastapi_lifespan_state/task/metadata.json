@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_005_fastapi_lifespan_state",
+  "category": "framework_lifecycle",
+  "difficulty": "medium",
+  "description": "Manage application lifespan state dictionary across startup and shutdown hooks",
+  "expected_behavior": "Preserves state variables mutated during lifespan context",
+  "tags": [
+    "fastapi",
+    "lifespan",
+    "state"
+  ],
+  "task_id": "task_005_fastapi_lifespan_state",
+  "difficulty_dimensions": {
+    "LOCALITY": "class_method",
+    "ALGORITHM_COMPLEXITY": "O(N)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "object_identity",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateful_object",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

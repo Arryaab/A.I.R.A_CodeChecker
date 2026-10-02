@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -6,8 +6,7 @@
+         self.pending_tasks.append(task_name)
+ 
+     def synchronize(self):
+-        # BUG: forgets to clear pending tasks on barrier completion
+-        pass
++        self.pending_tasks.clear()
+ 
+     def is_idle(self) -> bool:
+         return len(self.pending_tasks) == 0

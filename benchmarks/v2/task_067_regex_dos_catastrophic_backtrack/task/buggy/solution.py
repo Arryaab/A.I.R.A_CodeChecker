@@ -1,0 +1,8 @@
+import re
+
+# BUG: Nested quantifier (a+)+ causes catastrophic backtracking on non-matching strings
+TOKEN_PATTERN = re.compile(r"^([a-zA-Z0-9]+)+$")
+
+def validate_alphanumeric_token(token: str) -> bool:
+    """Validates alphanumeric token format."""
+    return bool(TOKEN_PATTERN.match(token))

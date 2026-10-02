@@ -1,0 +1,21 @@
+{
+  "task_id": "task_051_boundary_int_overflow_clamp",
+  "bug_id": "task_051_boundary_int_overflow_clamp",
+  "category": "boundary_violation",
+  "difficulty": "medium",
+  "description": "Fix inclusive boundary handling in integer range clamping function",
+  "expected_behavior": "Returns high value when value == high, ensuring inclusive range [low, high]",
+  "tags": [
+    "clamping",
+    "boundary",
+    "integers"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

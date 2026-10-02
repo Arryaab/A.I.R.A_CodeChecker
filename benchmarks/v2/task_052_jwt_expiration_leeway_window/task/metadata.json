@@ -1,0 +1,21 @@
+{
+  "task_id": "task_052_jwt_expiration_leeway_window",
+  "bug_id": "task_052_jwt_expiration_leeway_window",
+  "category": "boundary_violation",
+  "difficulty": "medium",
+  "description": "Fix clock-skew leeway evaluation in JWT expiration validator",
+  "expected_behavior": "Tokens are valid if current_time <= exp + leeway; expired if current_time > exp + leeway",
+  "tags": [
+    "jwt",
+    "authentication",
+    "clock-skew"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

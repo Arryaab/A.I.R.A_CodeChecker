@@ -1,0 +1,21 @@
+task_id: task_054_sliding_window_rate_limiter
+oracle_version: 2.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: Events exactly at timestamp - window_seconds remain inside
+  the active sliding window.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  - winreg
+  - ctypes
+  max_latency_regression_pct: 25.0

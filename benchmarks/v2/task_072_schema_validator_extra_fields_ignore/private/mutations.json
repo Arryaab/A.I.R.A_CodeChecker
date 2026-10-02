@@ -1,0 +1,12 @@
+[
+  {
+    "mutation_id": "task_072_schema_validator_extra_fields_ignore_mut1",
+    "type": "operator_flip",
+    "description": "Flip boundary comparison operator"
+  },
+  {
+    "mutation_id": "task_072_schema_validator_extra_fields_ignore_mut2",
+    "type": "return_default",
+    "description": "Return empty default on boundary"
+  }
+]

@@ -1,0 +1,13 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,8 +2,8 @@
+ 
+ def has_required_permissions(assigned_roles: List[str], required_roles: List[str]) -> bool:
+     """Verifies whether all required roles are present in assigned roles."""
+-    # BUG: Linear list scan in inner loop causes O(N * M) quadratic latency on large permission sets
++    assigned_set = set(assigned_roles)
+     for req in required_roles:
+-        if req not in assigned_roles:
++        if req not in assigned_set:
+             return False
+     return True

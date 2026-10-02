@@ -11,7 +11,7 @@ def test_docker_command_contains_targeted_test_files():
     selected_tests = ["tests/test_auth.py", "tests/test_models.py"]
     cmd = get_docker_create_command("aegis-sandbox:latest", test_files=selected_tests)
     
-    assert "docker" in cmd
+    assert "docker" in cmd[0].lower() or "docker" in cmd
     assert "create" in cmd
     assert "--network" in cmd
     assert "none" in cmd

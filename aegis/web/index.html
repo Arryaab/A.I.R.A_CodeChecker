@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>A.I.R.A. — AI Release Assurance</title>
+  <meta name="description" content="Deterministic release verification and policy control plane for AI-generated code. Tests syntax, invariants, regressions, mutants, and security taint before deployment.">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="aira-canvas">
+
+  <!-- Full-screen WebGL Background & Scroll Progress -->
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <div id="bar"></div>
+
+  <!-- Production Header Navigation -->
+  <header class="nav-header">
+    <div class="container nav-inner">
+      <a href="#top" class="brand-anchor" aria-label="A.I.R.A. Home">
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5Z"/>
+            <path d="M12 8L16 10.5V14.5L12 17L8 14.5V10.5L12 8Z"/>
+          </svg>
+        </div>
+        <span class="brand-name">A.I.R.A.</span>
+        <span class="brand-tag mono">v1.0.0</span>
+      </a>
+
+      <nav aria-label="Primary Navigation">
+        <ul class="nav-links">
+          <li><a href="#product" class="nav-link" id="nav-link-product">PRODUCT</a></li>
+          <li><a href="#verify" class="nav-link" id="nav-link-verify">VERIFY</a></li>
+          <li><a href="#demo" class="nav-link" id="nav-link-demo">DEMO</a></li>
+          <li><a href="#ledger" class="nav-link" id="nav-link-evidence">EVIDENCE</a></li>
+          <li><a href="#research" class="nav-link" id="nav-link-research">RESEARCH</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="api-access-control" id="nav-api-access-control" title="A.I.R.A. API Credential Status">
+          <span class="api-access-label mono">API ACCESS</span>
+          <span class="api-status-badge not-connected mono" id="api-status-badge">NOT CONNECTED</span>
+          <button class="btn btn-secondary btn-sm" id="btn-api-auth-trigger">CONNECT</button>
+        </div>
+        <div class="system-status-indicator" title="Sandbox execution environment is armed">
+          <span class="status-dot"></span>
+          <span id="nav-system-status">Sandbox Ready</span>
+        </div>
+        <a href="#demo" class="btn btn-secondary btn-sm" id="nav-btn-demo">EXPLORE DEMO</a>
+        <a href="#verify" class="btn btn-primary btn-sm" id="nav-btn-verify">VERIFY MY CODE &rarr;</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- 1. HERO SECTION: CINEMATIC VISUAL FIELD WITH PROCEDURAL SHADER & GRAPH -->
+    <div id="product"></div>
+    <section class="hero-section">
+      <div class="container flux-hero-wrap">
+        <div class="hero-badge-row">
+          <span class="hero-badge">
+            <span class="status-dot on"></span>
+            Deterministic Release Control Plane for AI Code
+          </span>
+        </div>
+
+        <h1 class="flux-title" aria-label="A.I.R.A.">
+          <span class="letter" style="--i:0;--r:-5deg">A</span>
+          <span class="dot">&bull;</span>
+          <span class="letter" style="--i:1;--r:4deg">I</span>
+          <span class="dot">&bull;</span>
+          <span class="letter" style="--i:2;--r:-4deg">R</span>
+          <span class="dot">&bull;</span>
+          <span class="letter" style="--i:3;--r:6deg">A</span>
+        </h1>
+
+        <p class="flux-sub">
+          VERIFY WHAT AI CHANGES. KNOW WHAT SHIPS.
+        </p>
+
+        <p class="hero-lede" style="max-width: 62ch; margin: 0 auto 20px;">
+          AI agents write patches fast and break things quietly. A.I.R.A. sends every software change through six fail-closed gates inside zero-network container sandboxes and hands you an evidence-backed release decision.
+        </p>
+
+        <div class="flux-hint-wrap">
+          <span class="flux-hint" id="flux-hint-trigger">
+            &#10042; Click anywhere to detonate shockwave &#10042;
+          </span>
+        </div>
+
+        <div class="hero-cta-group" style="justify-content: center; margin-bottom: 36px;">
+          <a href="#verify" class="btn btn-primary btn-lg" id="hero-btn-verify">VERIFY MY CODE &rarr;</a>
+          <a href="#demo" class="btn btn-secondary btn-lg" id="hero-btn-demo">EXPLORE DEMO</a>
+          <button class="boom" id="boom-hero">DETONATE SHOCKWAVE</button>
+        </div>
+
+        <!-- Key Technical Grounding Metrics -->
+        <div class="hero-specs-strip" style="width: 100%; max-width: 900px; margin: 0 auto 36px;">
+          <div class="spec-cell">
+            <span class="spec-label">Verification Depth</span>
+            <span class="spec-value mono">6 Gates</span>
+          </div>
+          <div class="spec-cell">
+            <span class="spec-label">Containment</span>
+            <span class="spec-value mono">Zero-Net Docker Jail</span>
+          </div>
+          <div class="spec-cell">
+            <span class="spec-label">Audit Specification</span>
+            <span class="spec-value mono">SHA-256 Digest</span>
+          </div>
+          <div class="spec-cell">
+            <span class="spec-label">Release Policy</span>
+            <span class="spec-value mono">Fail-Closed Enforcement</span>
+          </div>
+        </div>
+
+        <!-- 6-Gate Hexagonal Orbital Ring -->
+        <div class="hero-visual-col" style="margin: 0 auto;">
+          <div class="ring-container" title="Six-Gate Deterministic Protocol">
+            <svg class="ring" viewBox="0 0 400 400" aria-hidden="true" id="ring"></svg>
+            <div class="ring-pulse-halo"></div>
+            <div class="ring-label-core mono">A.I.R.A.<br><small>ISOLATION</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KINETIC MARQUEE BAND (FLUX INTERACTION) -->
+    <div class="band" aria-hidden="true">
+      <div class="track" id="track"></div>
+    </div>
+
+    <!-- THE SYSTEM / ARCHITECTURE PILLARS (FLUX INTERACTIVE ROWS) -->
+    <section class="system-rows-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-kicker">Core System Architecture</span>
+          <h2 class="section-title">CONTROL PLANE FOUNDATION</h2>
+          <p class="section-description">
+            Traditional CI tests what human developers expected to change. A.I.R.A. enforces what AI code generators must never violate.
+          </p>
+        </div>
+
+        <div class="flux-rows">
+          <div class="flux-row" tabindex="0">
+            <div class="flux-row-content">
+              <b>01 / CONTAIN</b>
+              <span>Zero-network ephemeral container sandbox. Dropped kernel capabilities, read-only rootfs, and strict PID ceilings prevent exfiltration and host escape.</span>
+            </div>
+          </div>
+          <div class="flux-row" tabindex="0">
+            <div class="flux-row-content">
+              <b>02 / INTERROGATE</b>
+              <span>Six fail-closed gates evaluate AST syntax, visible acceptance, independent invariants, regressions, mutation survival, and security taint in sequence.</span>
+            </div>
+          </div>
+          <div class="flux-row" tabindex="0">
+            <div class="flux-row-content">
+              <b>03 / ATTEST</b>
+              <span>Content-addressed SHA-256 evidence ledger. Every release verdict binds immutable patch hashes, gate telemetry, and release policy attestations.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture Frame Grid -->
+        <div class="hero-product-frame" aria-label="A.I.R.A. Execution Architecture">
+          <div class="frame-top-bar">
+            <div class="frame-dots-group">
+              <span class="frame-dot"></span>
+              <span class="frame-dot"></span>
+              <span class="frame-dot"></span>
+            </div>
+            <div class="frame-title-group">
+              <span class="mono">aira-control-plane &mdash; container-isolation-protocol</span>
+              <span class="frame-meta-tag">[DOCKER JAIL ARMED]</span>
+            </div>
+            <div class="frame-title-group">
+              <span class="spec-label mono">NET: NONE &bull; TIMEOUT: 120s</span>
+            </div>
+          </div>
+
+          <div class="hero-arch-grid">
+            <div class="hero-arch-cell">
+              <div class="hero-arch-num mono">C1</div>
+              <div class="hero-arch-name">Static AST Integrity</div>
+              <p class="hero-arch-desc">Parses source ASTs to enforce grammar conformance and type safety prior to test execution.</p>
+            </div>
+            <div class="hero-arch-cell">
+              <div class="hero-arch-num mono">C2</div>
+              <div class="hero-arch-name">Isolated Tests</div>
+              <p class="hero-arch-desc">Executes test suites inside ephemeral zero-network Docker containers with strict resource caps.</p>
+            </div>
+            <div class="hero-arch-cell">
+              <div class="hero-arch-num mono">C3</div>
+              <div class="hero-arch-name">Invariant Checks</div>
+              <p class="hero-arch-desc">Evaluates boundary edge conditions outside the generative agent context window.</p>
+            </div>
+            <div class="hero-arch-cell">
+              <div class="hero-arch-num mono">C4</div>
+              <div class="hero-arch-name">Regression Suite</div>
+              <p class="hero-arch-desc">Guarantees backward compatibility with downstream callers across commit history.</p>
+            </div>
+            <div class="hero-arch-cell">
+              <div class="hero-arch-num mono">C5</div>
+              <div class="hero-arch-name">Mutation Analysis</div>
+              <p class="hero-arch-desc">Synthetically injects AST mutations to neutralize vacuous tests that pass trivially.</p>
+            </div>
+            <div class="hero-arch-cell">
+              <div class="hero-arch-num mono">C6</div>
+              <div class="hero-arch-name">Security Taint</div>
+              <p class="hero-arch-desc">AST visitor tracks data flows into dangerous sinks: path traversal, exec, and secrets.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- FLUX END DETONATION SECTION -->
+    <section class="flux-end-section">
+      <div class="container text-center">
+        <h2 class="flux-end-title">READY TO BREAK IT?</h2>
+        <p class="flux-end-desc">Deterministic 6-gate release assurance. Drop in your code and enforce release policies.</p>
+        <div style="display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;">
+          <button class="boom" id="boom-end">DETONATE</button>
+          <a href="#verify" class="btn btn-primary btn-lg" id="btn-end-verify">VERIFY MY CODE &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- VERIFY MY CODE: REAL PROJECT UPLOAD WIZARD -->
+    <section class="verify-section section-padding" id="verify">
+      <div class="container">
+        <div class="subpage-nav-bar">
+          <a href="#product" class="back-to-home-link" aria-label="Return to Home">
+            <span class="back-arrow">&larr;</span> Return to Home
+          </a>
+          <span class="subpage-title-badge mono">A.I.R.A. / VERIFY MY CODE</span>
+        </div>
+        <div class="section-header">
+          <span class="section-kicker">Real Project Verification</span>
+          <h2 class="section-title">VERIFY YOUR CODE.</h2>
+          <p class="section-description">
+            Upload your project. A.I.R.A. runs your tests in an isolated Docker sandbox,
+            scans for security vulnerabilities, and produces an evidence-backed verdict.
+            No simulations. No fabricated results.
+          </p>
+        </div>
+
+        <!-- Upload Wizard -->
+        <div class="verify-wizard" id="verify-wizard">
+
+          <!-- Step 1: Upload -->
+          <div class="wizard-step active" id="step-upload" data-step="1">
+            <div class="step-header">
+              <span class="step-number mono">1</span>
+              <h3>Upload your project</h3>
+              <p class="step-desc">Drop a .zip or .tar.gz archive of your Python project.</p>
+            </div>
+
+            <!-- Unauthenticated Banner / Prompt -->
+            <div class="auth-required-banner" id="upload-auth-banner" style="display:none;">
+              <div class="auth-required-content">
+                <span class="auth-required-title mono">&#9888; API ACCESS REQUIRED</span>
+                <p class="auth-required-desc">
+                  Connect A.I.R.A. before uploading a project for live verification.<br>
+                  <span class="mono" style="font-size: 11.5px; opacity: 0.8;">Stored only for this browser session.</span>
+                </p>
+                <div style="margin-top: 8px;">
+                  <button class="btn btn-primary btn-sm" id="btn-upload-connect-api">CONNECT API &rarr;</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-zone" id="upload-zone">
+              <div class="upload-icon">&#8679;</div>
+              <p class="upload-label">Drag and drop your project archive here</p>
+              <p class="upload-sublabel">or <label for="file-input" class="upload-browse">browse files</label></p>
+              <input type="file" id="file-input" accept=".zip,.tar.gz,.tgz" hidden>
+              <p class="upload-limits mono">Max 50 MB &middot; .zip .tar.gz .tgz &middot; Python projects</p>
+            </div>
+            <div class="upload-status" id="upload-status" style="display:none;">
+              <div class="upload-progress-bar"><div class="upload-progress-fill" id="upload-progress"></div></div>
+              <p class="upload-status-text mono" id="upload-status-text">Uploading...</p>
+            </div>
+          </div>
+
+          <!-- Step 2: Project Info -->
+          <div class="wizard-step" id="step-info" data-step="2" style="display:none;">
+            <div class="step-header">
+              <span class="step-number mono">2</span>
+              <h3>Project detected</h3>
+            </div>
+            <div class="project-info-card" id="project-info-card">
+              <div class="info-row"><span class="info-label">Framework</span><span class="info-value mono" id="info-framework">—</span></div>
+              <div class="info-row"><span class="info-label">Test files</span><span class="info-value mono" id="info-test-count">—</span></div>
+              <div class="info-row"><span class="info-label">Total files</span><span class="info-value mono" id="info-total-files">—</span></div>
+              <div class="info-row"><span class="info-label">Project hash</span><span class="info-value mono" id="info-hash">—</span></div>
+            </div>
+            <div class="wizard-actions">
+              <button class="btn btn-primary" id="btn-configure">Configure verification &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Step 3: Configuration & Capabilities -->
+          <div class="wizard-step" id="step-config" data-step="3" style="display:none;">
+            <div class="step-header">
+              <span class="step-number mono">3</span>
+              <h3>Verification Controls & Capabilities</h3>
+            </div>
+
+            <!-- Real-time Sandbox Health Card -->
+            <div class="sandbox-status-card" id="sandbox-status-card">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 240px;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span class="status-dot" id="sandbox-card-dot" style="width: 8px; height: 8px;"></span>
+                    <strong id="sandbox-card-title" class="mono" style="font-size: 13.5px;">CHECKING SANDBOX STATUS...</strong>
+                  </div>
+                  <div id="sandbox-card-desc" style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
+                    Inspecting container daemon connectivity and isolation environment...
+                  </div>
+                  <div id="sandbox-card-remediation" style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px; display: none;"></div>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-recheck-sandbox" type="button">
+                  &#8635; Retry Sandbox Check
+                </button>
+              </div>
+            </div>
+
+            <!-- Capabilities Grid showing AVAILABLE / NOT_AVAILABLE / NOT_SUPPORTED -->
+            <div class="capabilities-grid">
+              <div class="capability-item">
+                <div>
+                  <strong>Project Tests</strong>
+                  <div class="cap-sub" id="cap-desc-proj-tests">Repository test suite executed inside isolated container</div>
+                </div>
+                <span class="gate-action-pill pass mono" id="cap-status-proj-tests">AVAILABLE</span>
+              </div>
+
+              <div class="capability-item">
+                <div>
+                  <strong>Custom User Tests</strong>
+                  <div class="cap-sub" id="cap-desc-custom-tests">Optional supplemental test archive</div>
+                </div>
+                <span class="gate-action-pill mono" id="cap-status-custom-tests">NOT_AVAILABLE</span>
+              </div>
+
+              <div class="capability-item">
+                <div>
+                  <strong>Security & AST Taint Scan</strong>
+                  <div class="cap-sub">Dangerous sinks, shell calls, and secret leaks scan</div>
+                </div>
+                <span class="gate-action-pill pass mono">AVAILABLE</span>
+              </div>
+
+              <div class="capability-item">
+                <div>
+                  <strong>Regression Comparison</strong>
+                  <div class="cap-sub">Requires repository git history or baseline commit reference</div>
+                </div>
+                <span class="gate-action-pill mono">NOT_AVAILABLE</span>
+              </div>
+
+              <div class="capability-item">
+                <div>
+                  <strong>Mutation Testing</strong>
+                  <div class="cap-sub">Mutation testing is not yet supported for archive uploads</div>
+                </div>
+                <span class="gate-action-pill mono">NOT_SUPPORTED</span>
+              </div>
+            </div>
+
+            <!-- Optional Custom Test Upload -->
+            <div class="custom-test-upload-card">
+              <span class="custom-test-title">Supplemental Tests (Optional):</span>
+              <p class="custom-test-desc">Upload a .zip or .tar.gz archive with additional custom test files.</p>
+              <input type="file" id="custom-test-file-input" accept=".zip,.tar.gz,.tgz">
+              <span id="custom-test-upload-status" class="mono"></span>
+            </div>
+
+            <div class="config-options">
+              <label class="config-toggle"><input type="checkbox" id="cfg-project-tests" checked><span>Execute project tests</span></label>
+              <label class="config-toggle"><input type="checkbox" id="cfg-security" checked><span>Run security AST scan</span></label>
+            </div>
+            <div class="wizard-actions">
+              <button class="btn btn-primary" id="btn-run-verify">Run verification &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Running -->
+          <div class="wizard-step" id="step-running" data-step="4" style="display:none;">
+            <div class="step-header">
+              <span class="step-number mono">4</span>
+              <h3>Verification in progress</h3>
+              <p class="step-desc">Container sandbox active. Real execution stream from isolated worker:</p>
+            </div>
+
+            <!-- Real-time verification pulse pipeline -->
+            <div class="running-pipeline-pulse" id="running-gates-pulse">
+              <span class="pulse-gate" id="pulse-C1">C1</span> &rarr;
+              <span class="pulse-gate" id="pulse-C2">C2</span> &rarr;
+              <span class="pulse-gate" id="pulse-C3">C3</span> &rarr;
+              <span class="pulse-gate" id="pulse-C4">C4</span> &rarr;
+              <span class="pulse-gate" id="pulse-C5">C5</span> &rarr;
+              <span class="pulse-gate" id="pulse-C6">C6</span>
+            </div>
+
+            <div class="verify-live-log mono" id="verify-live-log">
+              <div class="live-log-entry">Waiting for events...</div>
+            </div>
+          </div>
+
+          <!-- Step 5: Results -->
+          <div class="wizard-step" id="step-results" data-step="5" style="display:none;">
+            <div class="step-header">
+              <span class="step-number mono">5</span>
+              <h3>A.I.R.A. Verification Results</h3>
+              <p class="step-desc">Execution evidence from isolated container sandbox.</p>
+            </div>
+
+            <!-- Top Verdict Banner -->
+            <div class="verify-verdict-card" id="verify-verdict-card">
+              <div class="verdict-tag-line">
+                <span class="verdict-badge mono" id="verify-verdict-badge">—</span>
+                <span class="verdict-policy mono" id="verify-verdict-policy">—</span>
+              </div>
+              <div class="verdict-reason-text mono" id="verify-verdict-reason" style="display:none;"></div>
+            </div>
+
+            <!-- Project Details Summary Card -->
+            <div class="project-summary-card" id="verify-project-summary">
+              <div class="summary-col">
+                <span class="summary-lbl">PROJECT</span>
+                <span class="summary-val mono" id="res-project-id">—</span>
+              </div>
+              <div class="summary-col">
+                <span class="summary-lbl">FRAMEWORK</span>
+                <span class="summary-val mono" id="res-framework">—</span>
+              </div>
+              <div class="summary-col">
+                <span class="summary-lbl">PROJECT TESTS</span>
+                <span class="summary-val mono" id="res-project-tests">—</span>
+              </div>
+              <div class="summary-col">
+                <span class="summary-lbl">CUSTOM TESTS</span>
+                <span class="summary-val mono" id="res-custom-tests">—</span>
+              </div>
+              <div class="summary-col">
+                <span class="summary-lbl">PROJECT HASH</span>
+                <span class="summary-val mono" id="res-project-hash">—</span>
+              </div>
+            </div>
+
+            <!-- Test Accounting Breakdown (Four-State Model) -->
+            <div class="test-accounting-card" id="verify-test-accounting">
+              <div class="test-accounting-header mono">TEST ACCOUNTING (FOUR-STATE MODEL)</div>
+              <div class="test-accounting-grid" id="test-accounting-grid">
+                <div class="summary-col">
+                  <span class="summary-lbl">DISCOVERED</span>
+                  <span class="summary-val mono" id="acc-discovered">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">COLL. ERRORS</span>
+                  <span class="summary-val mono" id="acc-collection-errors">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">SELECTED</span>
+                  <span class="summary-val mono" id="acc-selected">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">EXECUTED</span>
+                  <span class="summary-val mono" id="acc-executed">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">PASSED</span>
+                  <span class="summary-val mono" id="acc-passed" style="color: var(--status-pass);">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">FAILED</span>
+                  <span class="summary-val mono" id="acc-failed">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">ERRORS</span>
+                  <span class="summary-val mono" id="acc-errors">0</span>
+                </div>
+                <div class="summary-col">
+                  <span class="summary-lbl">SKIPPED</span>
+                  <span class="summary-val mono" id="acc-skipped">0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stages-section-header mono">VERIFICATION GATES BREAKDOWN</div>
+            <div class="verify-stages" id="verify-stages"></div>
+
+            <div class="verify-limitations" id="verify-limitations"></div>
+
+            <div class="wizard-actions">
+              <button class="btn btn-secondary" id="btn-new-verify">Verify another project</button>
+              <button class="btn btn-secondary" id="btn-inspect-evidence-real">Inspect Evidence JSON</button>
+            </div>
+          </div>
+
+          <!-- Error State -->
+          <div class="wizard-step" id="step-error" style="display:none;">
+            <div class="step-header">
+              <span class="step-number mono" style="background:var(--status-fail);">!</span>
+              <h3>Verification unavailable</h3>
+            </div>
+            <div class="error-card" id="error-card">
+              <p id="error-message">An error occurred.</p>
+              <div id="error-remediation" class="mono" style="margin-top: 10px; font-size: 12.5px; color: var(--text-secondary); display: none;"></div>
+            </div>
+            <div class="wizard-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btn-retry-sandbox" type="button">&#8635; Retry Sandbox Check</button>
+              <button class="btn btn-secondary" id="btn-retry" type="button">Upload Different Project</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEPARATION DIVIDER -->
+    <div class="flow-isolation-divider" id="flow-isolation-divider">
+      <div class="container">
+        <div class="isolation-line">
+          <span class="isolation-label mono">&#9632; END OF REAL VERIFICATION WORKFLOW &mdash; PRE-RECORDED DEMOS BELOW &#9632;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. INTERACTIVE DEMO WORKBENCH (PRE-RECORDED TRACES) -->
+    <section class="interactive-demo-section section-padding" id="demo">
+      <div class="container">
+        <div class="subpage-nav-bar">
+          <a href="#product" class="back-to-home-link" aria-label="Return to Home">
+            <span class="back-arrow">&larr;</span> Return to Home
+          </a>
+          <span class="subpage-title-badge mono">A.I.R.A. / INTERACTIVE DEMO</span>
+        </div>
+        <div class="section-header">
+          <div class="demo-kicker-row">
+            <span class="section-kicker" style="margin-bottom: 0;">Interactive Product Demonstration</span>
+            <span class="demo-prerecorded-badge mono">PRE-RECORDED DEMO</span>
+          </div>
+          <h2 class="section-title">EXPLORE THE A.I.R.A. DEMO</h2>
+          <p class="section-description">
+            Educational walkthrough of pre-recorded audit traces. AI agents frequently pass visible prompt tests while introducing subtle catastrophic bugs. Choose a verified trace below to observe how A.I.R.A. isolates each defect class.
+          </p>
+        </div>
+
+        <!-- Scenario Selector Tabs -->
+        <div class="scenario-selector-bar">
+          <div class="scenario-tabs-group" role="tablist" aria-label="Failure Mode Audit Traces">
+            <button class="scenario-tab" role="tab" aria-selected="false" data-id="demo_01_clean_pass">
+              <span>Token Bucket Rate Limiter</span>
+              <span class="scenario-status-pill pass mono">Pass</span>
+            </button>
+            <button class="scenario-tab" role="tab" aria-selected="false" data-id="demo_02_hidden_overfit">
+              <span>Invariant Zero-Division</span>
+              <span class="scenario-status-pill fail mono">Block</span>
+            </button>
+            <button class="scenario-tab" role="tab" aria-selected="false" data-id="demo_03_path_traversal">
+              <span>CWE-22 Path Traversal</span>
+              <span class="scenario-status-pill fail mono">Block</span>
+            </button>
+            <button class="scenario-tab" role="tab" aria-selected="false" data-id="demo_04_regression_break">
+              <span>API Schema Regression</span>
+              <span class="scenario-status-pill fail mono">Block</span>
+            </button>
+            <button class="scenario-tab" role="tab" aria-selected="false" data-id="demo_05_mutation_survivor">
+              <span>Mutation Survivor</span>
+              <span class="scenario-status-pill warn mono">Review</span>
+            </button>
+          </div>
+
+          <div>
+            <span class="mono" style="font-size: 11.5px; color: var(--text-tertiary);" id="scenario-trace-id">DEMO TRACE: Select a scenario</span>
+          </div>
+        </div>
+
+        <!-- Airlock Visual Gate Pipeline Animation (from index(1).html) -->
+        <div class="demo-airlock-container" id="lock">
+          <div class="gates" id="gates">
+            <div class="pk" id="pk"></div>
+          </div>
+          <div class="stamp" id="stamp"></div>
+        </div>
+
+        <!-- Interactive Workbench Body -->
+        <div class="workbench-grid">
+          <!-- Left: Code Diff Viewer -->
+          <div class="workbench-diff-pane">
+            <div class="pane-header">
+              <span class="pane-label">Proposed Unified Diff (Demo)</span>
+              <span class="diff-target-badge mono" id="demo-diff-filename">—</span>
+            </div>
+            <div class="diff-editor-wrapper" id="demo-diff-content">
+              <div class="diff-placeholder-msg mono">Select a pre-recorded demo trace above to inspect code diff.</div>
+            </div>
+          </div>
+
+          <!-- Right: Gate Pipeline Execution & Verdict -->
+          <div class="workbench-eval-pane">
+            <!-- Verdict Banner -->
+            <div class="verdict-status-panel" id="demo-verdict-banner">
+              <div class="verdict-tag-line">
+                <span class="demo-trace-tag mono">DEMO TRACE</span>
+                <span class="verdict-decision-badge mono" id="demo-verdict-badge">PRE-RECORDED</span>
+              </div>
+              <div class="verdict-headline" id="demo-verdict-headline">DEMO TRACE</div>
+              <p class="verdict-explanation" id="demo-verdict-desc">Select an audit trace above to observe the 6-gate verification breakdown.</p>
+            </div>
+
+            <!-- Gates Stack -->
+            <div class="gates-stack-container" id="demo-gates-container">
+              <div class="gate-row">
+                <div class="gate-name-group">
+                  <span class="gate-id mono">C1</span>
+                  <span class="gate-title">Static AST Integrity</span>
+                </div>
+                <span class="gate-badge mono" id="demo-badge-C1">—</span>
+              </div>
+              <div class="gate-row">
+                <div class="gate-name-group">
+                  <span class="gate-id mono">C2</span>
+                  <span class="gate-title">Visible Acceptance Tests</span>
+                </div>
+                <span class="gate-badge mono" id="demo-badge-C2">—</span>
+              </div>
+              <div class="gate-row">
+                <div class="gate-name-group">
+                  <span class="gate-id mono">C3</span>
+                  <span class="gate-title">Hidden Invariant Edges</span>
+                </div>
+                <span class="gate-badge mono" id="demo-badge-C3">—</span>
+              </div>
+              <div class="gate-row">
+                <div class="gate-name-group">
+                  <span class="gate-id mono">C4</span>
+                  <span class="gate-title">Regression Contract Suite</span>
+                </div>
+                <span class="gate-badge mono" id="demo-badge-C4">—</span>
+              </div>
+              <div class="gate-row">
+                <div class="gate-name-group">
+                  <span class="gate-id mono">C5</span>
+                  <span class="gate-title">Mutation Resilience Score</span>
+                </div>
+                <span class="gate-badge mono" id="demo-badge-C5">—</span>
+              </div>
+              <div class="gate-row">
+                <div class="gate-name-group">
+                  <span class="gate-id mono">C6</span>
+                  <span class="gate-title">Security AST &amp; Taint Scan</span>
+                </div>
+                <span class="gate-badge mono" id="demo-badge-C6">—</span>
+              </div>
+            </div>
+
+            <!-- Workbench Footer Actions -->
+            <div class="workbench-bottom-bar">
+              <button class="btn btn-primary btn-sm" id="btn-re-execute-demo">Execute Demo Trace</button>
+              <button class="btn btn-secondary btn-sm" id="btn-view-audit-package">Inspect Evidence JSON</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. DETAILED 6-GATE ARCHITECTURE (SPECIFICATIONS & LOGIC) -->
+    <section class="architecture-section section-padding" id="architecture">
+      <div class="container">
+        <div class="subpage-nav-bar">
+          <a href="#product" class="back-to-home-link" aria-label="Return to Home">
+            <span class="back-arrow">&larr;</span> Return to Home
+          </a>
+          <span class="subpage-title-badge mono">A.I.R.A. / SPECIFICATIONS</span>
+        </div>
+        <div class="section-header">
+          <span class="section-kicker">Architecture & Control Specifications</span>
+          <h2 class="section-title">A.I.R.A. VERIFICATION GATES</h2>
+          <p class="section-description">
+            Each control evaluates a specific risk boundary and reports an exact state: AVAILABLE, NOT_AVAILABLE, or NOT_SUPPORTED. Controls that cannot be evaluated are reported as limitations rather than fabricated passes.
+          </p>
+        </div>
+
+        <div class="gates-spec-table-frame">
+          <table class="gates-spec-table">
+            <thead>
+              <tr>
+                <th style="width: 70px;">Gate</th>
+                <th style="width: 220px;">Control Name</th>
+                <th style="width: 130px;">Applicability</th>
+                <th style="width: 240px;">Failure Mode Interrogated</th>
+                <th>Testing Mechanism</th>
+                <th style="width: 140px;">Failure Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="gate-id-badge mono">C1</span></td>
+                <td><strong>STATIC AST INTEGRITY</strong></td>
+                <td><span class="gate-action-pill pass mono">AVAILABLE</span></td>
+                <td class="gate-desc-text">Grammar errors, syntax malformations, and invalid type annotations.</td>
+                <td class="gate-desc-text">Parses source code into complete ASTs prior to test execution. Validates token grammar conformance.</td>
+                <td><span class="gate-action-pill block mono">Immediate Reject</span></td>
+              </tr>
+              <tr>
+                <td><span class="gate-id-badge mono">C2</span></td>
+                <td><strong>PROJECT & USER TESTS</strong></td>
+                <td><span class="gate-action-pill pass mono">AVAILABLE</span></td>
+                <td class="gate-desc-text">Project test failures and custom user test failures.</td>
+                <td class="gate-desc-text">Executes repository test suite and uploaded custom user tests inside hardened Docker container.</td>
+                <td><span class="gate-action-pill block mono">Immediate Reject</span></td>
+              </tr>
+              <tr>
+                <td><span class="gate-id-badge mono">C3</span></td>
+                <td><strong>INDEPENDENT INVARIANTS</strong></td>
+                <td><span class="gate-action-pill mono" style="background:var(--bg-inset);color:var(--text-tertiary);">NOT_AVAILABLE</span></td>
+                <td class="gate-desc-text">Boundary edge conditions and invariant violations.</td>
+                <td class="gate-desc-text">Runs decoupled invariant checks. Reports NOT_AVAILABLE for arbitrary user uploads without independent suites.</td>
+                <td><span class="gate-action-pill block mono">Policy Block</span></td>
+              </tr>
+              <tr>
+                <td><span class="gate-id-badge mono">C4</span></td>
+                <td><strong>REGRESSION</strong></td>
+                <td><span class="gate-action-pill mono" style="background:var(--bg-inset);color:var(--text-tertiary);">NOT_AVAILABLE</span></td>
+                <td class="gate-desc-text">Breaking preexisting callers, modified signatures, or backward incompatibility.</td>
+                <td class="gate-desc-text">Compares test behavior against a baseline commit reference. Reports NOT_AVAILABLE without git history.</td>
+                <td><span class="gate-action-pill block mono">Policy Block</span></td>
+              </tr>
+              <tr>
+                <td><span class="gate-id-badge mono">C5</span></td>
+                <td><strong>MUTATION RESILIENCE</strong></td>
+                <td><span class="gate-action-pill mono" style="background:var(--bg-inset);color:var(--text-tertiary);">NOT_SUPPORTED</span></td>
+                <td class="gate-desc-text">Vacuous tests that pass trivially without genuinely verifying code logic.</td>
+                <td class="gate-desc-text">Synthetically injects AST mutations into code. Reports NOT_SUPPORTED for standalone archive uploads.</td>
+                <td><span class="gate-action-pill review mono">Policy Review</span></td>
+              </tr>
+              <tr>
+                <td><span class="gate-id-badge mono">C6</span></td>
+                <td><strong>SECURITY ANALYSIS</strong></td>
+                <td><span class="gate-action-pill pass mono">AVAILABLE</span></td>
+                <td class="gate-desc-text">CWE-22 path traversal, dangerous subprocess sinks, eval, and hardcoded secrets.</td>
+                <td class="gate-desc-text">AST visitor tracks data flows from untrusted inputs into dangerous filesystem or OS sinks.</td>
+                <td><span class="gate-action-pill block mono">Security Veto</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SANDBOX CONTAINMENT SPECIFICATIONS -->
+    <section class="containment-section section-padding" id="containment">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-kicker">Security & Isolation Jail</span>
+          <h2 class="section-title">ZERO-NETWORK SANDBOX JAIL</h2>
+          <p class="section-description">
+            Untrusted AI-generated code never runs on the host filesystem or with network privileges.
+          </p>
+        </div>
+
+        <div class="containment-specs-grid">
+          <div class="containment-card">
+            <h3 class="containment-title">Zero Network Access</h3>
+            <p class="containment-body">Containers are spawned with socket creation disabled. Proposed code cannot exfiltrate environment variables, access cloud metadata services, or contact external servers.</p>
+            <span class="containment-rule mono">Docker flag: --net none</span>
+          </div>
+
+          <div class="containment-card">
+            <h3 class="containment-title">Read-Only Root Filesystem</h3>
+            <p class="containment-body">The host file tree is mounted read-only. File modifications are constrained to an ephemeral memory-backed working directory destroyed upon run completion.</p>
+            <span class="containment-rule mono">Mount: --read-only /tmp:tmpfs</span>
+          </div>
+
+          <div class="containment-card">
+            <h3 class="containment-title">Strict Resource & PID Caps</h3>
+            <p class="containment-body">CPU quotas (1.0 core), memory ceilings (1024 MB), and process limits (max 100 PIDs) neutralize fork bombs, infinite recursion, and runaway AI loops.</p>
+            <span class="containment-rule mono">Limits: --memory 1g --pids-limit 100</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. INTERACTIVE TEST CONSOLE (SUBMIT A PATCH) -->
+    <section class="console-section section-padding" id="console">
+      <div class="container container-narrow">
+        <div class="section-header text-center">
+          <span class="section-kicker">Developer Console</span>
+          <h2 class="section-title">VERIFY A REPOSITORY CHANGE</h2>
+          <p class="section-description">
+            Submit a patch or specify branch references to run verification against the backend engine.
+          </p>
+        </div>
+
+        <div class="console-workspace-card">
+          <form class="console-form-body" id="console-submission-form">
+            <div class="form-group">
+              <label for="console-input-repo" class="form-label mono">Repository Path or Ref</label>
+              <input type="text" id="console-input-repo" class="form-input mono" value="." placeholder="Local repository path or identifier" required>
+            </div>
+
+            <div class="form-row-duo">
+              <div class="form-group">
+                <label for="console-input-base" class="form-label mono">Baseline Ref (Base)</label>
+                <input type="text" id="console-input-base" class="form-input mono" value="HEAD~1" placeholder="HEAD~1 or commit hash" required>
+              </div>
+              <div class="form-group">
+                <label for="console-input-head" class="form-label mono">Proposed Ref (Head)</label>
+                <input type="text" id="console-input-head" class="form-input mono" value="HEAD" placeholder="HEAD or feature branch" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="console-select-tier" class="form-label mono">Verification Tier</label>
+              <select id="console-select-tier" class="form-select mono">
+                <option value="auto">Auto (Dynamically routes verification depth)</option>
+                <option value="standard" selected>Standard (C1 through C6 gates)</option>
+                <option value="fast">Fast (C1 Syntax, C2 Acceptance, C6 Security)</option>
+                <option value="deep">Deep (Full mutation suite and saturation)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="console-input-diff" class="form-label mono">Optional Unified Diff Patch (Max 1MB)</label>
+              <textarea id="console-input-diff" class="form-textarea mono" placeholder="Paste unified diff patch here to test an uncommitted change directly..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-submit-console-job" style="width: 100%;">
+              Execute Verification Pipeline &nearr;
+            </button>
+          </form>
+
+          <!-- Live Output Screen -->
+          <div class="console-execution-screen mono" id="console-execution-log" aria-live="polite">
+            <div class="console-log-row info">[STATUS: READY] A.I.R.A. control plane initialized. Configure parameters and submit to verify.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. CRYPTOGRAPHIC EVIDENCE LEDGER -->
+    <section class="ledger-section section-padding" id="ledger">
+      <div class="container">
+        <div class="subpage-nav-bar">
+          <a href="#product" class="back-to-home-link" aria-label="Return to Home">
+            <span class="back-arrow">&larr;</span> Return to Home
+          </a>
+          <span class="subpage-title-badge mono">A.I.R.A. / EVIDENCE LEDGER</span>
+        </div>
+        <div class="section-header">
+          <span class="section-kicker">Cryptographic Compliance</span>
+          <h2 class="section-title">CONTENT-ADDRESSED EVIDENCE LEDGER</h2>
+          <p class="section-description">
+            Every verification execution produces an immutable record signed with SHA-256 hashes of the patch, gate telemetry, and release policy decisions.
+          </p>
+        </div>
+
+        <div class="ledger-table-frame">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Run Identifier</th>
+                <th>Target Reference</th>
+                <th>Tier</th>
+                <th>Technical Verdict</th>
+                <th>Release Policy</th>
+                <th>SHA-256 Digest</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-table-rows">
+              <!-- Dynamically populated from /api/verifications -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-ledger">Refresh Ledger</button>
+          <button class="btn btn-secondary btn-sm" id="btn-export-latest-json">Export Evidence JSON</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. MLVERIFY EMPIRICAL RESEARCH (TRANSPARENT DISCLOSURE) -->
+    <section class="research-section section-padding" id="research">
+      <div class="container">
+        <div class="subpage-nav-bar">
+          <a href="#product" class="back-to-home-link" aria-label="Return to Home">
+            <span class="back-arrow">&larr;</span> Return to Home
+          </a>
+          <span class="subpage-title-badge mono">A.I.R.A. / MLVERIFY RESEARCH</span>
+        </div>
+        <div class="section-header">
+          <span class="section-kicker">Empirical Research Foundation</span>
+          <h2 class="section-title">MLVERIFY: DEFECT RISK MODELING</h2>
+          <p class="section-description">
+            Can machine learning predict patch defect likelihood before executing test suites? 100 local-model executions across 50 tasks with 5-fold grouped cross-validation.
+          </p>
+        </div>
+
+        <div class="research-disclosure-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+            <strong style="color: var(--text-primary); font-size: 15px;">Phase 2.1 Audited Empirical Results</strong>
+            <span class="gate-action-pill review mono">SHADOW MODE ONLY &bull; DOES NOT BYPASS GATES</span>
+          </div>
+
+          <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; max-width: 820px; margin-bottom: 24px;">
+            Evaluated on the frozen <code>empirical_100_local_v1</code> baseline (100 admitted executions across 50 tasks with paired seeds using Qwen 2.5 Coder 7B). Validated via 5-Fold Grouped Cross-Validation grouped strictly by <code>task_id</code> to prevent data leakage.
+          </p>
+
+          <div class="research-specs-grid">
+            <div class="spec-cell">
+              <span class="spec-label">PR-AUC (Defect Risk)</span>
+              <span class="spec-value mono" data-v="0.9367" data-d="4" style="color: var(--status-pass);">0.9367</span>
+              <span class="spec-sub mono">95% CI: [0.8814, 0.9782]</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">ROC-AUC</span>
+              <span class="spec-value mono" data-v="0.8870" data-d="4">0.8870</span>
+              <span class="spec-sub mono">95% CI: [0.8122, 0.9514]</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">Brier Calibration Score</span>
+              <span class="spec-value mono" data-v="0.1114" data-d="4">0.1114</span>
+              <span class="spec-sub mono">Well-calibrated probabilities</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">Autonomous Routing</span>
+              <span class="spec-value mono" style="color: var(--status-fail);">REJECTED</span>
+              <span class="spec-sub mono">Bypassing gates is not certified</span>
+            </div>
+          </div>
+
+          <div class="research-bars-frame" style="margin-top: 24px;">
+            <div class="research-bar-row">
+              <span class="mono">Majority baseline</span>
+              <div class="bar-track"><u data-w="52" style="width: 52%;"></u></div>
+              <span class="mono">0.5198</span>
+            </div>
+            <div class="research-bar-row">
+              <span class="mono">Domain heuristic</span>
+              <div class="bar-track"><u data-w="77" style="width: 77%;"></u></div>
+              <span class="mono">0.7708</span>
+            </div>
+            <div class="research-bar-row">
+              <span class="mono">MLVerify forest</span>
+              <div class="bar-track"><u data-w="93.7" style="width: 93.7%;"></u></div>
+              <span class="mono">0.9367</span>
+            </div>
+          </div>
+
+          <p class="research-note mono">
+            Shadow mode only. MLVerify never overrides deterministic gates. Only 3 patches passed visible tests but failed hidden invariants in the empirical run, which is insufficient evidence to authorize automated bypass.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Evidence Package Modal Dialog -->
+  <div class="audit-modal-backdrop" id="evidence-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-package-title">
+    <div class="audit-modal-window">
+      <div class="audit-modal-header">
+        <span class="audit-modal-title mono" id="modal-package-title">CRYPTOGRAPHIC EVIDENCE PACKAGE</span>
+        <button class="btn btn-secondary btn-sm" id="btn-close-evidence-modal" aria-label="Close dialog">&times; Close</button>
+      </div>
+      <div class="audit-modal-code-body">
+        <pre><code class="mono" id="evidence-modal-json-content"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect to A.I.R.A. Authentication Modal Dialog -->
+  <div class="audit-modal-backdrop" id="auth-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="audit-modal-window" style="max-width: 500px;">
+      <div class="audit-modal-header">
+        <span class="audit-modal-title mono" id="auth-modal-title">CONNECT TO A.I.R.A.</span>
+        <button class="btn btn-secondary btn-sm" id="btn-close-auth-modal" aria-label="Close dialog">&times; Close</button>
+      </div>
+      <div class="auth-modal-body">
+        <div class="auth-modal-kicker mono">A.I.R.A. API ACCESS</div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+          A.I.R.A. requires an API credential for live verification.<br>
+          <span style="color: var(--status-pass); font-weight: 600;">&#10003; Stored only for this browser session.</span>
+        </p>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="auth-input-url" class="form-label mono">API URL</label>
+          <input type="text" id="auth-input-url" class="form-input mono" placeholder="(current origin)" value="">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="auth-input-key" class="form-label mono">API Key</label>
+          <input type="password" id="auth-input-key" class="form-input mono" placeholder="Enter X-API-Key..." autocomplete="off">
+        </div>
+
+        <div class="auth-modal-feedback mono" id="auth-modal-feedback" style="display:none;"></div>
+
+        <!-- Disconnected State Actions -->
+        <div id="auth-actions-disconnected" style="display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 18px;">
+          <a href="https://github.com/aira-platform/aira/issues" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 11px;">
+            REQUEST API ACCESS &nearr;
+          </a>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" id="btn-cancel-auth">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="btn-connect-auth">Connect</button>
+          </div>
+        </div>
+
+        <!-- Connected State Actions -->
+        <div id="auth-actions-connected" style="display: none; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 18px;">
+          <button class="btn btn-secondary btn-sm" id="btn-test-auth">Test connection</button>
+          <button class="btn btn-secondary btn-sm" id="btn-disconnect-auth" style="color: var(--status-fail);">Disconnect</button>
+          <button class="btn btn-primary btn-sm" id="btn-replace-key-auth">Replace key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Production Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand-info">
+        <span class="mono" style="font-size: 14px; font-weight: 700; color: var(--text-primary);">A.I.R.A.</span>
+        <span class="footer-copy mono">AI Release Assurance Control Plane &bull; v1.0.0</span>
+      </div>
+
+      <nav aria-label="Footer links" class="footer-links-group">
+        <a href="/api/health" target="_blank" class="footer-nav-link mono">System Health</a>
+        <a href="/docs" target="_blank" class="footer-nav-link mono">OpenAPI Spec</a>
+        <a href="https://github.com/aira-platform/aira" target="_blank" rel="noopener noreferrer" class="footer-nav-link mono">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "data_structures",
+  "source": "https://github.com/pydantic/pydantic",
+  "repository": "https://github.com/pydantic/pydantic",
+  "base_commit": "3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
+  "issue_id": "#task_007_pydantic_recursive_model",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

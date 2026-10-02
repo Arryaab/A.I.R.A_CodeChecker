@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_set_zero",
+    "description": "Sets all lrs to 0.0",
+    "code": "def step_lr_scheduler(param_groups: list[dict], decay_factor: float):\n    for group in param_groups:\n        group[\"lr\"] = 0.0\n"
+  }
+]

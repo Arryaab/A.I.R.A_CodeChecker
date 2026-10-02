@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "boundary_violation",
+  "source": "https://github.com/aegis-benchmark/auth-core",
+  "repository": "https://github.com/aegis-benchmark/auth-core",
+  "base_commit": "b2c3d4e5f6010203040506070809101112131415",
+  "issue_id": "#task_052_jwt_expiration_leeway_window",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

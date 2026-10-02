@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_original_on_zero",
+    "description": "Returns original matrix on power 0",
+    "code": "def matrix_power(matrix: list[list[float]], power: int) -> list[list[float]]:\n    return matrix\n"
+  }
+]

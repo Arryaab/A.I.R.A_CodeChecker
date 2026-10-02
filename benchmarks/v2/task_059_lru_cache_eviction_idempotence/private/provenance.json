@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "test_overfitting",
+  "source": "https://github.com/aegis-benchmark/cache-store",
+  "repository": "https://github.com/aegis-benchmark/cache-store",
+  "base_commit": "2304050607080910111213141516171819202122",
+  "issue_id": "#task_059_lru_cache_eviction_idempotence",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

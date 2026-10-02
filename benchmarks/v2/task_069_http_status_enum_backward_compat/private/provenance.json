@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "regression_defect",
+  "source": "https://github.com/aegis-benchmark/http-core",
+  "repository": "https://github.com/aegis-benchmark/http-core",
+  "base_commit": "2334455667788990011223344556677889900112",
+  "issue_id": "#task_069_http_status_enum_backward_compat",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

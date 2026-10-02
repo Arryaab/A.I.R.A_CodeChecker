@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,8 +1,7 @@
+ def build_causal_mask(seq_len: int, num_pad: int) -> list[list[float]]:
+-    # BUG: fails to mask out padded columns on the left
+     mask = [[0.0] * seq_len for _ in range(seq_len)]
+     for i in range(seq_len):
+         for j in range(seq_len):
+-            if j > i:
++            if j > i or j < num_pad:
+                 mask[i][j] = -1e9
+     return mask

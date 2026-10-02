@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_cast_only",
+    "description": "Casts to float without multiplying scale",
+    "code": "def dequantize_weights(qweights: list[int], scale: float) -> list[float]:\n    return [float(w) for w in qweights]\n"
+  }
+]

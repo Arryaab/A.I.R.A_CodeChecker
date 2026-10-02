@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_negative_pos_check",
+    "type": "out_of_bounds",
+    "description": "Fails to guard against negative logical position",
+    "code": "def compute_physical_slot(block_table: list[int], logical_pos: int, block_size: int = 16) -> tuple[int, int]:\n    block_idx = logical_pos // block_size\n    offset = logical_pos % block_size\n    physical_block = block_table[block_idx]\n    return physical_block, offset\n"
+  }
+]

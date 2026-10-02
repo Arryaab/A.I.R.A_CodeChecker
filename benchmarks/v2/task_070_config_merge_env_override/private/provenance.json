@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "regression_defect",
+  "source": "https://github.com/aegis-benchmark/app-config",
+  "repository": "https://github.com/aegis-benchmark/app-config",
+  "base_commit": "3445566778899001122334455667788990011223",
+  "issue_id": "#task_070_config_merge_env_override",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

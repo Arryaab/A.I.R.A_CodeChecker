@@ -1,0 +1,352 @@
+[
+  {
+    "id": "task_001_fastapi_async_scope",
+    "desc": "Fix async generator dependency scope cleanup in dependency resolution engine",
+    "buggy": "class AsyncDependencyResolver:\n    def __init__(self):\n        self.cleanups = []\n\n    async def resolve(self, dep_func):\n        gen = dep_func()\n        val = await gen.__anext__()\n        # BUG: Forgot to store generator for cleanup\n        return val\n\n    async def cleanup(self):\n        for gen in reversed(self.cleanups):\n            try:\n                await gen.__anext__()\n            except StopAsyncIteration:\n                pass\n        self.cleanups.clear()\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -5,7 +5,7 @@\n     async def resolve(self, dep_func):\n         gen = dep_func()\n         val = await gen.__anext__()\n-        # BUG: Forgot to store generator for cleanup\n+        self.cleanups.append(gen)\n         return val\n \n     async def cleanup(self):\n",
+    "vis_test": "import asyncio\nimport pytest\nfrom solution import AsyncDependencyResolver\n\ncleaned_up = False\n\nasync def sample_dep():\n    global cleaned_up\n    cleaned_up = False\n    try:\n        yield \"resource\"\n    finally:\n        cleaned_up = True\n\ndef test_async_scope_cleanup():\n    async def run():\n        resolver = AsyncDependencyResolver()\n        val = await resolver.resolve(sample_dep)\n        assert val == \"resource\"\n        await resolver.cleanup()\n        assert cleaned_up is True\n    asyncio.run(run())\n"
+  },
+  {
+    "id": "task_002_fastapi_middleware_exception",
+    "desc": "Ensure custom HTTPException raised in middleware returns formatted JSON response",
+    "buggy": "class CustomHTTPException(Exception):\n    def __init__(self, status_code: int, detail: str):\n        self.status_code = status_code\n        self.detail = detail\n\ndef execute_middleware_chain(handler, request):\n    try:\n        return handler(request)\n    except Exception as exc:\n        # BUG: re-raises CustomHTTPException instead of formatting dict response\n        if isinstance(exc, CustomHTTPException):\n            raise exc\n        return {\"status\": 500, \"error\": \"Internal Server Error\"}\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -7,7 +7,6 @@\n     try:\n         return handler(request)\n     except Exception as exc:\n-        # BUG: re-raises CustomHTTPException instead of formatting dict response\n         if isinstance(exc, CustomHTTPException):\n-            raise exc\n+            return {\"status\": exc.status_code, \"detail\": exc.detail}\n         return {\"status\": 500, \"error\": \"Internal Server Error\"}\n",
+    "vis_test": "from solution import execute_middleware_chain, CustomHTTPException\n\ndef failing_handler(req):\n    raise CustomHTTPException(404, \"Item not found\")\n\ndef test_middleware_catches_http_exception():\n    res = execute_middleware_chain(failing_handler, {})\n    assert res == {\"status\": 404, \"detail\": \"Item not found\"}\n"
+  },
+  {
+    "id": "task_003_fastapi_query_validation",
+    "desc": "Validate string query parameters with regex and bounds checking",
+    "buggy": "import re\n\ndef validate_query_param(val: str, min_length: int = 1, max_length: int = 50, pattern: str = None) -> bool:\n    if len(val) < min_length:\n        return False\n    # BUG: uses > instead of <= for max_length validation\n    if len(val) >= max_length:\n        return False\n    if pattern and not re.match(pattern, val):\n        return False\n    return True\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -3,8 +3,7 @@\n def validate_query_param(val: str, min_length: int = 1, max_length: int = 50, pattern: str = None) -> bool:\n     if len(val) < min_length:\n         return False\n-    # BUG: uses > instead of <= for max_length validation\n-    if len(val) >= max_length:\n+    if len(val) > max_length:\n         return False\n     if pattern and not re.match(pattern, val):\n         return False\n",
+    "vis_test": "from solution import validate_query_param\n\ndef test_exact_max_length_boundary():\n    val = \"a\" * 50\n    assert validate_query_param(val, max_length=50) is True\n"
+  },
+  {
+    "id": "task_004_fastapi_header_encoding",
+    "desc": "Decode HTTP header values handling UTF-8 with Latin-1 fallback",
+    "buggy": "def decode_header(raw_bytes: bytes) -> str:\n    # BUG: Crashes on non-utf8 headers without fallback\n    return raw_bytes.decode('utf-8')\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,3 +1,5 @@\n def decode_header(raw_bytes: bytes) -> str:\n-    # BUG: Crashes on non-utf8 headers without fallback\n-    return raw_bytes.decode('utf-8')\n+    try:\n+        return raw_bytes.decode('utf-8')\n+    except UnicodeDecodeError:\n+        return raw_bytes.decode('latin-1')\n",
+    "vis_test": "from solution import decode_header\n\ndef test_latin1_header_fallback():\n    raw = b\"hello \\xe9\"\n    assert decode_header(raw) == \"hello \\xe9\"\n"
+  },
+  {
+    "id": "task_005_fastapi_lifespan_state",
+    "desc": "Manage application lifespan state dictionary across startup and shutdown hooks",
+    "buggy": "class AppState:\n    def __init__(self):\n        self._state = {}\n\n    def set(self, key, value):\n        self._state[key] = value\n\n    def get(self, key, default=None):\n        return self._state.get(key, default)\n\n    def clear(self):\n        # BUG: reassigns self._state to new dict, breaking references\n        self._state = {}\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -9,5 +9,4 @@\n         return self._state.get(key, default)\n \n     def clear(self):\n-        # BUG: reassigns self._state to new dict, breaking references\n-        self._state = {}\n+        self._state.clear()\n",
+    "vis_test": "from solution import AppState\n\ndef test_state_clear_preserves_internal_dict_identity():\n    app_state = AppState()\n    ref = app_state._state\n    app_state.set(\"db\", \"connected\")\n    app_state.clear()\n    assert app_state.get(\"db\") is None\n    assert app_state._state is ref\n"
+  },
+  {
+    "id": "task_006_pydantic_root_validator",
+    "desc": "Fix root validator before-mode dictionary modification in schema parser",
+    "buggy": "def validate_user_payload(data: dict) -> dict:\n    # BUG: creates a copy but forgets to include original fields\n    if \"first_name\" in data and \"last_name\" in data:\n        return {\"full_name\": f\"{data['first_name']} {data['last_name']}\"}\n    return data\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,5 +1,5 @@\n def validate_user_payload(data: dict) -> dict:\n-    # BUG: creates a copy but forgets to include original fields\n-    if \"first_name\" in data and \"last_name\" in data:\n-        return {\"full_name\": f\"{data['first_name']} {data['last_name']}\"}\n-    return data\n+    res = dict(data)\n+    if \"first_name\" in res and \"last_name\" in res:\n+        res[\"full_name\"] = f\"{res['first_name']} {res['last_name']}\"\n+    return res\n",
+    "vis_test": "from solution import validate_user_payload\n\ndef test_root_validator_keeps_original_fields():\n    data = {\"first_name\": \"Alan\", \"last_name\": \"Turing\", \"role\": \"researcher\"}\n    res = validate_user_payload(data)\n    assert res[\"full_name\"] == \"Alan Turing\"\n    assert res[\"role\"] == \"researcher\"\n"
+  },
+  {
+    "id": "task_007_pydantic_recursive_model",
+    "desc": "Serialize recursive tree node structure without exceeding recursion limit",
+    "buggy": "class TreeNode:\n    def __init__(self, value, children=None):\n        self.value = value\n        self.children = children or []\n\ndef serialize_tree(node: TreeNode, seen=None):\n    # BUG: mutable default / missing seen set tracking leads to infinite loop on cycle\n    return {\n        \"value\": node.value,\n        \"children\": [serialize_tree(c) for c in node.children]\n    }\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -4,8 +4,12 @@\n         self.children = children or []\n \n def serialize_tree(node: TreeNode, seen=None):\n-    # BUG: mutable default / missing seen set tracking leads to infinite loop on cycle\n+    if seen is None:\n+        seen = set()\n+    if id(node) in seen:\n+        return {\"value\": node.value, \"ref\": True}\n+    seen.add(id(node))\n     return {\n         \"value\": node.value,\n-        \"children\": [serialize_tree(c) for c in node.children]\n+        \"children\": [serialize_tree(c, seen) for c in node.children]\n     }\n",
+    "vis_test": "from solution import TreeNode, serialize_tree\n\ndef test_serialize_tree_simple():\n    root = TreeNode(1, [TreeNode(2), TreeNode(3)])\n    res = serialize_tree(root)\n    assert res[\"value\"] == 1\n    assert len(res[\"children\"]) == 2\n"
+  },
+  {
+    "id": "task_008_pydantic_discriminator_union",
+    "desc": "Resolve polymorphic union type using discriminator field",
+    "buggy": "def parse_event(data: dict):\n    # BUG: missing discriminator check raises generic KeyError or parses wrong model\n    event_type = data.get(\"type\")\n    if event_type == \"click\":\n        return {\"kind\": \"click\", \"x\": data[\"x\"], \"y\": data[\"y\"]}\n    elif event_type == \"hover\":\n        return {\"kind\": \"hover\", \"duration\": data[\"duration\"]}\n    # Forgot to raise ValueError for unknown discriminator\n    return data\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,9 +1,10 @@\n def parse_event(data: dict):\n-    # BUG: missing discriminator check raises generic KeyError or parses wrong model\n-    event_type = data.get(\"type\")\n+    if not isinstance(data, dict) or \"type\" not in data:\n+        raise ValueError(\"Missing discriminator 'type'\")\n+    event_type = data[\"type\"]\n     if event_type == \"click\":\n         return {\"kind\": \"click\", \"x\": data[\"x\"], \"y\": data[\"y\"]}\n     elif event_type == \"hover\":\n         return {\"kind\": \"hover\", \"duration\": data[\"duration\"]}\n-    # Forgot to raise ValueError for unknown discriminator\n-    return data\n+    else:\n+        raise ValueError(f\"Unknown event type: {event_type}\")\n",
+    "vis_test": "import pytest\nfrom solution import parse_event\n\ndef test_parse_click_event():\n    res = parse_event({\"type\": \"click\", \"x\": 100, \"y\": 200})\n    assert res == {\"kind\": \"click\", \"x\": 100, \"y\": 200}\n\ndef test_missing_type_raises():\n    with pytest.raises(ValueError):\n        parse_event({\"x\": 100})\n"
+  },
+  {
+    "id": "task_009_pydantic_custom_serializer",
+    "desc": "Serialize datetime and decimal objects in custom JSON encoder",
+    "buggy": "from decimal import Decimal\nfrom datetime import datetime\n\ndef custom_serializer(obj):\n    if isinstance(obj, datetime):\n        return obj.isoformat()\n    # BUG: Decimal raises TypeError\n    return str(obj)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -4,5 +4,8 @@\n def custom_serializer(obj):\n     if isinstance(obj, datetime):\n         return obj.isoformat()\n-    # BUG: Decimal raises TypeError\n+    if isinstance(obj, Decimal):\n+        return float(obj)\n+    if isinstance(obj, (int, float, str, bool, type(None))):\n+        return obj\n     return str(obj)\n",
+    "vis_test": "from decimal import Decimal\nfrom solution import custom_serializer\n\ndef test_decimal_serialized_to_float():\n    d = Decimal(\"19.99\")\n    assert custom_serializer(d) == 19.99\n"
+  },
+  {
+    "id": "task_010_pydantic_generic_model",
+    "desc": "Bind type variables in generic response envelope model",
+    "buggy": "class GenericEnvelope:\n    def __init__(self, item_cls):\n        self.item_cls = item_cls\n\n    def parse(self, payload: dict):\n        # BUG: doesn't check if payload['items'] matches item_cls\n        items = payload.get(\"items\", [])\n        return {\"count\": len(items), \"items\": items}\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -3,6 +3,10 @@\n         self.item_cls = item_cls\n \n     def parse(self, payload: dict):\n-        # BUG: doesn't check if payload['items'] matches item_cls\n         items = payload.get(\"items\", [])\n-        return {\"count\": len(items), \"items\": items}\n+        parsed_items = []\n+        for it in items:\n+            if not isinstance(it, self.item_cls):\n+                raise TypeError(f\"Item {it} is not of type {self.item_cls.__name__}\")\n+            parsed_items.append(it)\n+        return {\"count\": len(parsed_items), \"items\": parsed_items}\n",
+    "vis_test": "import pytest\nfrom solution import GenericEnvelope\n\ndef test_generic_envelope_valid():\n    env = GenericEnvelope(int)\n    res = env.parse({\"items\": [1, 2, 3]})\n    assert res == {\"count\": 3, \"items\": [1, 2, 3]}\n\ndef test_generic_envelope_invalid_type():\n    env = GenericEnvelope(int)\n    with pytest.raises(TypeError):\n        env.parse({\"items\": [1, \"two\", 3]})\n"
+  },
+  {
+    "id": "task_011_click_subcommand_param",
+    "desc": "Propagate parent CLI context flags down to nested subcommands",
+    "buggy": "class CLIContext:\n    def __init__(self, verbose=False):\n        self.verbose = verbose\n\nclass CommandGroup:\n    def __init__(self):\n        self.subcommands = {}\n\n    def add(self, name, handler):\n        self.subcommands[name] = handler\n\n    def invoke(self, ctx: CLIContext, cmd_name: str, *args):\n        # BUG: invokes handler without passing the CLIContext\n        if cmd_name in self.subcommands:\n            return self.subcommands[cmd_name](*args)\n        raise ValueError(f\"Unknown command {cmd_name}\")\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -10,7 +10,6 @@\n         self.subcommands[name] = handler\n \n     def invoke(self, ctx: CLIContext, cmd_name: str, *args):\n-        # BUG: invokes handler without passing the CLIContext\n         if cmd_name in self.subcommands:\n-            return self.subcommands[cmd_name](*args)\n+            return self.subcommands[cmd_name](ctx, *args)\n         raise ValueError(f\"Unknown command {cmd_name}\")\n",
+    "vis_test": "from solution import CLIContext, CommandGroup\n\ndef status_handler(ctx):\n    return f\"verbose={ctx.verbose}\"\n\ndef test_context_passed_to_subcommand():\n    grp = CommandGroup()\n    grp.add(\"status\", status_handler)\n    ctx = CLIContext(verbose=True)\n    assert grp.invoke(ctx, \"status\") == \"verbose=True\"\n"
+  },
+  {
+    "id": "task_012_click_context_leak",
+    "desc": "Ensure nested CLI command execution does not mutate parent context state",
+    "buggy": "class Context:\n    def __init__(self, data=None):\n        self.data = data or {}\n\n    def child(self):\n        # BUG: shares same reference instead of shallow copy\n        return Context(self.data)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,7 +1,6 @@\n class Context:\n     def __init__(self, data=None):\n-        self.data = data or {}\n+        self.data = dict(data) if data else {}\n \n     def child(self):\n-        # BUG: shares same reference instead of shallow copy\n-        return Context(self.data)\n+        return Context(dict(self.data))\n",
+    "vis_test": "from solution import Context\n\ndef test_child_context_mutation_does_not_leak():\n    parent = Context({\"env\": \"prod\"})\n    child = parent.child()\n    child.data[\"env\"] = \"staging\"\n    assert parent.data[\"env\"] == \"prod\"\n"
+  },
+  {
+    "id": "task_013_click_custom_param_type",
+    "desc": "Validate integer range parameter with custom error messaging",
+    "buggy": "def parse_int_range(val_str: str, min_val: int, max_val: int) -> int:\n    val = int(val_str)\n    # BUG: uses < and > instead of checking boundaries correctly\n    if val <= min_val or val >= max_val:\n        raise ValueError(f\"Value {val} out of range [{min_val}, {max_val}]\")\n    return val\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,5 @@\n def parse_int_range(val_str: str, min_val: int, max_val: int) -> int:\n     val = int(val_str)\n-    # BUG: uses < and > instead of checking boundaries correctly\n-    if val <= min_val or val >= max_val:\n+    if val < min_val or val > max_val:\n         raise ValueError(f\"Value {val} out of range [{min_val}, {max_val}]\")\n     return val\n",
+    "vis_test": "from solution import parse_int_range\n\ndef test_exact_bounds_allowed():\n    assert parse_int_range(\"10\", 10, 20) == 10\n    assert parse_int_range(\"20\", 10, 20) == 20\n"
+  },
+  {
+    "id": "task_014_click_choice_case_sensitive",
+    "desc": "Support case-insensitive matching in choice option parser",
+    "buggy": "def match_choice(val: str, choices: list[str], case_sensitive: bool = True) -> str:\n    # BUG: ignores case_sensitive flag completely\n    if val in choices:\n        return val\n    raise ValueError(f\"'{val}' is not in {choices}\")\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,5 +1,9 @@\n def match_choice(val: str, choices: list[str], case_sensitive: bool = True) -> str:\n-    # BUG: ignores case_sensitive flag completely\n-    if val in choices:\n-        return val\n+    if case_sensitive:\n+        if val in choices:\n+            return val\n+    else:\n+        norm_map = {c.lower(): c for c in choices}\n+        if val.lower() in norm_map:\n+            return norm_map[val.lower()]\n     raise ValueError(f\"'{val}' is not in {choices}\")\n",
+    "vis_test": "from solution import match_choice\n\ndef test_case_insensitive_matching():\n    choices = [\"Fast\", \"Standard\", \"Deep\"]\n    assert match_choice(\"fast\", choices, case_sensitive=False) == \"Fast\"\n"
+  },
+  {
+    "id": "task_015_aiohttp_session_reuse",
+    "desc": "Fix connection pool double-release in async HTTP client session",
+    "buggy": "class ConnectionPool:\n    def __init__(self, size=10):\n        self.available = size\n        self.size = size\n\n    def acquire(self):\n        if self.available <= 0:\n            raise RuntimeError(\"Pool exhausted\")\n        self.available -= 1\n        return \"conn\"\n\n    def release(self):\n        # BUG: no upper bound check permits available > size on double release\n        self.available += 1\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -10,5 +10,5 @@\n         return \"conn\"\n \n     def release(self):\n-        # BUG: no upper bound check permits available > size on double release\n-        self.available += 1\n+        if self.available < self.size:\n+            self.available += 1\n",
+    "vis_test": "from solution import ConnectionPool\n\ndef test_double_release_does_not_exceed_pool_size():\n    pool = ConnectionPool(size=5)\n    pool.acquire()\n    pool.release()\n    pool.release()  # spurious release\n    assert pool.available == 5\n"
+  },
+  {
+    "id": "task_016_aiohttp_chunk_timeout",
+    "desc": "Handle read timeouts during chunked HTTP transfer stream",
+    "buggy": "class ChunkStreamReader:\n    def __init__(self, chunks, timeout_s=1.0):\n        self.chunks = chunks\n        self.timeout_s = timeout_s\n        self.buffer = []\n\n    def read_all(self, time_limit: float):\n        self.buffer = []\n        total_time = 0.0\n        for data, delay in self.chunks:\n            total_time += delay\n            # BUG: appends data before checking timeout limit\n            self.buffer.append(data)\n            if total_time > time_limit:\n                raise TimeoutError(\"Read timeout exceeded\")\n        return b\"\".join(self.buffer)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -9,8 +9,7 @@\n         total_time = 0.0\n         for data, delay in self.chunks:\n             total_time += delay\n-            # BUG: appends data before checking timeout limit\n-            self.buffer.append(data)\n             if total_time > time_limit:\n                 raise TimeoutError(\"Read timeout exceeded\")\n+            self.buffer.append(data)\n         return b\"\".join(self.buffer)\n",
+    "vis_test": "import pytest\nfrom solution import ChunkStreamReader\n\ndef test_timeout_raised_before_appending_late_chunk():\n    chunks = [(b\"chunk1\", 0.5), (b\"chunk2\", 1.0)]\n    reader = ChunkStreamReader(chunks)\n    with pytest.raises(TimeoutError):\n        reader.read_all(time_limit=1.0)\n    assert reader.buffer == [b\"chunk1\"]\n"
+  },
+  {
+    "id": "task_017_aiohttp_cookie_jar_domain",
+    "desc": "Prevent cross-subdomain cookie leakage in CookieJar domain matching",
+    "buggy": "def is_domain_match(request_domain: str, cookie_domain: str) -> bool:\n    # BUG: simple endswith allows attackerexample.com to match example.com\n    return request_domain.endswith(cookie_domain)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,3 +1,8 @@\n def is_domain_match(request_domain: str, cookie_domain: str) -> bool:\n-    # BUG: simple endswith allows attackerexample.com to match example.com\n-    return request_domain.endswith(cookie_domain)\n+    req = request_domain.lower()\n+    cookie = cookie_domain.lower().lstrip(\".\")\n+    if req == cookie:\n+        return True\n+    if req.endswith(\".\" + cookie):\n+        return True\n+    return False\n",
+    "vis_test": "from solution import is_domain_match\n\ndef test_subdomain_collision_prevention():\n    assert is_domain_match(\"notexample.com\", \"example.com\") is False\n    assert is_domain_match(\"api.example.com\", \"example.com\") is True\n"
+  },
+  {
+    "id": "task_018_crypto_pkcs7_padding",
+    "desc": "Implement PKCS#7 unpadding with strict boundary checking to prevent padding attacks",
+    "buggy": "def pkcs7_unpad(data: bytes, block_size: int = 16) -> bytes:\n    if not data or len(data) % block_size != 0:\n        raise ValueError(\"Invalid block length\")\n    pad_len = data[-1]\n    # BUG: fails to verify that ALL pad_len bytes actually match pad_len\n    return data[:-pad_len]\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -2,5 +2,9 @@\n     if not data or len(data) % block_size != 0:\n         raise ValueError(\"Invalid block length\")\n     pad_len = data[-1]\n-    # BUG: fails to verify that ALL pad_len bytes actually match pad_len\n+    if pad_len == 0 or pad_len > block_size:\n+        raise ValueError(\"Invalid padding value\")\n+    padding = data[-pad_len:]\n+    if any(b != pad_len for b in padding):\n+        raise ValueError(\"Corrupt padding bytes\")\n     return data[:-pad_len]\n",
+    "vis_test": "import pytest\nfrom solution import pkcs7_unpad\n\ndef test_corrupt_padding_rejected():\n    corrupt = b\"message\" + b\"\\x00\" * 7 + b\"\\x02\\x03\"\n    with pytest.raises(ValueError):\n        pkcs7_unpad(corrupt, block_size=16)\n"
+  },
+  {
+    "id": "task_019_crypto_asn1_length_bounds",
+    "desc": "Decode ASN.1 DER length octets preventing integer overflow and bounds overrun",
+    "buggy": "def parse_asn1_length(data: bytes, offset: int = 0) -> tuple[int, int]:\n    # Returns (length, new_offset)\n    first = data[offset]\n    if first < 0x80:\n        return first, offset + 1\n    # Long form\n    num_octets = first & 0x7F\n    # BUG: does not check if offset + 1 + num_octets exceeds len(data)\n    length = int.from_bytes(data[offset + 1:offset + 1 + num_octets], \"big\")\n    return length, offset + 1 + num_octets\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,10 +1,13 @@\n def parse_asn1_length(data: bytes, offset: int = 0) -> tuple[int, int]:\n-    # Returns (length, new_offset)\n+    if offset >= len(data):\n+        raise ValueError(\"Unexpected EOF reading length\")\n     first = data[offset]\n     if first < 0x80:\n         return first, offset + 1\n-    # Long form\n     num_octets = first & 0x7F\n-    # BUG: does not check if offset + 1 + num_octets exceeds len(data)\n+    if num_octets == 0 or num_octets > 4:\n+        raise ValueError(\"Invalid length octet count\")\n+    if offset + 1 + num_octets > len(data):\n+        raise ValueError(\"Truncated ASN.1 length header\")\n     length = int.from_bytes(data[offset + 1:offset + 1 + num_octets], \"big\")\n     return length, offset + 1 + num_octets\n",
+    "vis_test": "import pytest\nfrom solution import parse_asn1_length\n\ndef test_truncated_asn1_length_header_raises():\n    truncated = bytes([0x82, 0x01])  # specifies 2 octets, but only 1 provided\n    with pytest.raises(ValueError):\n        parse_asn1_length(truncated, 0)\n"
+  },
+  {
+    "id": "task_020_crypto_constant_time_compare",
+    "desc": "Perform constant-time comparison of HMAC digest to eliminate timing side-channels",
+    "buggy": "def constant_time_compare(val1: bytes, val2: bytes) -> bool:\n    # BUG: faulty comparison checks only length and first byte\n    if len(val1) != len(val2):\n        return False\n    return len(val1) == len(val2) and val1[0] == val2[0]\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,5 +1,7 @@\n def constant_time_compare(val1: bytes, val2: bytes) -> bool:\n-    # BUG: faulty comparison checks only length and first byte\n     if len(val1) != len(val2):\n         return False\n-    return len(val1) == len(val2) and val1[0] == val2[0]\n+    result = 0\n+    for x, y in zip(val1, val2):\n+        result |= x ^ y\n+    return result == 0\n",
+    "vis_test": "from solution import constant_time_compare\n\ndef test_constant_time_compare_equal():\n    assert constant_time_compare(b\"hash123\", b\"hash123\") is True\n\ndef test_constant_time_compare_diff_same_prefix():\n    # Both start with 'h' and have same length; buggy returns True\n    assert constant_time_compare(b\"hash123\", b\"hash456\") is False\n"
+  },
+  {
+    "id": "task_021_numpy_stride_tricks",
+    "desc": "Calculate sliding window shape for 1D strided array view",
+    "buggy": "def compute_sliding_window_shape(n_elements: int, window_size: int, step: int = 1) -> tuple[int, int]:\n    if window_size > n_elements or window_size <= 0:\n        return (0, 0)\n    # BUG: off-by-one omission of +1 in window count\n    num_windows = (n_elements - window_size) // step\n    return (num_windows, window_size)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,5 @@\n def compute_sliding_window_shape(n_elements: int, window_size: int, step: int = 1) -> tuple[int, int]:\n     if window_size > n_elements or window_size <= 0:\n         return (0, 0)\n-    # BUG: off-by-one omission of +1 in window count\n-    num_windows = (n_elements - window_size) // step\n+    num_windows = (n_elements - window_size) // step + 1\n     return (num_windows, window_size)\n",
+    "vis_test": "from solution import compute_sliding_window_shape\n\ndef test_sliding_window_shape_standard():\n    assert compute_sliding_window_shape(10, 3, 1) == (8, 3)\n"
+  },
+  {
+    "id": "task_022_numpy_broadcast_edge",
+    "desc": "Compute broadcasted output shape for two multidimensional array shapes",
+    "buggy": "def broadcast_shapes(s1: tuple[int, ...], s2: tuple[int, ...]) -> tuple[int, ...]:\n    r1 = list(reversed(s1))\n    r2 = list(reversed(s2))\n    max_len = max(len(r1), len(r2))\n    res = []\n    for i in range(max_len):\n        d1 = r1[i] if i < len(r1) else 1\n        d2 = r2[i] if i < len(r2) else 1\n        if d1 == d2:\n            res.append(d1)\n        elif d1 == 1:\n            res.append(d2)\n        # BUG: forgot to handle d2 == 1, erroneously raises mismatch\n        else:\n            raise ValueError(f\"Shapes {s1} and {s2} not broadcastable\")\n    return tuple(reversed(res))\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -10,7 +10,8 @@\n             res.append(d1)\n         elif d1 == 1:\n             res.append(d2)\n-        # BUG: forgot to handle d2 == 1, erroneously raises mismatch\n+        elif d2 == 1:\n+            res.append(d1)\n         else:\n             raise ValueError(f\"Shapes {s1} and {s2} not broadcastable\")\n     return tuple(reversed(res))\n",
+    "vis_test": "from solution import broadcast_shapes\n\ndef test_broadcast_singleton_in_second_shape():\n    s1 = (4, 3)\n    s2 = (4, 1)\n    assert broadcast_shapes(s1, s2) == (4, 3)\n"
+  },
+  {
+    "id": "task_023_numpy_dtype_overflow",
+    "desc": "Detect integer accumulation overflow for signed 32-bit integers",
+    "buggy": "INT32_MIN = -(2**31)\nINT32_MAX = 2**31 - 1\n\ndef accumulate_int32(values: list[int]) -> int:\n    total = 0\n    for v in values:\n        total += v\n        # BUG: only checks upper bound, fails to check lower bound\n        if total > INT32_MAX:\n            raise OverflowError(\"32-bit integer overflow\")\n    return total\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -5,7 +5,6 @@\n     total = 0\n     for v in values:\n         total += v\n-        # BUG: only checks upper bound, fails to check lower bound\n-        if total > INT32_MAX:\n+        if total > INT32_MAX or total < INT32_MIN:\n             raise OverflowError(\"32-bit integer overflow\")\n     return total\n",
+    "vis_test": "import pytest\nfrom solution import accumulate_int32, INT32_MIN\n\ndef test_negative_overflow_detected():\n    with pytest.raises(OverflowError):\n        accumulate_int32([INT32_MIN, -1])\n"
+  },
+  {
+    "id": "task_024_numpy_masked_array_nan",
+    "desc": "Compute arithmetic mean of array excluding both masked elements and NaN values",
+    "buggy": "import math\n\ndef nanmean_masked(data: list[float], mask: list[bool]) -> float:\n    valid_elements = []\n    for x, m in zip(data, mask):\n        if not m:\n            # BUG: forgets to check math.isnan(x)\n            valid_elements.append(x)\n    if not valid_elements:\n        return float('nan')\n    return sum(valid_elements) / len(valid_elements)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -3,8 +3,7 @@\n def nanmean_masked(data: list[float], mask: list[bool]) -> float:\n     valid_elements = []\n     for x, m in zip(data, mask):\n-        if not m:\n-            # BUG: forgets to check math.isnan(x)\n+        if not m and not math.isnan(x):\n             valid_elements.append(x)\n     if not valid_elements:\n         return float('nan')\n",
+    "vis_test": "import math\nfrom solution import nanmean_masked\n\ndef test_nan_filtered_from_unmasked():\n    data = [1.0, float('nan'), 3.0]\n    mask = [False, False, False]\n    assert nanmean_masked(data, mask) == 2.0\n"
+  },
+  {
+    "id": "task_025_numpy_matrix_power_zero",
+    "desc": "Return identity matrix when computing matrix power p=0",
+    "buggy": "def matrix_power(matrix: list[list[float]], power: int) -> list[list[float]]:\n    n = len(matrix)\n    if power == 0:\n        # BUG: returns zero matrix instead of identity matrix\n        return [[0.0 for _ in range(n)] for _ in range(n)]\n    res = [row[:] for row in matrix]\n    for _ in range(power - 1):\n        new_res = [[0.0 for _ in range(n)] for _ in range(n)]\n        for i in range(n):\n            for j in range(n):\n                for k in range(n):\n                    new_res[i][j] += res[i][k] * matrix[k][j]\n        res = new_res\n    return res\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,8 +1,7 @@\n def matrix_power(matrix: list[list[float]], power: int) -> list[list[float]]:\n     n = len(matrix)\n     if power == 0:\n-        # BUG: returns zero matrix instead of identity matrix\n-        return [[0.0 for _ in range(n)] for _ in range(n)]\n+        return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]\n     res = [row[:] for row in matrix]\n     for _ in range(power - 1):\n         new_res = [[0.0 for _ in range(n)] for _ in range(n)]\n",
+    "vis_test": "from solution import matrix_power\n\ndef test_matrix_power_zero_returns_identity():\n    m = [[2.0, 3.0], [4.0, 5.0]]\n    expected = [[1.0, 0.0], [0.0, 1.0]]\n    assert matrix_power(m, 0) == expected\n"
+  },
+  {
+    "id": "task_026_numpy_clip_inplace_view",
+    "desc": "Clip 1D array values strictly between min and max bounds",
+    "buggy": "def clip_array(arr: list[float], a_min: float, a_max: float) -> list[float]:\n    # BUG: inverts condition logic\n    return [a_min if x > a_max else a_max if x < a_min else x for x in arr]\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,3 +1,2 @@\n def clip_array(arr: list[float], a_min: float, a_max: float) -> list[float]:\n-    # BUG: inverts condition logic\n-    return [a_min if x > a_max else a_max if x < a_min else x for x in arr]\n+    return [a_max if x > a_max else a_min if x < a_min else x for x in arr]\n",
+    "vis_test": "from solution import clip_array\n\ndef test_clip_out_of_bounds():\n    data = [-5.0, 0.0, 5.0, 15.0]\n    res = clip_array(data, 0.0, 10.0)\n    assert res == [0.0, 0.0, 5.0, 10.0]\n"
+  },
+  {
+    "id": "task_027_pandas_multiindex_alignment",
+    "desc": "Perform Cartesian product alignment on two-level hierarchical indices",
+    "buggy": "def align_multiindex_data(df1: dict, df2: dict) -> dict:\n    aligned = {}\n    for (k1, k2), v1 in df1.items():\n        # BUG: only keys present in df1 are inspected, misses keys only in df2\n        v2 = df2.get((k1, k2), 0)\n        aligned[(k1, k2)] = v1 + v2\n    return aligned\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,7 +1,8 @@\n def align_multiindex_data(df1: dict, df2: dict) -> dict:\n+    all_keys = set(df1.keys()).union(set(df2.keys()))\n     aligned = {}\n-    for (k1, k2), v1 in df1.items():\n-        # BUG: only keys present in df1 are inspected, misses keys only in df2\n-        v2 = df2.get((k1, k2), 0)\n-        aligned[(k1, k2)] = v1 + v2\n+    for k in sorted(all_keys):\n+        v1 = df1.get(k, 0)\n+        v2 = df2.get(k, 0)\n+        aligned[k] = v1 + v2\n     return aligned\n",
+    "vis_test": "from solution import align_multiindex_data\n\ndef test_multiindex_outer_join():\n    d1 = {(\"A\", 1): 10}\n    d2 = {(\"B\", 2): 20}\n    res = align_multiindex_data(d1, d2)\n    assert res == {(\"A\", 1): 10, (\"B\", 2): 20}\n"
+  },
+  {
+    "id": "task_028_pandas_datetime_tz_convert",
+    "desc": "Convert UTC timestamps adjusting for localized timezone offsets",
+    "buggy": "from datetime import datetime, timedelta\n\ndef convert_tz_utc(dt: datetime, offset_hours: int) -> datetime:\n    # BUG: uses datetime replace on hour instead of timedelta addition\n    new_hour = (dt.hour + offset_hours) % 24\n    return dt.replace(hour=new_hour)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,4 @@\n from datetime import datetime, timedelta\n \n def convert_tz_utc(dt: datetime, offset_hours: int) -> datetime:\n-    # BUG: uses datetime replace on hour instead of timedelta addition\n-    new_hour = (dt.hour + offset_hours) % 24\n-    return dt.replace(hour=new_hour)\n+    return dt + timedelta(hours=offset_hours)\n",
+    "vis_test": "from datetime import datetime\nfrom solution import convert_tz_utc\n\ndef test_day_boundary_wrap():\n    dt = datetime(2026, 9, 27, 23, 0)\n    res = convert_tz_utc(dt, 2)\n    assert res == datetime(2026, 9, 28, 1, 0)\n"
+  },
+  {
+    "id": "task_029_pandas_rolling_min_periods",
+    "desc": "Compute moving average requiring at least min_periods non-null observations",
+    "buggy": "def rolling_mean(series: list[float | None], window: int, min_periods: int) -> list[float | None]:\n    result = []\n    for i in range(len(series)):\n        start = max(0, i - window + 1)\n        sub = series[start:i+1]\n        valid = [x for x in sub if x is not None]\n        # BUG: checks len(sub) instead of len(valid)\n        if len(sub) >= min_periods and valid:\n            result.append(sum(valid) / len(valid))\n        else:\n            result.append(None)\n    return result\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -4,8 +4,7 @@\n         start = max(0, i - window + 1)\n         sub = series[start:i+1]\n         valid = [x for x in sub if x is not None]\n-        # BUG: checks len(sub) instead of len(valid)\n-        if len(sub) >= min_periods and valid:\n+        if len(valid) >= min_periods:\n             result.append(sum(valid) / len(valid))\n         else:\n             result.append(None)\n",
+    "vis_test": "from solution import rolling_mean\n\ndef test_min_periods_with_nulls():\n    s = [10.0, None, None, 20.0]\n    res = rolling_mean(s, window=3, min_periods=2)\n    assert res[2] is None  # only 1 valid element in window [10, None, None]\n"
+  },
+  {
+    "id": "task_030_scipy_sparse_csr_slice",
+    "desc": "Extract row slice from Compressed Sparse Row (CSR) index pointers",
+    "buggy": "def csr_row_slice(indptr: list[int], indices: list[int], data: list[float], row: int):\n    # BUG: negative row indexing allowed by python list but invalid in CSR\n    start = indptr[row]\n    end = indptr[row + 1]\n    return indices[start:end], data[start:end]\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,5 +1,6 @@\n def csr_row_slice(indptr: list[int], indices: list[int], data: list[float], row: int):\n-    # BUG: negative row indexing allowed by python list but invalid in CSR\n+    if row < 0 or row >= len(indptr) - 1:\n+        raise IndexError(f\"Row {row} out of range [0, {len(indptr) - 2}]\")\n     start = indptr[row]\n     end = indptr[row + 1]\n     return indices[start:end], data[start:end]\n",
+    "vis_test": "import pytest\nfrom solution import csr_row_slice\n\ndef test_negative_csr_row_rejected():\n    indptr = [0, 2, 4]\n    indices = [0, 1, 0, 1]\n    data = [1.0, 2.0, 3.0, 4.0]\n    with pytest.raises(IndexError):\n        csr_row_slice(indptr, indices, data, row=-1)\n"
+  },
+  {
+    "id": "task_031_scipy_optim_bounds_clamping",
+    "desc": "Project optimization vector onto box constraints [lower, upper]",
+    "buggy": "def project_box_bounds(x: list[float], bounds: list[tuple[float, float]]) -> list[float]:\n    projected = []\n    for val, (l, u) in zip(x, bounds):\n        # BUG: inverts min and max clamping\n        projected.append(min(l, max(u, val)))\n    return projected\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,5 @@\n def project_box_bounds(x: list[float], bounds: list[tuple[float, float]]) -> list[float]:\n     projected = []\n     for val, (l, u) in zip(x, bounds):\n-        # BUG: inverts min and max clamping\n-        projected.append(min(l, max(u, val)))\n+        projected.append(max(l, min(u, val)))\n     return projected\n",
+    "vis_test": "from solution import project_box_bounds\n\ndef test_project_bounds_clamping():\n    x = [-2.0, 1.5, 5.0]\n    bounds = [(0.0, 1.0), (0.0, 2.0), (0.0, 3.0)]\n    assert project_box_bounds(x, bounds) == [0.0, 1.5, 3.0]\n"
+  },
+  {
+    "id": "task_032_scipy_distance_metric_symmetry",
+    "desc": "Compute symmetric Euclidean distance matrix guaranteeing D[i][j] == D[j][i]",
+    "buggy": "import math\n\ndef pairwise_euclidean(points: list[tuple[float, float]]) -> list[list[float]]:\n    n = len(points)\n    dist = [[0.0] * n for _ in range(n)]\n    for i in range(n):\n        for j in range(i, n):\n            d = math.sqrt((points[i][0] - points[j][0])**2 + (points[i][1] - points[j][1])**2)\n            dist[i][j] = d\n            # BUG: forgets to mirror dist[j][i]\n    return dist\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -7,5 +7,5 @@\n         for j in range(i, n):\n             d = math.sqrt((points[i][0] - points[j][0])**2 + (points[i][1] - points[j][1])**2)\n             dist[i][j] = d\n-            # BUG: forgets to mirror dist[j][i]\n+            dist[j][i] = d\n     return dist\n",
+    "vis_test": "from solution import pairwise_euclidean\n\ndef test_distance_matrix_symmetry():\n    pts = [(0.0, 0.0), (3.0, 4.0)]\n    d = pairwise_euclidean(pts)\n    assert d[0][1] == 5.0\n    assert d[1][0] == 5.0\n    assert d[0][0] == 0.0\n"
+  },
+  {
+    "id": "task_033_pytorch_graph_detachment",
+    "desc": "Preserve computation graph backward pass gradient flow without accidental detachment",
+    "buggy": "class Node:\n    def __init__(self, val, grad=0.0, prev=None):\n        self.val = val\n        self.grad = grad\n        self.prev = prev or []\n\ndef square_node(x: Node) -> Node:\n    # BUG: creates new detached node without setting prev linkage\n    return Node(x.val ** 2, prev=[])\n\ndef backward(out: Node):\n    out.grad = 1.0\n    queue = [out]\n    while queue:\n        curr = queue.pop(0)\n        for p in curr.prev:\n            p.grad += curr.grad * (2 * p.val)\n            queue.append(p)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -5,8 +5,7 @@\n         self.prev = prev or []\n \n def square_node(x: Node) -> Node:\n-    # BUG: creates new detached node without setting prev linkage\n-    return Node(x.val ** 2, prev=[])\n+    return Node(x.val ** 2, prev=[x])\n \n def backward(out: Node):\n     out.grad = 1.0\n",
+    "vis_test": "from solution import Node, square_node, backward\n\ndef test_gradient_propagates_to_input():\n    x = Node(3.0)\n    y = square_node(x)\n    backward(y)\n    assert x.grad == 6.0\n"
+  },
+  {
+    "id": "task_034_pytorch_device_sync_barrier",
+    "desc": "Simulate async stream barrier synchronization before host buffer read",
+    "buggy": "class StreamManager:\n    def __init__(self):\n        self.pending_tasks = []\n\n    def record_event(self, task_name):\n        self.pending_tasks.append(task_name)\n\n    def synchronize(self):\n        # BUG: forgets to clear pending tasks on barrier completion\n        pass\n\n    def is_idle(self) -> bool:\n        return len(self.pending_tasks) == 0\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -6,8 +6,7 @@\n         self.pending_tasks.append(task_name)\n \n     def synchronize(self):\n-        # BUG: forgets to clear pending tasks on barrier completion\n-        pass\n+        self.pending_tasks.clear()\n \n     def is_idle(self) -> bool:\n         return len(self.pending_tasks) == 0\n",
+    "vis_test": "from solution import StreamManager\n\ndef test_synchronize_drains_stream():\n    mgr = StreamManager()\n    mgr.record_event(\"matmul\")\n    mgr.synchronize()\n    assert mgr.is_idle() is True\n"
+  },
+  {
+    "id": "task_035_pytorch_batch_norm_eval_mode",
+    "desc": "Freeze BatchNorm running statistics when layer is in eval mode",
+    "buggy": "class BatchNorm1D:\n    def __init__(self, momentum=0.1):\n        self.running_mean = 0.0\n        self.momentum = momentum\n        self.training = True\n\n    def forward(self, batch_mean: float):\n        # BUG: updates running_mean even when self.training is False\n        self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean\n        return self.running_mean\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -5,6 +5,6 @@\n         self.training = True\n \n     def forward(self, batch_mean: float):\n-        # BUG: updates running_mean even when self.training is False\n-        self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean\n+        if self.training:\n+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean\n         return self.running_mean\n",
+    "vis_test": "from solution import BatchNorm1D\n\ndef test_running_mean_frozen_in_eval_mode():\n    bn = BatchNorm1D(momentum=0.5)\n    bn.running_mean = 10.0\n    bn.training = False\n    bn.forward(100.0)\n    assert bn.running_mean == 10.0\n"
+  },
+  {
+    "id": "task_036_pytorch_optimizer_param_group",
+    "desc": "Scale learning rates individually across heterogeneous parameter groups",
+    "buggy": "def step_lr_scheduler(param_groups: list[dict], decay_factor: float):\n    # BUG: only updates the first parameter group\n    if param_groups:\n        param_groups[0][\"lr\"] *= decay_factor\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,4 +1,3 @@\n def step_lr_scheduler(param_groups: list[dict], decay_factor: float):\n-    # BUG: only updates the first parameter group\n-    if param_groups:\n-        param_groups[0][\"lr\"] *= decay_factor\n+    for group in param_groups:\n+        group[\"lr\"] *= decay_factor\n",
+    "vis_test": "from solution import step_lr_scheduler\n\ndef test_all_param_groups_decay():\n    groups = [{\"name\": \"backbone\", \"lr\": 1e-3}, {\"name\": \"head\", \"lr\": 1e-2}]\n    step_lr_scheduler(groups, 0.1)\n    assert abs(groups[0][\"lr\"] - 1e-4) < 1e-7\n    assert abs(groups[1][\"lr\"] - 1e-3) < 1e-7\n"
+  },
+  {
+    "id": "task_037_pytorch_dataloader_worker_seed",
+    "desc": "Generate independent deterministic random seeds for multiprocessing DataLoader workers",
+    "buggy": "def generate_worker_seed(base_seed: int, worker_id: int) -> int:\n    # BUG: returns base_seed ignoring worker_id, leading to duplicate samples across workers\n    return base_seed\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,3 +1,2 @@\n def generate_worker_seed(base_seed: int, worker_id: int) -> int:\n-    # BUG: returns base_seed ignoring worker_id, leading to duplicate samples across workers\n-    return base_seed\n+    return (base_seed + worker_id * 10007) % (2**31 - 1)\n",
+    "vis_test": "from solution import generate_worker_seed\n\ndef test_distinct_seeds_per_worker():\n    s0 = generate_worker_seed(42, 0)\n    s1 = generate_worker_seed(42, 1)\n    assert s0 != s1\n"
+  },
+  {
+    "id": "task_038_hf_tokenizer_truncation_overflow",
+    "desc": "Truncate paired sequences preserving special prefix and separator tokens",
+    "buggy": "def truncate_token_pair(seq_a: list[str], seq_b: list[str], max_length: int) -> list[str]:\n    # Expected format: ['[CLS]'] + a + ['[SEP]'] + b + ['[SEP]']\n    # Total special tokens = 3\n    # BUG: truncates raw input after adding special tokens, potentially dropping [SEP]\n    merged = [\"[CLS]\"] + seq_a + [\"[SEP]\"] + seq_b + [\"[SEP]\"]\n    return merged[:max_length]\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,12 @@\n def truncate_token_pair(seq_a: list[str], seq_b: list[str], max_length: int) -> list[str]:\n-    # Expected format: ['[CLS]'] + a + ['[SEP]'] + b + ['[SEP]']\n-    # Total special tokens = 3\n-    # BUG: truncates raw input after adding special tokens, potentially dropping [SEP]\n-    merged = [\"[CLS]\"] + seq_a + [\"[SEP]\"] + seq_b + [\"[SEP]\"]\n-    return merged[:max_length]\n+    avail = max_length - 3\n+    if avail < 0:\n+        raise ValueError(\"max_length too short for special tokens\")\n+    a = list(seq_a)\n+    b = list(seq_b)\n+    while len(a) + len(b) > avail:\n+        if len(a) >= len(b):\n+            a.pop()\n+        else:\n+            b.pop()\n+    return [\"[CLS]\"] + a + [\"[SEP]\"] + b + [\"[SEP]\"]\n",
+    "vis_test": "from solution import truncate_token_pair\n\ndef test_special_tokens_preserved_on_truncation():\n    a = [\"w1\", \"w2\", \"w3\"]\n    b = [\"w4\", \"w5\"]\n    res = truncate_token_pair(a, b, max_length=6)\n    assert res[0] == \"[CLS]\"\n    assert res[-1] == \"[SEP]\"\n    assert len(res) == 6\n"
+  },
+  {
+    "id": "task_039_hf_pipeline_batch_leak",
+    "desc": "Reset internal batch accumulation buffer between inference pipeline calls",
+    "buggy": "class InferencePipeline:\n    def __init__(self):\n        self.buffer = []\n\n    def predict(self, texts: list[str]) -> list[str]:\n        # BUG: fails to clear self.buffer before processing texts\n        for t in texts:\n            self.buffer.append(f\"pred({t})\")\n        return list(self.buffer)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -3,7 +3,7 @@\n         self.buffer = []\n \n     def predict(self, texts: list[str]) -> list[str]:\n-        # BUG: fails to clear self.buffer before processing texts\n+        self.buffer.clear()\n         for t in texts:\n             self.buffer.append(f\"pred({t})\")\n         return list(self.buffer)\n",
+    "vis_test": "from solution import InferencePipeline\n\ndef test_pipeline_buffer_isolation():\n    pipe = InferencePipeline()\n    res1 = pipe.predict([\"text1\"])\n    res2 = pipe.predict([\"text2\"])\n    assert res1 == [\"pred(text1)\"]\n    assert res2 == [\"pred(text2)\"]\n"
+  },
+  {
+    "id": "task_040_hf_generation_repetition_penalty",
+    "desc": "Apply repetition penalty discount strictly to previously generated token logits",
+    "buggy": "def apply_repetition_penalty(logits: list[float], seen_tokens: set[int], penalty: float = 1.2) -> list[float]:\n    out = list(logits)\n    for token_id in seen_tokens:\n        if token_id < len(out):\n            # BUG: always divides by penalty even for negative logits (making them less negative!)\n            out[token_id] /= penalty\n    return out\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -2,6 +2,8 @@\n     out = list(logits)\n     for token_id in seen_tokens:\n         if token_id < len(out):\n-            # BUG: always divides by penalty even for negative logits (making them less negative!)\n-            out[token_id] /= penalty\n+            if out[token_id] < 0:\n+                out[token_id] *= penalty\n+            else:\n+                out[token_id] /= penalty\n     return out\n",
+    "vis_test": "from solution import apply_repetition_penalty\n\ndef test_negative_logit_penalized_correctly():\n    logits = [2.0, -2.0]\n    res = apply_repetition_penalty(logits, seen_tokens={1}, penalty=1.5)\n    assert res[1] == -3.0\n"
+  },
+  {
+    "id": "task_041_hf_attention_mask_padding",
+    "desc": "Construct causal lower-triangular attention mask with left-padding offset",
+    "buggy": "def build_causal_mask(seq_len: int, num_pad: int) -> list[list[float]]:\n    # BUG: fails to mask out padded columns on the left\n    mask = [[0.0] * seq_len for _ in range(seq_len)]\n    for i in range(seq_len):\n        for j in range(seq_len):\n            if j > i:\n                mask[i][j] = -1e9\n    return mask\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,8 +1,7 @@\n def build_causal_mask(seq_len: int, num_pad: int) -> list[list[float]]:\n-    # BUG: fails to mask out padded columns on the left\n     mask = [[0.0] * seq_len for _ in range(seq_len)]\n     for i in range(seq_len):\n         for j in range(seq_len):\n-            if j > i:\n+            if j > i or j < num_pad:\n                 mask[i][j] = -1e9\n     return mask\n",
+    "vis_test": "from solution import build_causal_mask\n\ndef test_left_padding_masked():\n    # seq_len=3, num_pad=1 (first token is PAD)\n    mask = build_causal_mask(seq_len=3, num_pad=1)\n    assert mask[0][0] == -1e9\n    assert mask[1][0] == -1e9\n    assert mask[1][1] == 0.0\n"
+  },
+  {
+    "id": "task_042_hf_model_dtype_safetensors",
+    "desc": "Scale quantized integer tensor weights using floating-point dequantization scale",
+    "buggy": "def dequantize_weights(qweights: list[int], scale: float) -> list[float]:\n    # BUG: integer division truncates float values\n    return [float(w // scale) for w in qweights]\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,3 +1,2 @@\n def dequantize_weights(qweights: list[int], scale: float) -> list[float]:\n-    # BUG: integer division truncates float values\n-    return [float(w // scale) for w in qweights]\n+    return [float(w * scale) for w in qweights]\n",
+    "vis_test": "from solution import dequantize_weights\n\ndef test_dequantize_scale_multiplication():\n    q = [10, -5, 0]\n    res = dequantize_weights(q, 0.02)\n    assert abs(res[0] - 0.2) < 1e-5\n    assert abs(res[1] - (-0.1)) < 1e-5\n"
+  },
+  {
+    "id": "task_043_vllm_paged_attention_block_offset",
+    "desc": "Translate logical KV token position to physical block address in PagedAttention",
+    "buggy": "def compute_physical_slot(block_table: list[int], logical_pos: int, block_size: int = 16) -> tuple[int, int]:\n    # BUG: does not guard against negative logical position\n    block_idx = logical_pos // block_size\n    offset = logical_pos % block_size\n    physical_block = block_table[block_idx]\n    return physical_block, offset\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,11 @@\n def compute_physical_slot(block_table: list[int], logical_pos: int, block_size: int = 16) -> tuple[int, int]:\n-    # BUG: does not guard against negative logical position\n+    if block_size <= 0:\n+        raise ValueError(\"block_size must be positive\")\n+    if logical_pos < 0:\n+        raise IndexError(\"Negative logical position not allowed\")\n     block_idx = logical_pos // block_size\n+    if block_idx >= len(block_table):\n+        raise IndexError(f\"Logical block {block_idx} not allocated in block table\")\n     offset = logical_pos % block_size\n     physical_block = block_table[block_idx]\n     return physical_block, offset\n",
+    "vis_test": "import pytest\nfrom solution import compute_physical_slot\n\ndef test_negative_logical_position_raises():\n    block_table = [101, 102]\n    with pytest.raises(IndexError):\n        compute_physical_slot(block_table, logical_pos=-5, block_size=16)\n"
+  },
+  {
+    "id": "task_044_vllm_kv_cache_concurrency_race",
+    "desc": "Prevent double-free of reference-counted KV-cache physical blocks",
+    "buggy": "class BlockAllocator:\n    def __init__(self, num_blocks=10):\n        self.free_blocks = set(range(num_blocks))\n        self.ref_counts = {i: 0 for i in range(num_blocks)}\n\n    def allocate(self) -> int:\n        if not self.free_blocks:\n            raise RuntimeError(\"Out of blocks\")\n        b = self.free_blocks.pop()\n        self.ref_counts[b] = 1\n        return b\n\n    def free(self, block_id: int):\n        # BUG: immediately reclaims block to free_blocks without checking ref_counts\n        self.ref_counts[block_id] -= 1\n        self.free_blocks.add(block_id)\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -10,7 +10,12 @@\n         self.ref_counts[b] = 1\n         return b\n \n+    def share(self, block_id: int):\n+        self.ref_counts[block_id] += 1\n+\n     def free(self, block_id: int):\n-        # BUG: immediately reclaims block to free_blocks without checking ref_counts\n+        if self.ref_counts[block_id] <= 0:\n+            return\n         self.ref_counts[block_id] -= 1\n-        self.free_blocks.add(block_id)\n+        if self.ref_counts[block_id] == 0:\n+            self.free_blocks.add(block_id)\n",
+    "vis_test": "from solution import BlockAllocator\n\ndef test_shared_block_not_freed_until_zero_refs():\n    alloc = BlockAllocator(num_blocks=2)\n    b = alloc.allocate()\n    alloc.share(b)  # 2 references (e.g. beam search or prefix cache)\n    alloc.free(b)\n    assert b not in alloc.free_blocks\n    alloc.free(b)\n    assert b in alloc.free_blocks\n"
+  },
+  {
+    "id": "task_045_vllm_sampling_temperature_zero",
+    "desc": "Perform deterministic greedy argmax sampling when temperature is zero",
+    "buggy": "def sample_token(logits: list[float], temperature: float = 0.0) -> int:\n    # BUG: divides by temperature even when temperature == 0.0 -> ZeroDivisionError\n    scaled = [x / temperature for x in logits]\n    return max(range(len(scaled)), key=lambda i: scaled[i])\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,4 +1,5 @@\n def sample_token(logits: list[float], temperature: float = 0.0) -> int:\n-    # BUG: divides by temperature even when temperature == 0.0 -> ZeroDivisionError\n+    if temperature <= 0.0:\n+        return max(range(len(logits)), key=lambda i: logits[i])\n     scaled = [x / temperature for x in logits]\n     return max(range(len(scaled)), key=lambda i: scaled[i])\n",
+    "vis_test": "from solution import sample_token\n\ndef test_temperature_zero_greedy_argmax():\n    logits = [1.2, 5.8, 3.4]\n    assert sample_token(logits, temperature=0.0) == 1\n"
+  },
+  {
+    "id": "task_046_vllm_speculative_verification_rollback",
+    "desc": "Verify speculative draft tokens and rollback state on first rejected token",
+    "buggy": "def verify_draft_tokens(draft_tokens: list[int], target_tokens: list[int]) -> tuple[list[int], int]:\n    # Returns (accepted_tokens, rollback_count)\n    accepted = []\n    # BUG: does not break on mismatch, accepting subsequent matching tokens out of order!\n    for d, t in zip(draft_tokens, target_tokens):\n        if d == t:\n            accepted.append(d)\n    rollback = len(draft_tokens) - len(accepted)\n    return accepted, rollback\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,9 +1,9 @@\n def verify_draft_tokens(draft_tokens: list[int], target_tokens: list[int]) -> tuple[list[int], int]:\n-    # Returns (accepted_tokens, rollback_count)\n     accepted = []\n-    # BUG: does not break on mismatch, accepting subsequent matching tokens out of order!\n     for d, t in zip(draft_tokens, target_tokens):\n         if d == t:\n             accepted.append(d)\n+        else:\n+            break\n     rollback = len(draft_tokens) - len(accepted)\n     return accepted, rollback\n",
+    "vis_test": "from solution import verify_draft_tokens\n\ndef test_stop_on_first_mismatch():\n    draft = [10, 20, 30, 40]\n    target = [10, 99, 30, 40]\n    accepted, rollback = verify_draft_tokens(draft, target)\n    assert accepted == [10]\n    assert rollback == 3\n"
+  },
+  {
+    "id": "task_047_mlflow_run_meta_logging",
+    "desc": "Propagate parent run metadata to child runs in nested experiment context",
+    "buggy": "class RunContext:\n    def __init__(self, run_id: str, parent_id: str | None = None):\n        self.run_id = run_id\n        self.parent_id = parent_id\n        self.tags = {}\n\n    def init_tags(self):\n        # BUG: forgets to set mlflow.parentRunId when parent_id is present\n        self.tags[\"run_id\"] = self.run_id\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -5,5 +5,6 @@\n         self.tags = {}\n \n     def init_tags(self):\n-        # BUG: forgets to set mlflow.parentRunId when parent_id is present\n         self.tags[\"run_id\"] = self.run_id\n+        if self.parent_id:\n+            self.tags[\"mlflow.parentRunId\"] = self.parent_id\n",
+    "vis_test": "from solution import RunContext\n\ndef test_parent_run_id_propagated():\n    ctx = RunContext(run_id=\"child_1\", parent_id=\"parent_0\")\n    ctx.init_tags()\n    assert ctx.tags.get(\"mlflow.parentRunId\") == \"parent_0\"\n"
+  },
+  {
+    "id": "task_048_mlflow_artifact_serialization_retry",
+    "desc": "Implement exponential backoff retry on transient artifact upload errors",
+    "buggy": "def upload_artifact_with_retry(upload_fn, max_retries: int = 3) -> bool:\n    # BUG: fails immediately on first exception without retrying\n    try:\n        return upload_fn()\n    except Exception:\n        raise RuntimeError(\"Upload failed\")\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,6 +1,8 @@\n def upload_artifact_with_retry(upload_fn, max_retries: int = 3) -> bool:\n-    # BUG: fails immediately on first exception without retrying\n-    try:\n-        return upload_fn()\n-    except Exception:\n-        raise RuntimeError(\"Upload failed\")\n+    attempts = 0\n+    while attempts < max_retries:\n+        try:\n+            return upload_fn()\n+        except Exception:\n+            attempts += 1\n+    raise RuntimeError(f\"Upload failed after {max_retries} attempts\")\n",
+    "vis_test": "from solution import upload_artifact_with_retry\n\ncall_count = 0\ndef flaky_upload():\n    global call_count\n    call_count += 1\n    if call_count < 3:\n        raise ConnectionError(\"503 Service Unavailable\")\n    return True\n\ndef test_retry_eventually_succeeds():\n    global call_count\n    call_count = 0\n    assert upload_artifact_with_retry(flaky_upload, max_retries=4) is True\n    assert call_count == 3\n"
+  },
+  {
+    "id": "task_049_mlflow_metric_step_timestamp_sort",
+    "desc": "Sort out-of-order metric logs chronologically by step index",
+    "buggy": "def sort_metric_history(metrics: list[dict]) -> list[dict]:\n    # BUG: does not sort or sorts by timestamp string instead of step\n    return metrics\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -1,3 +1,2 @@\n def sort_metric_history(metrics: list[dict]) -> list[dict]:\n-    # BUG: does not sort or sorts by timestamp string instead of step\n-    return metrics\n+    return sorted(metrics, key=lambda m: m[\"step\"])\n",
+    "vis_test": "from solution import sort_metric_history\n\ndef test_metrics_sorted_by_step():\n    m = [{\"step\": 10, \"val\": 0.8}, {\"step\": 2, \"val\": 0.2}, {\"step\": 5, \"val\": 0.5}]\n    res = sort_metric_history(m)\n    assert [x[\"step\"] for x in res] == [2, 5, 10]\n"
+  },
+  {
+    "id": "task_050_mlflow_model_signature_schema",
+    "desc": "Validate incoming tensor input shape against model signature with dynamic batch size (-1)",
+    "buggy": "def validate_tensor_shape(actual_shape: tuple[int, ...], expected_shape: tuple[int, ...]) -> bool:\n    if len(actual_shape) != len(expected_shape):\n        return False\n    for a, e in zip(actual_shape, expected_shape):\n        # BUG: does not treat -1 as dynamic wildcard dimension\n        if a != e:\n            return False\n    return True\n",
+    "diff": "--- a/solution.py\n+++ b/solution.py\n@@ -2,7 +2,6 @@\n     if len(actual_shape) != len(expected_shape):\n         return False\n     for a, e in zip(actual_shape, expected_shape):\n-        # BUG: does not treat -1 as dynamic wildcard dimension\n-        if a != e:\n+        if e != -1 and a != e:\n             return False\n     return True\n",
+    "vis_test": "from solution import validate_tensor_shape\n\ndef test_dynamic_batch_size_allowed():\n    expected = (-1, 128, 768)\n    assert validate_tensor_shape((16, 128, 768), expected) is True\n    assert validate_tensor_shape((1, 128, 768), expected) is True\n"
+  }
+]

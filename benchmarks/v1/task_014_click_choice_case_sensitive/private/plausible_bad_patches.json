@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_first",
+    "description": "Returns choices[0]",
+    "code": "def match_choice(val: str, choices: list[str], case_sensitive: bool = True) -> str:\n    return choices[0]\n"
+  }
+]

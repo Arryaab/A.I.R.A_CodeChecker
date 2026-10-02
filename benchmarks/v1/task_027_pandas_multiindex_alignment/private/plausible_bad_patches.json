@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_merge_dict_only",
+    "description": "Overwrites overlapping keys instead of adding values",
+    "code": "def align_multiindex_data(df1: dict, df2: dict) -> dict:\n    res = dict(df1)\n    res.update(df2)\n    return res\n"
+  }
+]

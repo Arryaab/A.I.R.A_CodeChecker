@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "security_defect",
+  "source": "https://github.com/aegis-benchmark/sql-builder",
+  "repository": "https://github.com/aegis-benchmark/sql-builder",
+  "base_commit": "9001020304050607080910111213141516171819",
+  "issue_id": "#task_066_sql_identifier_sanitization",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

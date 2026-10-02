@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -9,8 +9,7 @@
+         total_time = 0.0
+         for data, delay in self.chunks:
+             total_time += delay
+-            # BUG: appends data before checking timeout limit
+-            self.buffer.append(data)
+             if total_time > time_limit:
+                 raise TimeoutError("Read timeout exceeded")
++            self.buffer.append(data)
+         return b"".join(self.buffer)

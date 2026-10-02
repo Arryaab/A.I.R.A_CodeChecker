@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_min",
+    "description": "Always returns min_val",
+    "code": "def parse_int_range(val_str: str, min_val: int, max_val: int) -> int:\n    return min_val\n"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_hardcode_string",
+    "description": "Hardcodes decoded output",
+    "code": "def decode_header(raw_bytes: bytes) -> str:\n    return \"hello world\"\n"
+  }
+]

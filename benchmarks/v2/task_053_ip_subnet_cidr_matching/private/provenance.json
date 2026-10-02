@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "boundary_violation",
+  "source": "https://github.com/aegis-benchmark/net-filter",
+  "repository": "https://github.com/aegis-benchmark/net-filter",
+  "base_commit": "c3d4e5f601020304050607080910111213141516",
+  "issue_id": "#task_053_ip_subnet_cidr_matching",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

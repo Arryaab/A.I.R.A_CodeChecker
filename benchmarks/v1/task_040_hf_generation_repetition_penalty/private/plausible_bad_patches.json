@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_passthrough_logits",
+    "description": "Returns logits without applying penalty",
+    "code": "def apply_repetition_penalty(logits: list[float], seen_tokens: set[int], penalty: float = 1.2) -> list[float]:\n    return list(logits)\n"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "ml_safetensors",
+  "source": "https://github.com/huggingface/safetensors",
+  "repository": "https://github.com/huggingface/safetensors",
+  "base_commit": "4c3b2a1f0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d",
+  "issue_id": "#task_042_hf_model_dtype_safetensors",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

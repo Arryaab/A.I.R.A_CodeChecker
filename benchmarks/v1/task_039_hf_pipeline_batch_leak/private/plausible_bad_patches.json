@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_stateless_list",
+    "description": "Does not populate self.buffer at all",
+    "code": "class InferencePipeline:\n    def __init__(self):\n        self.buffer = []\n    def predict(self, texts: list[str]) -> list[str]:\n        return [f\"pred({t})\" for t in texts]\n"
+  }
+]

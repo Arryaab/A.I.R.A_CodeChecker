@@ -1,0 +1,25 @@
+--- a/solution.py
++++ b/solution.py
+@@ -9,10 +9,9 @@
+     in_degree = {u: 0 for u in graph}
+     for u in graph:
+         for v in graph[u]:
+-            if v in in_degree:
+-                in_degree[v] += 1
+-            else:
+-                in_degree[v] = 1
++            if v not in in_degree:
++                in_degree[v] = 0
++            in_degree[v] += 1
+ 
+     queue = deque([u for u, deg in in_degree.items() if deg == 0])
+     order = []
+@@ -25,5 +24,7 @@
+             if in_degree[v] == 0:
+                 queue.append(v)
+ 
+-    # BUG: Fails to check whether all nodes were visited, returning incomplete list on cycle
++    if len(order) < len(in_degree):
++        raise CycleDetectedError(f"Cycle detected in graph; visited {len(order)} of {len(in_degree)} nodes")
++
+     return order

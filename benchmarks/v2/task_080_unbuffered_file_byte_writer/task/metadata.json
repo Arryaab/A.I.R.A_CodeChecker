@@ -1,0 +1,21 @@
+{
+  "task_id": "task_080_unbuffered_file_byte_writer",
+  "bug_id": "task_080_unbuffered_file_byte_writer",
+  "category": "performance_defect",
+  "difficulty": "medium",
+  "description": "Serialize byte payload records using contiguous buffer join rather than byte-by-byte concatenation",
+  "expected_behavior": "Assembles serialized byte stream in linear time using b''.join()",
+  "tags": [
+    "io",
+    "performance",
+    "byte-buffer"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

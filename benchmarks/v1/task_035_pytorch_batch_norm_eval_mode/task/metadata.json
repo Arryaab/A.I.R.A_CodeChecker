@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_035_pytorch_batch_norm_eval_mode",
+  "category": "ml_layers",
+  "difficulty": "medium",
+  "description": "Freeze BatchNorm running statistics when layer is in eval mode",
+  "expected_behavior": "Running mean and running variance remain constant when training=False",
+  "tags": [
+    "pytorch",
+    "batchnorm",
+    "eval"
+  ],
+  "task_id": "task_035_pytorch_batch_norm_eval_mode",
+  "difficulty_dimensions": {
+    "LOCALITY": "class_method",
+    "ALGORITHM_COMPLEXITY": "O(1)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "eval_vs_train_state",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateful_object",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

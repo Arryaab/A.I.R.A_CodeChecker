@@ -1,0 +1,20 @@
+task_id: task_007_pydantic_recursive_model
+oracle_version: 1.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: 'Serializes recursive tree structures safely handling cycles
+  by tracking visited node object identities and marking back-references with {''ref'':
+  True}.'
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  max_latency_regression_pct: 10.0

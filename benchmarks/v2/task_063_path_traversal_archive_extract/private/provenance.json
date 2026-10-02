@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "security_defect",
+  "source": "https://github.com/aegis-benchmark/archive-tools",
+  "repository": "https://github.com/aegis-benchmark/archive-tools",
+  "base_commit": "6708091011121314151617181920212223242526",
+  "issue_id": "#task_063_path_traversal_archive_extract",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,19 @@
+task_id: task_041_hf_attention_mask_padding
+oracle_version: 1.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: Constructs causal attention mask with left-padding offset,
+  assigning -1e9 to padded columns j < num_pad and future columns j > i.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  max_latency_regression_pct: 10.0

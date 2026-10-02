@@ -1,0 +1,12 @@
+[
+  {
+    "mutation_id": "task_063_path_traversal_archive_extract_mut1",
+    "type": "operator_flip",
+    "description": "Flip boundary comparison operator"
+  },
+  {
+    "mutation_id": "task_063_path_traversal_archive_extract_mut2",
+    "type": "return_default",
+    "description": "Return empty default on boundary"
+  }
+]

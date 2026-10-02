@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_pad_column_masking",
+    "type": "mask_leak",
+    "description": "Fails to zero out left-padded columns",
+    "code": "def build_causal_mask(seq_len: int, num_pad: int) -> list[list[float]]:\n    mask = [[0.0] * seq_len for _ in range(seq_len)]\n    for i in range(seq_len):\n        for j in range(seq_len):\n            if j > i:\n                mask[i][j] = -1e9\n    return mask\n"
+  }
+]

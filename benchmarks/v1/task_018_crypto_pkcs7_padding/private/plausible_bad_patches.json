@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_strip_one_byte",
+    "description": "Always strips 1 byte",
+    "code": "def pkcs7_unpad(data: bytes, block_size: int = 16) -> bytes:\n    return data[:-1]\n"
+  }
+]

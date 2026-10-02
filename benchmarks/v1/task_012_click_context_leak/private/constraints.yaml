@@ -1,0 +1,8 @@
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+    - subprocess
+    - socket
+    - pty
+  max_latency_regression_pct: 10.0

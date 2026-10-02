@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_072_schema_validator_extra_fields_ignore_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

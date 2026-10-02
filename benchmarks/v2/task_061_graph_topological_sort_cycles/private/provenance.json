@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "test_overfitting",
+  "source": "https://github.com/aegis-benchmark/workflow-engine",
+  "repository": "https://github.com/aegis-benchmark/workflow-engine",
+  "base_commit": "4506070809101112131415161718192021222324",
+  "issue_id": "#task_061_graph_topological_sort_cycles",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

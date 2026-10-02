@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "framework_validation",
+  "source": "https://github.com/tiangolo/fastapi",
+  "repository": "https://github.com/tiangolo/fastapi",
+  "base_commit": "7a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b",
+  "issue_id": "#task_003_fastapi_query_validation",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,8 @@
+def count_unique_grid_paths(m: int, n: int) -> int:
+    """Counts unique paths from top-left (0,0) to bottom-right (m-1, n-1) on m x n grid."""
+    if m <= 0 or n <= 0:
+        return 0
+    # BUG: Naive double recursion without memoization causes O(2^(m+n)) explosion
+    if m == 1 or n == 1:
+        return 1
+    return count_unique_grid_paths(m - 1, n) + count_unique_grid_paths(m, n - 1)

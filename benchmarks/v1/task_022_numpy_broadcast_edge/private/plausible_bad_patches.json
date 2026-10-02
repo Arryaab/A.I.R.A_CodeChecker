@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_s1_always",
+    "description": "Always returns s1",
+    "code": "def broadcast_shapes(s1: tuple[int, ...], s2: tuple[int, ...]) -> tuple[int, ...]:\n    return s1\n"
+  }
+]

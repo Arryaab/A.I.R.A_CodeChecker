@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_028_pandas_datetime_tz_convert",
+  "category": "tabular_datetime",
+  "difficulty": "medium",
+  "description": "Convert UTC timestamps adjusting for localized timezone offsets",
+  "expected_behavior": "Adjusts hours by offset_hours without modulo wrapping negative days",
+  "tags": [
+    "pandas",
+    "datetime",
+    "timezone"
+  ],
+  "task_id": "task_028_pandas_datetime_tz_convert",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(1)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "datetime_arithmetic",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

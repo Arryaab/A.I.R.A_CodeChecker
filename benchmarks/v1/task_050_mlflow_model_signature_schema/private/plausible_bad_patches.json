@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_always_true_on_rank_match",
+    "description": "Only compares rank, ignoring all dimension values",
+    "code": "def validate_tensor_shape(actual_shape: tuple[int, ...], expected_shape: tuple[int, ...]) -> bool:\n    return len(actual_shape) == len(expected_shape)\n"
+  }
+]

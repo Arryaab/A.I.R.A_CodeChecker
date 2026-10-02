@@ -1,193 +1,159 @@
-# Aegis: AI Change Verification & Evaluation Platform
+# A.I.R.A. — AI Release Assurance
 
-[![CI Verification Guardrail](https://github.com/aryab/aegis-lite/actions/workflows/aegis_verify.yml/badge.svg)](https://github.com/aryab/aegis-lite/actions)
-![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-active-success)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Status](https://img.shields.io/badge/release-v1.0.0-brightgreen)](https://github.com/aira-platform/aira)
+[![Execution Isolation](https://img.shields.io/badge/sandbox-Docker%20Jail-blue)](docs/DEPLOYMENT.md)
+[![MLVerify](https://img.shields.io/badge/MLVerify-Shadow%20Mode%20Only-orange)](docs/ARCHITECTURE.md)
 
-> **"Don't just ask if an AI agent can generate code. Ask: Can this AI-generated change be safely merged, and can we empirically prove that it is correct?"**
+> **"Verify what AI changes. Know what ships."**
 
-Aegis is an enterprise verification layer that sits between autonomous coding agents and production. It evaluates AI-generated software changes at the repository level by combining **commit-pure Git diff analysis**, **AST-level security guardrails**, **intelligent test selection**, **deterministic mutation testing**, **hardened Docker sandbox execution**, and **adaptive risk budgeting**.
+**A.I.R.A. (AI Release Assurance)** is an enterprise control plane engineered to verify AI-generated software changes before production release and generate auditable, evidence-backed release decisions.
 
 ---
 
-## 🏛️ System Architecture
+## ⚠️ Product Definition & Explicit Non-Claims
 
-```text
-                 AI CODING AGENT
-                        │
-                        ▼
-             PROPOSED PULL REQUEST
-                        │
-                        ▼
-         ┌───────────────────────────────┐
-         │     AEGIS VERIFICATION        │
-         └──────────────┬────────────────┘
-                        │
-        ┌───────────────┼────────────────┐
-        ▼               ▼                ▼
-   GIT DIFF        REPOSITORY       SECURITY GUARDRAIL
-  PatchChange     INTELLIGENCE       AST & Secrets
-  (Commit-Pure)   Dependency Graph  Prompt Injection
-        │               │                │
-        └───────┬───────┘                │
-                ▼                        │
-         TEST SELECTION                  │
-                │                        │
-        ┌───────┴────────┐               │
-        ▼                ▼               ▼
-   TARGETED TESTS   FULL REGRESSION  MUTATION SCORE
-   (Fast Feedback)   (Sandboxed)    (Deterministic)
-        │                │               │
-        └───────┬────────┴───────────────┘
-                ▼
-      HEURISTIC RISK MODEL & BUDGETING
-        │ (FAST / STANDARD / DEEP)
-        ▼
-   PRODUCTION MERGE DECISION
-     /                     \
- APPROVE 🚀             REVIEW ⚠️ / REJECT ⛔
- (Auto-Merge)          (Human Approval Needed)
+To ensure complete engineering transparency, A.I.R.A. defines clear functional boundaries:
+
+- **A.I.R.A. is:** A fail-closed, multi-stage verification control plane that executes and tests software modifications inside hardened, zero-network sandboxes to determine whether changes are safe to merge.
+- **A.I.R.A. is NOT a generic AI coding assistant:** It does not chat, autocomplete code, or act as an IDE companion.
+- **A.I.R.A. is NOT an AI code generator:** It does not write application code; it audits, tests, and evaluates untrusted proposed code.
+- **A.I.R.A. is NOT a fake automated QA dashboard:** Every verification verdict reflects real sandboxed execution. When container sandboxes are unavailable, it fails closed rather than fabricating results.
+- **A.I.R.A. is NOT a guarantee of bug-free software:** Verification is strictly bounded by the declared test suites, static analyzers, and invariant checks.
+- **A.I.R.A. is NOT an autonomous release router:** A.I.R.A. categorizes risk into clear policy buckets (`AUTO_APPROVE`, `REVIEW`, `BLOCK`) with cryptographic evidence trails, leaving release policy governance in engineering hands.
+
+---
+
+## 🛡️ The Two Workflows: Hard System Separation
+
+A.I.R.A. provides two strictly separated operating modes:
+
+```
+┌──────────────────────────────────────────────┐     ┌──────────────────────────────────────────────┐
+│            1. VERIFY MY CODE                 │     │              2. EXPLORE DEMO                 │
+│         (Real Untrusted Execution)           │     │            (Curated Scenarios)               │
+├──────────────────────────────────────────────┤     ├──────────────────────────────────────────────┤
+│ • Upload user project archive (.zip, .tar.gz)│     │ • Curated pre-recorded benchmark traces      │
+│ • Detect test suite (pytest, unittest)       │     │ • Demonstrates 5 classic AI failure modes    │
+│ • Upload optional user-provided tests        │     │ • Zero Docker / API prerequisites required   │
+│ • Hardened Docker sandbox jail execution     │     │ • Labeled explicitly with [DEMO TRACE] tags  │
+│ • Real pass/fail evidence & auditable limits │     │ • Never shares UI components or state with   │
+│ • Fails closed (503) if Docker unavailable   │     │   user project verification                  │
+└──────────────────────────────────────────────┘     └──────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Core Capabilities
+## 🏛️ Verification Architecture: The 6 Controls
 
-### 1. Commit-Pure Change Verification
-Unlike naive tools that audit the local dirty working directory, Aegis inspects the Git object database directly via `git show {base}:{path}` and `git show {head}:{path}`. It constructs a structured `PatchChange` representation tracking:
-- Added, modified, deleted, and renamed files (`A`, `M`, `D`, `R`).
-- Isolated added hunks vs. reconstructed post-change Python ASTs.
-- Protection against silent AST syntax failures on unified diff headers.
+A.I.R.A. evaluates code changes using six verification controls when applicable:
 
-### 2. AST Security & Prompt Injection Guardrail
-- **Secret & Key Leakage:** Regex scanning on newly added lines to detect exposed AWS keys, GitHub tokens, and hardcoded credentials.
-- **Prompt Injection Defense:** Blocks AI comments trying to hijack the verifier (`"ignore previous instructions"`, `"return approved=true"`).
-- **Dangerous AST Imports:** Forbids untrusted introduction of `socket`, `pty`, `subprocess`, `eval()`, or `exec()`.
-- **Critical File Deletion Detection:** Immediately blocks unauthorized deletions of authentication, security, or guardrail modules.
+| Control ID | Name | Method | Capability State in User Uploads | Policy Impact on Failure |
+| :---: | :--- | :--- | :---: | :---: |
+| **C1** | **Syntax & AST Integrity** | AST parsing across all project Python source files | `AVAILABLE` | `REJECTED` / `BLOCK` |
+| **C2** | **Project Test Suite** | Sandboxed execution of detected project tests (`pytest` / `unittest`) | `AVAILABLE` (if tests exist) | `REJECTED` / `BLOCK` |
+| **C3** | **Hidden Invariants** | Unseen property tests evaluated against edge cases | `NOT_AVAILABLE` (Oracle harness required) | `REJECTED` / `BLOCK` |
+| **C4** | **Regression Suite** | Base commit comparison to detect caller breakage | `NOT_AVAILABLE` (Git history required) | `REJECTED` / `BLOCK` |
+| **C5** | **Mutation Resistance** | Deterministic mutant injection to detect vacuous tests | `NOT_SUPPORTED` (Archive uploads) | `REJECTED` / `REVIEW` |
+| **C6** | **Security AST Guardrails** | AST & token scan for CWE-22 (path traversal), command injection, and leaked secrets | `AVAILABLE` | `REJECTED` / `BLOCK` |
 
-### 3. Adaptive Verification Tiers (`FAST`, `STANDARD`, `DEEP`)
-Aegis automatically balances developer velocity and verification depth:
-- `FAST`: Fast targeted verification. Evaluates Git diffs, AST syntax, security guardrails, and runs **only** the targeted tests affected by the patch (skips full regression and mutation testing).
-- `STANDARD`: FAST checks + full repository regression test suite + empirical AST mutation sample on changed production modules.
-- `DEEP`: STANDARD checks + exhaustive mutation testing + execution timing regression monitoring.
-- `AUTO` (Default): Adaptively selects the verification budget based on the patch's computed risk score.
-
-### 4. 100% Deterministic Mutation Testing
-Measures whether the repository test suite is robust enough to catch regressions or if it is overfitting:
-- Uses `DeterministicMutator` to mutate AST comparison and binary operators in consistent sequential order.
-- Filters mutation candidates strictly to affected production source files (excluding test suites and configuration).
-- Replaces modified files in the isolated snapshot, executes the test suite, and calculates the true empirical score:
-  $$\text{Mutation Score} = \frac{\text{Killed Mutants}}{\text{Total Mutants}}$$
-
-### 5. Hardened Sandbox Isolation
-Untrusted AI code executes in a constrained Docker boundary:
-- Network disabled: `--network none` (no data exfiltration).
-- Resource limits: `--cpus 1.0`, `--memory 512m`, `--pids-limit 50`.
-- Dropped capabilities: `--security-opt no-new-privileges`, `--cap-drop ALL`.
-- Monotonic wall-clock timing measurement and guaranteed `finally:` container cleanup.
-
-### 6. Environment Fingerprinting & Dependency Hashing
-Ensures reproducibility across environments:
-- Detects manifests (`requirements.txt`, `pyproject.toml`, `setup.py`, `poetry.lock`).
-- Computes deterministic SHA-256 `dependency_lock_hash` and environment fingerprint.
-- Guarantees third-party dependencies are frozen and accounted for prior to network isolation.
+> [!NOTE]
+> **Strict Capability Model**: Controls that cannot be evaluated for an uploaded archive (such as hidden invariants C3 or historical regression C4) are explicitly recorded as `NOT_AVAILABLE` with documented evidence limitations. They are **never collapsed into a false `PASS`**.
 
 ---
 
-## 🛡️ Example Verification Output
+## 🔒 Hardened Sandbox Security Jail
 
-Below is an example verification output produced by `aegis verify --base origin/main --head HEAD`:
+Untrusted code submitted to A.I.R.A. is **never** executed directly on the host operating system. All execution takes place within an ephemeral, locked-down Docker container with defense-in-depth security policies:
 
-```text
-====================================================================
-🛡️  AEGIS AI CHANGE VERIFICATION PLATFORM
-====================================================================
-Target:             Git Diff: origin/main..HEAD
-Affected Files:     2 (auth/token_guardrail.py, models/user.py)
-Verification Tier:  STANDARD (Risk: 0.30 MEDIUM)
---------------------------------------------------------------------
-Correctness:        ✅ Passed (2 targeted test files passed)
-Regression:         ✅ Passed (0 regressed)
-Security:           ✅ Passed (AST imports + added lines scanned)
-Mutation Score:     ✅ 100.0% (2/2 killed)
-Performance:        ⚡ Skipped (STANDARD Tier)
-Risk Score:         0.30 (MEDIUM RISK)
-  - Risk factor: Sensitive authentication module modified
---------------------------------------------------------------------
-Technical Verdict:  QUALIFIED ✅
-Release Policy:     REVIEW ⚠️ (Medium risk change requires peer review before release)
-Audit Artifact:     .aegis/runs/run_20260926_180000_a1b2c3/report.json (Schema v1.0)
+- **Zero Network Access**: `--network none` prohibits all egress, ingress, and socket listening.
+- **Immutable Root Filesystem**: `--read-only` enforces complete filesystem immutability.
+- **Restricted Ephemeral Memory Mounts**:
+  - `/tmp:rw,noexec,nosuid,size=64m`
+  - `/workspace/.pytest_cache:rw,noexec,nosuid,size=32m`
+- **Dropped Linux Capabilities**: `--cap-drop ALL` strips all root privileges.
+- **Privilege Escalation Prevention**: `--security-opt no-new-privileges`.
+- **Resource Constraints**:
+  - CPU allocation: `--cpus 1.0`
+  - Memory limit: `--memory 512m`
+  - Process limit: `--pids-limit 50`
+  - File descriptor limit: `--ulimit nofile=1024:2048`
+  - Maximum output file size: `--ulimit fsize=50000000` (50 MB)
+- **Archive Upload Guardrails**:
+  - Maximum upload archive size: **50 MB**
+  - Maximum uncompressed extraction size: **200 MB**
+  - Maximum file count: **5,000 files**
+  - Maximum individual file size: **25 MB**
+  - Path traversal (`../`), absolute paths (`/`), symlinks, and sensitive files (`.env`, `*.pem`, `*.key`) are rejected immediately prior to extraction.
+
+---
+
+## 🔬 MLVerify: Pre-Verification Risk Modeling (`SHADOW_MODE_ONLY`)
+
+MLVerify is an internal research component investigating whether machine learning models can predict code defect likelihood prior to expensive test suite execution.
+
+- **Status**: `SHADOW_MODE_ONLY` (Evaluated for diagnostic analysis; never alters release decisions or bypasses deterministic verification gates).
+- **Baseline Foundation**: Evaluated on 100 complete executions (`empirical_100_local_v1`) across 50 software tasks using local model instances ($0 cloud cost).
+- **Performance**: Random Forest PR-AUC of 0.9367 ($[0.8814, 0.9782]$ 95% Bootstrap CI).
+- **Scientific Boundary**: False accept events (passing visible tests while violating hidden invariants) were exceedingly rare (3 out of 100). Claiming automated gating based on this cohort is methodologically unsupported.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- Python 3.10+
+- Docker Engine (mandatory for real code verification; optional for exploring static demos)
+
+### 2. Local Installation
+```bash
+git clone https://github.com/aira-platform/aira.git
+cd aira
+pip install -e ".[all]"
+```
+
+### 3. Launching A.I.R.A.
+```bash
+uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
+```
+Open **`http://localhost:8000`** in your browser.
+
+### 4. Running with Docker Compose
+```bash
+docker compose up -d
 ```
 
 ---
 
-## 🛠️ Quick Start
+## 🌐 Public REST API
 
-### Installation
-```bash
-git clone https://github.com/aryab/aegis-lite.git
-cd aegis-lite
-pip install -e .[all]
-```
-
-### 1. Verify a Pull Request or Git Commit
-```bash
-# Verify changes between base and head (executes HEAD commit)
-python -m aegis.cli verify --base origin/main --head HEAD
-
-# Run in FAST tier for rapid targeted feedback
-python -m aegis.cli verify --base HEAD~1 --tier fast
-
-# Run in DEEP tier for full regression, mutation, and performance latency benchmarking
-python -m aegis.cli verify --base HEAD~1 --head HEAD --tier deep
-
-# Verify a standalone patch file directly onto an immutable base snapshot
-python -m aegis.cli verify --diff proposed_change.patch --base HEAD~1
-
-# Export machine-readable Schema 1.0 audit artifacts to a custom directory
-python -m aegis.cli verify --base HEAD~1 --output-dir ./audit_artifacts
-```
-
-### 2. Launch Verification REST API Service
-```bash
-export AEGIS_API_KEY="your-secure-api-key"
-uvicorn aegis.api.service:app --host 127.0.0.1 --port 8000
-# Authenticate requests via header: -H "X-API-Key: your-secure-api-key"
-# Endpoints: /v1/health, POST /v1/verifications, GET /v1/verifications/{run_id}/report
-```
-
-### 3. Validate Benchmark Suite
-```bash
-python -m aegis.cli benchmark --dir benchmarks/dev --validate
-```
-
-### 4. Autonomous Multi-Agent Program Repair
-Aegis also provides autonomous multi-file repair driven by repository AST intelligence:
-```bash
-python -m aegis.cli repair --project-dir ./my_buggy_project
-```
-
-### 5. Run the Test Suite
-All unit, integration, security, sandboxing, and benchmark validation suites run directly via pytest:
-```bash
-python -m pytest -v
-```
-[![CI Test Suite](https://img.shields.io/badge/test%20suite-100%25%20passing-brightgreen)](https://github.com/aryab/aegis-lite/actions)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Service health, version, and sandbox mode. |
+| `POST` | `/api/projects/upload` | Uploads a `.zip` or `.tar.gz` project archive for inspection. |
+| `GET` | `/api/projects/{id}` | Inspects uploaded project metadata and detected test framework. |
+| `POST` | `/api/projects/{id}/tests` | Uploads optional custom/additional test files for verification. |
+| `POST` | `/api/projects/{id}/verify` | Triggers sandboxed project verification (returns `503` if Docker is offline). |
+| `DELETE`| `/api/projects/{id}` | Purges extracted project files and memory entries. |
+| `GET` | `/api/verifications/{id}` | Retrieves execution status, verdict, and release policy. |
+| `GET` | `/api/verifications/{id}/events` | Streams real-time telemetry events. |
+| `GET` | `/api/verifications/{id}/evidence`| Downloads verifiable SHA-256 evidence record. |
+| `GET` | `/api/demo/scenarios` | Lists curated educational demonstration scenarios. |
+| `GET` | `/api/demo/scenarios/{id}` | Retrieves scenario details and diff. |
+| `POST` | `/api/demo/verify` | Runs or replays a curated demonstration scenario. |
 
 ---
 
-## 📊 Benchmark Integrity (AegisBench Dev v0.1)
+## 🧪 Running the Verification Test Suite
 
-Aegis includes **AegisBench Dev v0.1**, a standardized diagnostic suite of 15 algorithmic and logical Python defect fixtures designed for unit testing, repair pipeline validation, and verifier regression testing.
-
-In alignment with modern benchmark standards (such as SWE-Bench Pro Verified and SWE-Serve), Aegis enforces physical structural separation between public tasks and private evaluator data to eliminate data contamination:
-- `task/`: Public task specification exposed to autonomous coding agents (`problem.md`, `metadata.json`, `buggy/`, and visible `tests/`).
-- `private/`: Private evaluator harness untracked by public Git (`hidden_tests/`, `oracle_patch.diff`, `provenance.json`, and `constraints.yaml`), supportable via decoupled `--evaluator-dir`.
-
-See [AegisBench Task Schema](benchmarks/SCHEMA.md) for full specification.
+Run the complete test suite:
+```bash
+python -m pytest tests/ -v
+```
 
 ---
 
-## 📄 License
-Licensed under the [MIT License](LICENSE).
+## 📄 License & Contact
+
+Released under the [MIT License](LICENSE). Maintained by the **A.I.R.A. Core Team** (`maintainers@aira-verify.dev`).

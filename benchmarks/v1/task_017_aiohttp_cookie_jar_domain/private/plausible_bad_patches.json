@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_exact_match_only",
+    "description": "Only supports exact match, breaking legitimate subdomains",
+    "code": "def is_domain_match(request_domain: str, cookie_domain: str) -> bool:\n    return request_domain.lower() == cookie_domain.lower().lstrip(\".\")\n"
+  }
+]

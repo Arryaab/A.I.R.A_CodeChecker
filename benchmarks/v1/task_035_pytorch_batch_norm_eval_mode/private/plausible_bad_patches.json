@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_never_update",
+    "description": "Never updates running_mean",
+    "code": "class BatchNorm1D:\n    def __init__(self, momentum=0.1):\n        self.running_mean = 0.0\n        self.momentum = momentum\n        self.training = True\n    def forward(self, batch_mean: float):\n        return self.running_mean\n"
+  }
+]

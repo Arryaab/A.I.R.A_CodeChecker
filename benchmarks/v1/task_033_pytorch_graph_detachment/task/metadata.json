@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_033_pytorch_graph_detachment",
+  "category": "ml_autograd",
+  "difficulty": "medium",
+  "description": "Preserve computation graph backward pass gradient flow without accidental detachment",
+  "expected_behavior": "Accumulates gradients through intermediate activation variables",
+  "tags": [
+    "pytorch",
+    "autograd",
+    "gradients"
+  ],
+  "task_id": "task_033_pytorch_graph_detachment",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(V + E)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "autograd_graph",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateful_object",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "medium"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

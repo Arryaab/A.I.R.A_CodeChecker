@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_set_available_constant",
+    "description": "Sets available to fixed size",
+    "code": "class ConnectionPool:\n    def __init__(self, size=10):\n        self.available = size\n        self.size = size\n    def acquire(self):\n        return \"conn\"\n    def release(self):\n        self.available = self.size\n"
+  }
+]

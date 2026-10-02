@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_008_pydantic_discriminator_union",
+  "category": "data_validation",
+  "difficulty": "medium",
+  "description": "Resolve polymorphic union type using discriminator field",
+  "expected_behavior": "Parses dictionary into appropriate schema according to 'type' discriminator",
+  "tags": [
+    "pydantic",
+    "union",
+    "discriminator"
+  ],
+  "task_id": "task_008_pydantic_discriminator_union",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(1)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "schema_validation",
+    "SECURITY_SENSITIVITY": "medium",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

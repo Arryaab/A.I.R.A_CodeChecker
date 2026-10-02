@@ -1,0 +1,21 @@
+{
+  "task_id": "task_073_pagination_cursor_opaque_encoding",
+  "bug_id": "task_073_pagination_cursor_opaque_encoding",
+  "category": "regression_defect",
+  "difficulty": "medium",
+  "description": "Support backward compatibility for legacy integer offset cursor strings",
+  "expected_behavior": "decode_cursor parses base64 JSON tokens as well as plain legacy integer offset strings",
+  "tags": [
+    "pagination",
+    "cursor",
+    "backward-compatibility"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

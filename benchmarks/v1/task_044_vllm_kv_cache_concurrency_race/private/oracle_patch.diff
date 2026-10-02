@@ -1,0 +1,17 @@
+--- a/solution.py
++++ b/solution.py
+@@ -10,7 +10,12 @@
+         self.ref_counts[b] = 1
+         return b
+ 
++    def share(self, block_id: int):
++        self.ref_counts[block_id] += 1
++
+     def free(self, block_id: int):
+-        # BUG: immediately reclaims block to free_blocks without checking ref_counts
++        if self.ref_counts[block_id] <= 0:
++            return
+         self.ref_counts[block_id] -= 1
+-        self.free_blocks.add(block_id)
++        if self.ref_counts[block_id] == 0:
++            self.free_blocks.add(block_id)

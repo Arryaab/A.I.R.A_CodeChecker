@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_069_http_status_enum_backward_compat_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

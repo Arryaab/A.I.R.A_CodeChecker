@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "boundary_violation",
+  "source": "https://github.com/aegis-benchmark/sched-core",
+  "repository": "https://github.com/aegis-benchmark/sched-core",
+  "base_commit": "f601020304050607080910111213141516171819",
+  "issue_id": "#task_056_date_recurrence_leap_year",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

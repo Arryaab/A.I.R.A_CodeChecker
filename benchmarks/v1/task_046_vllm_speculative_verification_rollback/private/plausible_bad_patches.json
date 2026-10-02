@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_accept_all_draft",
+    "description": "Accepts all draft tokens without verification",
+    "code": "def verify_draft_tokens(draft_tokens: list[int], target_tokens: list[int]) -> tuple[list[int], int]:\n    return (list(draft_tokens), 0)\n"
+  }
+]

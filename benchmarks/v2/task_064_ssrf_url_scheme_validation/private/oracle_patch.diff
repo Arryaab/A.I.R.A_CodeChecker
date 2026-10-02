@@ -1,0 +1,26 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,10 +1,20 @@
+ from urllib.parse import urlparse
++import ipaddress
+ 
+ def is_safe_webhook_url(url: str) -> bool:
+     """Validates whether a URL is safe for outgoing webhook dispatch."""
+     parsed = urlparse(url)
+-    # BUG: Fails to enforce http/https scheme and only checks trivial string match for 127.0.0.1
+-    host = parsed.hostname or ""
+-    if host.lower() in ("localhost", "127.0.0.1"):
++    if parsed.scheme.lower() not in ("http", "https"):
+         return False
++    host = (parsed.hostname or "").strip()
++    if not host:
++        return False
++    if host.lower() == "localhost":
++        return False
++    try:
++        ip = ipaddress.ip_address(host)
++        if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_reserved:
++            return False
++    except ValueError:
++        pass
+     return True

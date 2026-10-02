@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_027_pandas_multiindex_alignment",
+  "category": "tabular_alignment",
+  "difficulty": "medium",
+  "description": "Perform Cartesian product alignment on two-level hierarchical indices",
+  "expected_behavior": "Aligns dictionary values matching on composite key (level_0, level_1)",
+  "tags": [
+    "pandas",
+    "multiindex",
+    "alignment"
+  ],
+  "task_id": "task_027_pandas_multiindex_alignment",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(N log N)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "relational_alignment",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

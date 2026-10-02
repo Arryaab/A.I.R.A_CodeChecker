@@ -1,0 +1,16 @@
+--- a/solution.py
++++ b/solution.py
+@@ -13,5 +13,11 @@
+     p2, pre2 = parse_semver(v2)
+     if p1 != p2:
+         return 1 if p1 > p2 else -1
+-    # BUG: When core version matches, ignores pre-release and considers them equal
+-    return 0
++    # Normal version has higher precedence than pre-release version
++    if pre1 is None and pre2 is not None:
++        return 1
++    if pre1 is not None and pre2 is None:
++        return -1
++    if pre1 == pre2:
++        return 0
++    return 1 if pre1 > pre2 else -1

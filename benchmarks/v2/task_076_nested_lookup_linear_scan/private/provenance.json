@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "performance_defect",
+  "source": "https://github.com/aegis-benchmark/auth-rbac",
+  "repository": "https://github.com/aegis-benchmark/auth-rbac",
+  "base_commit": "9001122334455667788990011223344556677889",
+  "issue_id": "#task_076_nested_lookup_linear_scan",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

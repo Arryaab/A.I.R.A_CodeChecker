@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,5 +1,5 @@
+ def validate_user_payload(data: dict) -> dict:
+-    # BUG: creates a copy but forgets to include original fields
+-    if "first_name" in data and "last_name" in data:
+-        return {"full_name": f"{data['first_name']} {data['last_name']}"}
+-    return data
++    res = dict(data)
++    if "first_name" in res and "last_name" in res:
++        res["full_name"] = f"{res['first_name']} {res['last_name']}"
++    return res

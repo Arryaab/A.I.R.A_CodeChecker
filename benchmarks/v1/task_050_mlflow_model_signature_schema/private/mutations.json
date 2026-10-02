@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_strict_dimension_comparison",
+    "type": "wildcard_disallowed",
+    "description": "Does not treat -1 as dynamic wildcard, requiring exact numeric match",
+    "code": "def validate_tensor_shape(actual_shape: tuple[int, ...], expected_shape: tuple[int, ...]) -> bool:\n    if len(actual_shape) != len(expected_shape):\n        return False\n    for a, e in zip(actual_shape, expected_shape):\n        if a != e:\n            return False\n    return True\n"
+  }
+]

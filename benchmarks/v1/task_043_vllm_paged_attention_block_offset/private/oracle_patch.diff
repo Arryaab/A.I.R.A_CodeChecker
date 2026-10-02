@@ -1,0 +1,15 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,11 @@
+ def compute_physical_slot(block_table: list[int], logical_pos: int, block_size: int = 16) -> tuple[int, int]:
+-    # BUG: does not guard against negative logical position
++    if block_size <= 0:
++        raise ValueError("block_size must be positive")
++    if logical_pos < 0:
++        raise IndexError("Negative logical position not allowed")
+     block_idx = logical_pos // block_size
++    if block_idx >= len(block_table):
++        raise IndexError(f"Logical block {block_idx} not allocated in block table")
+     offset = logical_pos % block_size
+     physical_block = block_table[block_idx]
+     return physical_block, offset

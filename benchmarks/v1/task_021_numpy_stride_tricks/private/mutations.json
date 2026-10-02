@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_plus_one",
+    "type": "off_by_one",
+    "description": "Omits +1 from sliding window count calculation",
+    "code": "def compute_sliding_window_shape(n_elements: int, window_size: int, step: int = 1) -> tuple[int, int]:\n    if window_size > n_elements or window_size <= 0:\n        return (0, 0)\n    num_windows = (n_elements - window_size) // step\n    return (num_windows, window_size)\n"
+  }
+]

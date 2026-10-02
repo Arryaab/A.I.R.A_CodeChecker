@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_empty_buffer",
+    "description": "Always returns empty bytes",
+    "code": "class ChunkStreamReader:\n    def __init__(self, chunks, timeout_s=1.0):\n        self.chunks = chunks\n        self.timeout_s = timeout_s\n        self.buffer = []\n    def read_all(self, time_limit: float):\n        return b\"\"\n"
+  }
+]

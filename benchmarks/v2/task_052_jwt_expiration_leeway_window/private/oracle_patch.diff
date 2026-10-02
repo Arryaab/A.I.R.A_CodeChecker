@@ -1,0 +1,10 @@
+--- a/solution.py
++++ b/solution.py
+@@ -4,6 +4,5 @@
+     """
+     if leeway_seconds < 0:
+         raise ValueError("leeway_seconds must be non-negative")
+-    # BUG: Subtracts leeway instead of adding, declaring valid tokens expired prematurely
+-    effective_exp = exp_timestamp - leeway_seconds
++    effective_exp = exp_timestamp + leeway_seconds
+     return current_timestamp > effective_exp

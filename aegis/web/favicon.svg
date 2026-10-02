@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- A.I.R.A. Clean Technical Geometric Mark (Zero Purple, Zero Blue) -->
+  <rect width="32" height="32" rx="6" fill="#18181b"/>
+  <path d="M16 4L28 10.5V21.5L16 28L4 21.5V10.5L16 4Z" stroke="#3f3f46" stroke-width="1.5"/>
+  <path d="M16 8L24 12.5V19.5L16 24L8 19.5V12.5L16 8Z" stroke="#71717a" stroke-width="1.5"/>
+  <path d="M16 12L20 14.5V17.5L16 20L12 17.5V14.5L16 12Z" fill="#27272a" stroke="#d4d4d8" stroke-width="1.5"/>
+  <circle cx="16" cy="16" r="2" fill="#ffffff"/>
+</svg>

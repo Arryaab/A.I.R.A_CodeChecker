@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_modulo_hour_replace",
+    "type": "rollover_truncation",
+    "description": "Uses hour modulo arithmetic with replace(), dropping calendar day transitions",
+    "code": "from datetime import datetime\n\ndef convert_tz_utc(dt: datetime, offset_hours: int) -> datetime:\n    new_hour = (dt.hour + offset_hours) % 24\n    return dt.replace(hour=new_hour)\n"
+  }
+]

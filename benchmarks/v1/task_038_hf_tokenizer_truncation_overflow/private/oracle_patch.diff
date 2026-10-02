@@ -1,0 +1,20 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,12 @@
+ def truncate_token_pair(seq_a: list[str], seq_b: list[str], max_length: int) -> list[str]:
+-    # Expected format: ['[CLS]'] + a + ['[SEP]'] + b + ['[SEP]']
+-    # Total special tokens = 3
+-    # BUG: truncates raw input after adding special tokens, potentially dropping [SEP]
+-    merged = ["[CLS]"] + seq_a + ["[SEP]"] + seq_b + ["[SEP]"]
+-    return merged[:max_length]
++    avail = max_length - 3
++    if avail < 0:
++        raise ValueError("max_length too short for special tokens")
++    a = list(seq_a)
++    b = list(seq_b)
++    while len(a) + len(b) > avail:
++        if len(a) >= len(b):
++            a.pop()
++        else:
++            b.pop()
++    return ["[CLS]"] + a + ["[SEP]"] + b + ["[SEP]"]

@@ -1,0 +1,18 @@
+--- a/solution.py
++++ b/solution.py
+@@ -7,10 +7,9 @@
+     for f in required_fields:
+         if f not in data:
+             raise ValidationError(f"Missing required field: {f}")
+-    
+-    # BUG: Forbids unknown fields, breaking backward compatibility with v2 clients sending 'tags' or 'metadata'
+-    allowed_fields = {"username", "email", "age"}
+-    extra = set(data.keys()) - allowed_fields
+-    if extra:
+-        raise ValidationError(f"Unexpected fields: {extra}")
++    if not isinstance(data["username"], str) or not data["username"].strip():
++        raise ValidationError("Invalid username")
++    if "@" not in str(data["email"]):
++        raise ValidationError("Invalid email")
++    # Tolerant reader: extra fields are accepted without failing validation
+     return data

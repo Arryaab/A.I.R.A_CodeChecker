@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_seen_tracking",
+    "type": "infinite_recursion",
+    "description": "Fails to pass seen set down recursive calls",
+    "code": "class TreeNode:\n    def __init__(self, value, children=None):\n        self.value = value\n        self.children = children or []\n\ndef serialize_tree(node: TreeNode, seen=None):\n    return {\n        \"value\": node.value,\n        \"children\": [serialize_tree(c) for c in node.children]\n    }\n"
+  }
+]

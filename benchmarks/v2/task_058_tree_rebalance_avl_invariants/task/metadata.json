@@ -1,0 +1,21 @@
+{
+  "task_id": "task_058_tree_rebalance_avl_invariants",
+  "bug_id": "task_058_tree_rebalance_avl_invariants",
+  "category": "test_overfitting",
+  "difficulty": "hard",
+  "description": "Implement double rotation rebalancing to preserve AVL tree height balance invariant",
+  "expected_behavior": "AVL balance factor abs(height(left) - height(right)) <= 1 maintained for all insertions",
+  "tags": [
+    "avl-tree",
+    "data-structures",
+    "invariants"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

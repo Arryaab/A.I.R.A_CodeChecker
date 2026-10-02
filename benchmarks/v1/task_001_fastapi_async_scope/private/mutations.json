@@ -1,0 +1,14 @@
+[
+  {
+    "id": "mutant_fifo_cleanup",
+    "type": "ordering_inversion",
+    "description": "Cleans up in FIFO order instead of LIFO order",
+    "code": "class AsyncDependencyResolver:\n    def __init__(self):\n        self.cleanups = []\n    async def resolve(self, dep_func):\n        gen = dep_func()\n        val = await gen.__anext__()\n        self.cleanups.append(gen)\n        return val\n    async def cleanup(self):\n        for gen in self.cleanups:\n            try:\n                await gen.__anext__()\n            except StopAsyncIteration:\n                pass\n        self.cleanups.clear()\n"
+  },
+  {
+    "id": "mutant_missing_clear",
+    "type": "missing_cleanup",
+    "description": "Fails to clear self.cleanups on cleanup completion",
+    "code": "class AsyncDependencyResolver:\n    def __init__(self):\n        self.cleanups = []\n    async def resolve(self, dep_func):\n        gen = dep_func()\n        val = await gen.__anext__()\n        self.cleanups.append(gen)\n        return val\n    async def cleanup(self):\n        for gen in reversed(self.cleanups):\n            try:\n                await gen.__anext__()\n            except StopAsyncIteration:\n                pass\n"
+  }
+]

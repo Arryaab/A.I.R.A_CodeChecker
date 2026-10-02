@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_025_numpy_matrix_power_zero",
+  "category": "linear_algebra",
+  "difficulty": "easy",
+  "description": "Return identity matrix when computing matrix power p=0",
+  "expected_behavior": "Returns N x N identity matrix for any valid square matrix raised to power 0",
+  "tags": [
+    "numpy",
+    "matrix",
+    "linalg"
+  ],
+  "task_id": "task_025_numpy_matrix_power_zero",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(p * N^3)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "linear_algebra",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

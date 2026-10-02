@@ -4,22 +4,59 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
 @dataclass
+class SecurityFinding:
+    file: str
+    line: int
+    sink: str
+    rule: str
+    severity: str  # HIGH, MEDIUM, LOW
+    source_classification: str  # APPLICATION_CODE, TEST_CODE, FIXTURE, BENCHMARK, TOOLING
+    finding: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "finding": self.finding or f"{self.rule} at {self.sink}",
+            "file": self.file,
+            "line": self.line,
+            "sink": self.sink,
+            "rule": self.rule,
+            "severity": self.severity,
+            "source_classification": self.source_classification,
+            "code_classification": self.source_classification,
+        }
+
+@dataclass
 class SecurityScanResult:
     safe: bool
     issues: List[str] = field(default_factory=list)
+    findings: List[SecurityFinding] = field(default_factory=list)
+
+def classify_source_path(filepath: str) -> str:
+    """Classifies source code paths into contextual risk categories."""
+    norm = filepath.replace("\\", "/").lower().lstrip("./")
+    if "fixtures" in norm or "/fixture" in norm or norm.startswith("fixture"):
+        return "FIXTURE"
+    if "benchmarks" in norm or norm.startswith("benchmark"):
+        return "BENCHMARK"
+    if "scripts/" in norm or norm.startswith("scripts/") or "tools/" in norm or norm.startswith("tools/"):
+        return "TOOLING"
+    if "tests/" in norm or norm.startswith("tests/") or "test_" in norm or norm.endswith("_test.py"):
+        return "TEST_CODE"
+    return "APPLICATION_CODE"
 
 class SecurityScanner:
     """
-    Aegis Security Guardrail: Scans proposed patches for prompt injection,
-    secret exfiltration, hardcoded credentials, and dangerous execution.
+    Aegis Security Guardrail: Scans proposed patches and project uploads for prompt injection,
+    secret exfiltration, hardcoded credentials, and dangerous execution sinks.
+    Classifies findings into APPLICATION_CODE, TEST_CODE, FIXTURE, BENCHMARK, and TOOLING.
     """
     
     # Patterns for secrets
     SECRET_PATTERNS = [
-        (r"(?i)(api[_-]?key|secret|token|password|passwd|auth)\s*=\s*['\"][A-Za-z0-9_\-\.]{16,}['\"]", "Hardcoded API key or credential"),
-        (r"-----BEGIN (?:RSA )?PRIVATE KEY-----", "Private key detected"),
-        (r"ghp_[A-Za-z0-9]{36}", "GitHub Personal Access Token"),
-        (r"AKIA[0-9A-Z]{16}", "AWS Access Key ID"),
+        (r"(?i)(api[_-]?key|secret|token|password|passwd|auth)\s*=\s*['\"][A-Za-z0-9_\-\.]{16,}['\"]", "Hardcoded API key or credential", "HARDCODED_SECRET", "HIGH"),
+        (r"-----BEGIN (?:RSA )?PRIVATE KEY-----", "Private key detected", "PRIVATE_KEY_LEAK", "HIGH"),
+        (r"ghp_[A-Za-z0-9]{36}", "GitHub Personal Access Token", "TOKEN_LEAK", "HIGH"),
+        (r"AKIA[0-9A-Z]{16}", "AWS Access Key ID", "AWS_KEY_LEAK", "HIGH"),
     ]
     
     # Patterns for prompt injection attempts in patch comments/docstrings
@@ -36,26 +73,167 @@ class SecurityScanner:
         "pty", "socket", "telnetlib", "ftplib", "paramiko"
     }
 
+    # Patterns for common security vulnerabilities (e.g. CWE-22 Path Traversal)
+    VULNERABILITY_PATTERNS = [
+        (r"(?i)(cwe-22|path\s*traversal|\.\./|\.\.\\)", "CWE-22 / Path Traversal vulnerability", "CWE-22_PATH_TRAVERSAL", "HIGH"),
+    ]
+
+    def scan_file_findings(self, content: str, filepath: str) -> List[SecurityFinding]:
+        """Scans a single file and produces detailed, contextual SecurityFinding records."""
+        findings: List[SecurityFinding] = []
+        classification = classify_source_path(filepath)
+        norm_p = filepath.replace("\\", "/").lstrip("./")
+        lines = content.splitlines()
+
+        # 1. Regex line-by-line checks
+        for idx, line in enumerate(lines, 1):
+            for pattern, desc, rule, sev in self.SECRET_PATTERNS:
+                if re.search(pattern, line):
+                    findings.append(SecurityFinding(
+                        file=norm_p,
+                        line=idx,
+                        sink="credential_assignment",
+                        rule=rule,
+                        severity=sev,
+                        source_classification=classification,
+                        finding=f"{desc} in {norm_p}:{idx}"
+                    ))
+            for pattern in self.PROMPT_INJECTION_PATTERNS:
+                if re.search(pattern, line):
+                    findings.append(SecurityFinding(
+                        file=norm_p,
+                        line=idx,
+                        sink="comment_or_string",
+                        rule="PROMPT_INJECTION",
+                        severity="MEDIUM",
+                        source_classification=classification,
+                        finding=f"Potential Prompt Injection marker in {norm_p}:{idx}"
+                    ))
+            for pattern, desc, rule, sev in self.VULNERABILITY_PATTERNS:
+                if re.search(pattern, line):
+                    findings.append(SecurityFinding(
+                        file=norm_p,
+                        line=idx,
+                        sink="path_resolution",
+                        rule=rule,
+                        severity=sev,
+                        source_classification=classification,
+                        finding=f"{desc} in {norm_p}:{idx}"
+                    ))
+
+        # 2. AST checks
+        try:
+            tree = ast.parse(content, filename=filepath)
+            for node in ast.walk(tree):
+                lineno = getattr(node, "lineno", 1)
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name in self.DANGEROUS_MODULES:
+                            findings.append(SecurityFinding(
+                                file=norm_p,
+                                line=lineno,
+                                sink=alias.name,
+                                rule="FORBIDDEN_MODULE_IMPORT",
+                                severity="MEDIUM",
+                                source_classification=classification,
+                                finding=f"Forbidden dangerous module import: `{alias.name}` in {norm_p}:{lineno}"
+                            ))
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module in self.DANGEROUS_MODULES:
+                        findings.append(SecurityFinding(
+                            file=norm_p,
+                            line=lineno,
+                            sink=str(node.module),
+                            rule="FORBIDDEN_MODULE_IMPORT",
+                            severity="MEDIUM",
+                            source_classification=classification,
+                            finding=f"Forbidden dangerous module import: `{node.module}` in {norm_p}:{lineno}"
+                        ))
+                elif isinstance(node, ast.Call):
+                    # eval / exec
+                    if isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
+                        findings.append(SecurityFinding(
+                            file=norm_p,
+                            line=lineno,
+                            sink=f"{node.func.id}()",
+                            rule="DANGEROUS_EVAL_EXEC",
+                            severity="HIGH",
+                            source_classification=classification,
+                            finding=f"Forbidden dangerous function call: `{node.func.id}()` in {norm_p}:{lineno}"
+                        ))
+                    # os.system / os.popen
+                    elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+                        if node.func.value.id == "os" and node.func.attr in {"system", "popen"}:
+                            findings.append(SecurityFinding(
+                                file=norm_p,
+                                line=lineno,
+                                sink=f"os.{node.func.attr}()",
+                                rule="DANGEROUS_SHELL_EXECUTION",
+                                severity="HIGH",
+                                source_classification=classification,
+                                finding=f"Forbidden dangerous shell execution: `os.{node.func.attr}()` in {norm_p}:{lineno}"
+                            ))
+                        elif node.func.value.id == "subprocess" and node.func.attr in {"run", "Popen", "call", "check_output", "check_call"}:
+                            for kw in node.keywords:
+                                if kw.arg == "shell":
+                                    if isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                                        findings.append(SecurityFinding(
+                                            file=norm_p,
+                                            line=lineno,
+                                            sink="subprocess(shell=True)",
+                                            rule="SUBPROCESS_SHELL_INJECTION",
+                                            severity="HIGH",
+                                            source_classification=classification,
+                                            finding=f"Dangerous subprocess execution with `shell=True` in {norm_p}:{lineno}"
+                                        ))
+                                    elif not isinstance(kw.value, ast.Constant):
+                                        findings.append(SecurityFinding(
+                                            file=norm_p,
+                                            line=lineno,
+                                            sink="subprocess(dynamic shell)",
+                                            rule="SUBPROCESS_DYNAMIC_SHELL",
+                                            severity="HIGH",
+                                            source_classification=classification,
+                                            finding=f"Dangerous subprocess execution with dynamic `shell` parameter in {norm_p}:{lineno}"
+                                        ))
+        except SyntaxError:
+            pass
+
+        return findings
+
+    def scan_project_files(self, file_map: Dict[str, str]) -> tuple[List[SecurityFinding], bool]:
+        """
+        Scans a dictionary of {relative_path: code_content}.
+        Determines overall safety:
+        - APPLICATION_CODE with HIGH or MEDIUM findings fails the scan (safe = False).
+        - Findings in FIXTURE, BENCHMARK, or TOOLING are documented but do not block release
+          unless they contain real credential leaks.
+        """
+        all_findings: List[SecurityFinding] = []
+        for path, code in file_map.items():
+            findings = self.scan_file_findings(code, path)
+            all_findings.extend(findings)
+
+        app_violations = [
+            f for f in all_findings
+            if f.source_classification == "APPLICATION_CODE" and f.severity in ("HIGH", "MEDIUM")
+        ]
+        credential_leaks = [
+            f for f in all_findings
+            if "SECRET" in f.rule or "KEY" in f.rule or "TOKEN" in f.rule
+        ]
+
+        safe = (len(app_violations) == 0 and len(credential_leaks) == 0)
+        return all_findings, safe
+
     def scan_patch(self, patch: Dict[str, str], scan_tests: bool = False) -> SecurityScanResult:
         """Scan raw file content mapping."""
-        issues = []
-        for filepath, content in patch.items():
-            if not scan_tests and ("tests/" in filepath.replace("\\", "/") or filepath.startswith("tests")):
-                continue
-            # Scan content
-            for pattern, desc in self.SECRET_PATTERNS:
-                if re.search(pattern, content):
-                    issues.append(f"{desc} in {filepath}")
-            for pattern in self.PROMPT_INJECTION_PATTERNS:
-                if re.search(pattern, content):
-                    issues.append(f"Potential Prompt Injection marker in {filepath}: {pattern}")
-            # AST checks
-            try:
-                tree = ast.parse(content, filename=filepath)
-                self._check_ast_nodes(tree, filepath, issues)
-            except SyntaxError:
-                pass
-        return SecurityScanResult(safe=len(issues) == 0, issues=issues)
+        findings, safe = self.scan_project_files(patch)
+        issues = [f.finding for f in findings if scan_tests or f.source_classification != "TEST_CODE"]
+        # For patch scanning: if non-test findings exist, safe is False
+        app_safe = all(f.source_classification == "TEST_CODE" for f in findings) if not scan_tests and findings else safe
+        return SecurityScanResult(safe=app_safe, issues=issues, findings=findings)
+
 
     def scan_patch_changes(self, patches: Dict[str, Any], scan_tests: bool = False) -> SecurityScanResult:
         """
@@ -79,7 +257,7 @@ class SecurityScanner:
             
             # Check added lines only for regex patterns
             added_text = "\n".join(getattr(change, "added_lines", []))
-            for pattern, desc in self.SECRET_PATTERNS:
+            for pattern, desc, *_ in self.SECRET_PATTERNS:
                 if re.search(pattern, added_text):
                     issues.append(f"{desc} introduced in {filepath}")
             for pattern in self.PROMPT_INJECTION_PATTERNS:

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_parent_tag_assignment",
+    "type": "missing_metadata",
+    "description": "Omits setting mlflow.parentRunId tag",
+    "code": "class RunContext:\n    def __init__(self, run_id: str, parent_id: str | None = None):\n        self.run_id = run_id\n        self.parent_id = parent_id\n        self.tags = {}\n    def init_tags(self):\n        self.tags[\"run_id\"] = self.run_id\n"
+  }
+]

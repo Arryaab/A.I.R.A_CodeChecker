@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "mlops_artifacts",
+  "source": "https://github.com/mlflow/mlflow",
+  "repository": "https://github.com/mlflow/mlflow",
+  "base_commit": "e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0f9",
+  "issue_id": "#task_048_mlflow_artifact_serialization_retry",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

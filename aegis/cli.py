@@ -25,6 +25,164 @@ def get_provider_for_cli(config: AegisConfig):
         return OllamaProvider(model=config.model.replace("ollama/", ""))
     return GeminiProvider(api_key=config.api_key, model=config.model)
 
+def execute_doctor(json_output: bool = False, build_image: bool = False) -> int:
+    """
+    Executes the A.I.R.A. system doctor diagnostic checks.
+    Inspects Python runtime, Docker CLI, Docker Engine, sandbox image, network isolation, and resource caps.
+    """
+    from aegis.execution.sandbox import (
+        check_sandbox_health,
+        get_docker_executable,
+        is_docker_available,
+        build_sandbox_image_with_output
+    )
+
+    if build_image and not json_output:
+        print("A.I.R.A. DOCTOR: Attempting to build sandbox container image...")
+        if not is_docker_available():
+            print("ERROR: Docker daemon is unreachable. Start Docker Desktop and retry.\n")
+        else:
+            success, msg = build_sandbox_image_with_output()
+            if success:
+                print(f"SUCCESS: {msg}\n")
+            else:
+                print(f"FAILED: {msg}\n")
+
+    diag = check_sandbox_health()
+    py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+    checks = []
+
+    # 1. Python Environment
+    checks.append({
+        "name": "Python Environment",
+        "status": "PASS",
+        "detail": f"{py_ver} ({sys.platform})"
+    })
+
+    # 2. Docker CLI
+    if diag["docker_binary_found"]:
+        cli_detail = diag["docker_version"] or diag.get("docker_binary_path") or "found"
+        checks.append({
+            "name": "Docker CLI",
+            "status": "PASS",
+            "detail": str(cli_detail)
+        })
+    else:
+        checks.append({
+            "name": "Docker CLI",
+            "status": "FAIL",
+            "detail": "not found on PATH or standard system locations"
+        })
+
+    # 3. Docker Engine
+    if diag["docker_daemon_reachable"]:
+        engine_ver = diag["docker_version"] or "daemon reachable"
+        checks.append({
+            "name": "Docker Engine",
+            "status": "PASS",
+            "detail": str(engine_ver)
+        })
+    else:
+        checks.append({
+            "name": "Docker Engine",
+            "status": "FAIL",
+            "detail": "daemon unreachable"
+        })
+
+    # 4. Sandbox Image
+    image_tag = diag["image_tag"]
+    if diag["required_image_present"]:
+        checks.append({
+            "name": "Sandbox Image",
+            "status": "PASS",
+            "detail": image_tag
+        })
+    else:
+        checks.append({
+            "name": "Sandbox Image",
+            "status": "FAIL",
+            "detail": f"missing {image_tag}"
+        })
+
+    # 5. Network Isolation
+    if diag["docker_daemon_reachable"]:
+        checks.append({
+            "name": "Network Isolation",
+            "status": "PASS",
+            "detail": "--network none zero-egress containment"
+        })
+    else:
+        checks.append({
+            "name": "Network Isolation",
+            "status": "FAIL",
+            "detail": "requires Docker daemon"
+        })
+
+    # 6. Resource Limits
+    if diag["docker_daemon_reachable"]:
+        checks.append({
+            "name": "Resource Limits",
+            "status": "PASS",
+            "detail": "CPU/memory/pids/tmpfs quotas"
+        })
+    else:
+        checks.append({
+            "name": "Resource Limits",
+            "status": "FAIL",
+            "detail": "requires Docker daemon"
+        })
+
+    all_passed = all(c["status"] == "PASS" for c in checks)
+
+    remediation_steps = []
+    if not diag["docker_binary_found"]:
+        if sys.platform == "win32":
+            remediation_steps.append("Install Docker Desktop for Windows: https://docs.docker.com/desktop/install/windows/ or run 'winget install Docker.DockerDesktop'")
+            remediation_steps.append("Ensure Docker CLI is added to PATH and restart terminal.")
+        else:
+            remediation_steps.append("Install Docker Engine: https://docs.docker.com/engine/install/ and ensure docker is on PATH.")
+    elif not diag["docker_daemon_reachable"]:
+        if sys.platform == "win32":
+            remediation_steps.append("Start Docker Desktop and wait until the whale icon shows 'Engine running'.")
+        else:
+            remediation_steps.append("Start Docker daemon: 'sudo systemctl start docker'.")
+    elif not diag["required_image_present"]:
+        remediation_steps.append(f"Build sandbox image: run 'aira doctor --build-image' or 'docker build -t {image_tag} - < Dockerfile.sandbox'.")
+
+    if json_output:
+        res = {
+            "status": "PASS" if all_passed else "FAIL",
+            "available": diag["available"],
+            "checks": checks,
+            "sandbox": diag,
+            "remediation": remediation_steps
+        }
+        print(json.dumps(res, indent=2))
+        return 0 if all_passed else 1
+
+    # Standard matrix print
+    print("=" * 64)
+    print("A.I.R.A. SYSTEM CHECK")
+    print("=" * 64)
+    for c in checks:
+        name_col = f"{c['name']:<22}"
+        status_col = f"{c['status']} ({c['detail']})"
+        print(f"{name_col}{status_col}")
+
+    print("-" * 64)
+    overall = "READY" if all_passed else "UNAVAILABLE (SANDBOX_OFFLINE)"
+    print(f"Overall Status:       {overall}")
+
+    if remediation_steps:
+        print("-" * 64)
+        print("REMEDIATION STEPS:")
+        for idx, step in enumerate(remediation_steps, 1):
+            print(f"  {idx}. {step}")
+    print("=" * 64)
+
+    return 0 if all_passed else 1
+
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -81,10 +239,25 @@ def main() -> None:
         help="Allow running verification tests directly on host without Docker sandbox (DANGEROUS: use for local testing only)"
     )
     
+    # Research Platform (Directive Section 28)
+    research_parser = subparsers.add_parser("research", help="Aegis Research Platform tools")
+    research_subparsers = research_parser.add_subparsers(dest="research_command", required=True)
+    rf_parser = research_subparsers.add_parser("preflight", help="Run pre-flight verification before empirical study")
+    rf_parser.add_argument("manifest_name", nargs="?", default="empirical_100_v1", help="Experiment manifest name")
+
+    # Doctor (System Diagnostics & Sandbox Readiness)
+    doctor_parser = subparsers.add_parser("doctor", help="Diagnose local execution environment, Docker daemon, and sandbox readiness")
+    doctor_parser.add_argument("--json", action="store_true", help="Output diagnostic information as JSON")
+    doctor_parser.add_argument("--build-image", action="store_true", help="Attempt to build the required sandbox image if Docker is available")
+
     args = parser.parse_args()
     
     try:
-        if args.command == "repair":
+        if args.command == "doctor":
+            code = execute_doctor(json_output=getattr(args, "json", False), build_image=getattr(args, "build_image", False))
+            sys.exit(code)
+
+        elif args.command == "repair":
             config = load_config()
             config.model = args.model
             config.max_retries = args.max_retries
@@ -705,6 +878,14 @@ def main() -> None:
                 sys.exit(1)
             elif release_policy == "REVIEW":
                 sys.exit(2)
+
+        elif args.command == "research":
+            if args.research_command == "preflight":
+                from aegis.research.preflight import run_preflight
+                report = run_preflight(args.manifest_name)
+                report.print_summary()
+                if report.verdict != "READY":
+                    sys.exit(1)
                 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

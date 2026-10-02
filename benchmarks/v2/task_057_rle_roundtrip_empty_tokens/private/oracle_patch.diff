@@ -1,0 +1,28 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,5 +1,6 @@
++import re
++
+ def rle_encode(s: str) -> str:
+-    # BUG: Crashes on empty string and miscounts single-character runs
+     if not s:
+         return ""
+     result = []
+@@ -16,14 +17,9 @@
+     return "".join(result)
+ 
+ def rle_decode(s: str) -> str:
+-    # BUG: Fails on counts > 9 because it assumes single digit count
+     if not s:
+         return ""
+-    result = []
+-    i = 0
+-    while i < len(s):
+-        ch = s[i]
+-        count = int(s[i+1])
+-        result.append(ch * count)
+-        i += 2
++    # Parse tokens using regex to support multi-digit counts
++    tokens = re.findall(r"([a-zA-Z])(\d+)", s)
++    result = [ch * int(count) for ch, count in tokens]
+     return "".join(result)

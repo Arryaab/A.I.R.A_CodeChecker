@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_d2_one_branch",
+    "type": "logic_gap",
+    "description": "Omits handling of d2 == 1, raising false shape mismatch",
+    "code": "def broadcast_shapes(s1: tuple[int, ...], s2: tuple[int, ...]) -> tuple[int, ...]:\n    n1, n2 = len(s1), len(s2)\n    max_len = max(n1, n2)\n    p1 = (1,) * (max_len - n1) + s1\n    p2 = (1,) * (max_len - n2) + s2\n    res = []\n    for d1, d2 in zip(p1, p2):\n        if d1 == d2:\n            res.append(d1)\n        elif d1 == 1:\n            res.append(d2)\n        else:\n            raise ValueError(f\"Cannot broadcast shapes {s1} and {s2}\")\n    return tuple(res)\n"
+  }
+]

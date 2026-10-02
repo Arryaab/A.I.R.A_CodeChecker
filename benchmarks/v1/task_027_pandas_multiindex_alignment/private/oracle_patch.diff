@@ -1,0 +1,15 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,8 @@
+ def align_multiindex_data(df1: dict, df2: dict) -> dict:
++    all_keys = set(df1.keys()).union(set(df2.keys()))
+     aligned = {}
+-    for (k1, k2), v1 in df1.items():
+-        # BUG: only keys present in df1 are inspected, misses keys only in df2
+-        v2 = df2.get((k1, k2), 0)
+-        aligned[(k1, k2)] = v1 + v2
++    for k in sorted(all_keys):
++        v1 = df1.get(k, 0)
++        v2 = df2.get(k, 0)
++        aligned[k] = v1 + v2
+     return aligned

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_permit_negative_index",
+    "type": "bounds_check_missing",
+    "description": "Allows Python negative list indexing to corrupt CSR pointer lookup",
+    "code": "def csr_row_slice(indptr: list[int], indices: list[int], data: list[float], row: int):\n    start = indptr[row]\n    end = indptr[row + 1]\n    return indices[start:end], data[start:end]\n"
+  }
+]

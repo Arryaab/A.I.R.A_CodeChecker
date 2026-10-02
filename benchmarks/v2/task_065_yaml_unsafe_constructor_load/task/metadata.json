@@ -1,0 +1,21 @@
+{
+  "task_id": "task_065_yaml_unsafe_constructor_load",
+  "bug_id": "task_065_yaml_unsafe_constructor_load",
+  "category": "security_defect",
+  "difficulty": "medium",
+  "description": "Restrict dynamic object instantiation in YAML config deserializer to explicit allowlist",
+  "expected_behavior": "Only instantiates classes present in ALLOWED_TYPES; raises SecurityError otherwise",
+  "tags": [
+    "security",
+    "deserialization",
+    "allowlist"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

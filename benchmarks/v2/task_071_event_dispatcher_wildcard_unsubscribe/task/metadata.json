@@ -1,0 +1,21 @@
+{
+  "task_id": "task_071_event_dispatcher_wildcard_unsubscribe",
+  "bug_id": "task_071_event_dispatcher_wildcard_unsubscribe",
+  "category": "regression_defect",
+  "difficulty": "medium",
+  "description": "Safely remove specific listener without mutating shared listener registry during dispatch",
+  "expected_behavior": "Unsubscribing a listener removes only the target callback and does not break active dispatch",
+  "tags": [
+    "events",
+    "dispatcher",
+    "wildcard"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

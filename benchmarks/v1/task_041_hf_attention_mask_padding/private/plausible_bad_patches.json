@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_all_zeros_mask",
+    "description": "Returns all-zeros mask",
+    "code": "def build_causal_mask(seq_len: int, num_pad: int) -> list[list[float]]:\n    return [[0.0] * seq_len for _ in range(seq_len)]\n"
+  }
+]

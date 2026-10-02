@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_lower_bound_check",
+    "type": "missing_boundary_check",
+    "description": "Fails to check total < INT32_MIN",
+    "code": "INT32_MAX = 2**31 - 1\nINT32_MIN = -2**31\n\ndef accumulate_int32(values: list[int]) -> int:\n    total = 0\n    for v in values:\n        total += v\n        if total > INT32_MAX:\n            raise OverflowError(\"32-bit integer overflow\")\n    return total\n"
+  }
+]

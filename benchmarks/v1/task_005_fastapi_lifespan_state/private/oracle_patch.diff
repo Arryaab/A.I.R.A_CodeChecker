@@ -1,0 +1,9 @@
+--- a/solution.py
++++ b/solution.py
+@@ -9,5 +9,4 @@
+         return self._state.get(key, default)
+ 
+     def clear(self):
+-        # BUG: reassigns self._state to new dict, breaking references
+-        self._state = {}
++        self._state.clear()

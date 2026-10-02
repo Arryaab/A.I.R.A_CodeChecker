@@ -1,0 +1,9 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,3 @@
+ def step_lr_scheduler(param_groups: list[dict], decay_factor: float):
+-    # BUG: only updates the first parameter group
+-    if param_groups:
+-        param_groups[0]["lr"] *= decay_factor
++    for group in param_groups:
++        group["lr"] *= decay_factor

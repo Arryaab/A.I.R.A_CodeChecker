@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "security_network",
+  "source": "https://github.com/aio-libs/aiohttp",
+  "repository": "https://github.com/aio-libs/aiohttp",
+  "base_commit": "93e2d1c0b9a8f7e6d5c4b3a2b1a0f9e8d7c6b5a4",
+  "issue_id": "#task_017_aiohttp_cookie_jar_domain",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

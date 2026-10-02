@@ -1,0 +1,140 @@
+# A.I.R.A. Deployment & Operations Guide
+
+This guide covers deploying the **A.I.R.A. (AI Release Assurance)** service in production or staging environments.
+
+---
+
+## 1. Quick Local Execution
+
+### Option A: Direct Python Installation
+```bash
+# Clone the repository
+git clone https://github.com/aira-platform/aira.git
+cd aira
+
+# Install package and dependencies
+pip install -e .
+
+# Launch API and visual control plane
+uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
+```
+Open your browser at `http://localhost:8000`.
+
+### Option B: Docker Compose (Unified Service)
+```bash
+docker compose up -d
+```
+The control plane dashboard and REST API will be accessible at `http://localhost:8000`.
+
+---
+
+## 2. Configuration & Environment Variables
+
+| Variable | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `AIRA_API_KEY` | string | `""` (empty) | Primary API key required for authenticated verification, upload, and evidence endpoints. |
+| `AEGIS_API_KEY` | string | `""` (empty) | Fallback backwards-compatibility alias for `AIRA_API_KEY`. |
+| `AIRA_CORS_ORIGINS` | string | `"http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000"` | Comma-separated allowed origins. Note: When set to `*`, credentials are automatically disabled for security. |
+| `AIRA_RATE_LIMIT` | integer | `30` | Rolling rate limit: maximum requests per window for project upload and verification endpoints. |
+| `AIRA_RATE_LIMIT_WINDOW` | integer | `60` | Rolling rate limit window duration in seconds. |
+| `DEMO_MODE` | boolean | `false` | When `true`, enables safe scenario exploration without requiring a live Docker daemon. In production, set to `false`. |
+| `HOST` | string | `0.0.0.0` | Network binding address. |
+| `PORT` | integer | `8000` | Port for the HTTP server. |
+| `DOCKER_SANDBOX_IMAGE` | string | `aegis-sandbox:latest` | Docker image tag used for isolating sandboxed test runs. |
+| `OLLAMA_BASE_URL`| string | `http://localhost:11434` | Endpoint for local model execution during benchmark generation (SHADOW_MODE_ONLY). |
+| `OPENAI_API_KEY` | string | `""` | Optional key for cloud provider experiments. |
+| `GEMINI_API_KEY` | string | `""` | Optional key for cloud provider experiments. |
+
+---
+
+## 3. Sandboxing & Docker Daemon Requirements
+
+In production (`DEMO_MODE=false`), A.I.R.A. mandates a running Docker daemon to enforce zero-network container isolation during code execution.
+
+### Fail-Closed Principle
+Untrusted user projects and patches are **never** executed directly on the host machine. If Docker is unavailable:
+- Verification requests (`POST /api/projects/{id}/verify`) immediately return `HTTP 503 Service Unavailable` (`SANDBOX_UNAVAILABLE`).
+- Results are **never fabricated** or simulated when real execution fails or cannot be scheduled.
+
+### Building the Sandbox Image
+Before launching full verification in non-demo mode, build the hardened sandbox container:
+```bash
+docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
+```
+
+### Production Sandbox Security Jail
+When evaluating untrusted AI code changes, A.I.R.A. automatically launches containers with:
+- `--network none` (Zero internet access)
+- `--read-only` (Immutable root filesystem)
+- `--tmpfs /tmp:rw,noexec,nosuid,size=64m`
+- `--tmpfs /workspace/.pytest_cache:rw,noexec,nosuid,size=32m`
+- `--ulimit nofile=1024:2048`
+- `--ulimit fsize=50000000` (Max output file size 50MB)
+- `--security-opt no-new-privileges`
+- `--cap-drop ALL`
+- `--cpus 1.0`
+- `--memory 512m`
+- `--pids-limit 50`
+
+### Archive Upload Safety Limits
+User-submitted project and test archives (`.zip`, `.tar.gz`, `.tgz`) are strictly validated prior to extraction:
+- Maximum upload archive size: **50 MB**
+- Maximum total uncompressed size: **200 MB**
+- Maximum single file uncompressed size: **25 MB**
+- Maximum file count: **5,000 files**
+- Maximum path length: **256 characters**
+- Absolute paths (`/`) and directory traversals (`..`) are rejected.
+- Symlinks, hardlinks, and device special files are rejected.
+- Sensitive credential files (`.env`, `.pem`, `.key`, `id_rsa`) are rejected.
+
+---
+
+## 4. Production Reverse Proxy (Nginx)
+
+For production deployments behind Nginx with SSL:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name assurance.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/assurance.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/assurance.yourdomain.com/privkey.pem;
+
+    client_max_body_size 55M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+---
+
+## 5. Health & Liveness Checks
+
+Automated orchestrators (Kubernetes, AWS ECS, Nomad) can probe:
+- **Liveness Probe**: `GET /health` (Returns HTTP 200 with service version and engine status).
+- **Readiness Probe**: `GET /api/health` (Reports Docker availability and operational mode).
+
+---
+
+## 6. Authentication & Credential Architecture
+
+A.I.R.A. enforces strict client-server separation for credentials:
+
+### Production Deployments
+- **Zero Frontend Credentials**: The production frontend bundle never ships with the server API key.
+- **Client-Provided Credential**: The browser supplies a user-provided API credential via the `API ACCESS` interface in the header.
+- **Session-Only Storage**: The credential is held strictly in `sessionStorage` and is never written to `localStorage`, cookies, analytics, or disk. It is automatically purged when the user's browser session ends.
+- **Server Configuration**: Configure `AIRA_API_KEY=<server-configured-key>` in the backend environment. All live verification and project upload endpoints reject unauthorized requests with `HTTP 401 Unauthorized`.
+- **Public Demo Routes**: Pre-recorded educational demo walkthroughs (`/api/demo/*`) remain public and require no API key.
+
+### Local Development Mode
+- For local testing on `localhost` / `127.0.0.1`, set `AIRA_LOCAL_DEV_AUTH=true`.
+- The backend automatically initializes a development token on startup and provides it to localhost clients via `GET /api/auth/local-dev-token`.
+- Non-localhost and remote hosts are strictly forbidden (`HTTP 403 Forbidden`).

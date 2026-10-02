@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_021_numpy_stride_tricks",
+  "category": "array_strides",
+  "difficulty": "medium",
+  "description": "Calculate sliding window shape for 1D strided array view",
+  "expected_behavior": "Computes exact number of valid windows: (n - window_size) // step + 1",
+  "tags": [
+    "numpy",
+    "strides",
+    "sliding-window"
+  ],
+  "task_id": "task_021_numpy_stride_tricks",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(1)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "strided_indexing",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_noop_sync",
+    "type": "missing_operation",
+    "description": "Leaves pending_tasks populated on synchronize()",
+    "code": "class StreamManager:\n    def __init__(self):\n        self.pending_tasks = []\n    def record_event(self, task_name):\n        self.pending_tasks.append(task_name)\n    def synchronize(self):\n        pass\n    def is_idle(self) -> bool:\n        return len(self.pending_tasks) == 0\n"
+  }
+]

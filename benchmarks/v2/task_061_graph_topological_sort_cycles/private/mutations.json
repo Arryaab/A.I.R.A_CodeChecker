@@ -1,0 +1,12 @@
+[
+  {
+    "mutation_id": "task_061_graph_topological_sort_cycles_mut1",
+    "type": "operator_flip",
+    "description": "Flip boundary comparison operator"
+  },
+  {
+    "mutation_id": "task_061_graph_topological_sort_cycles_mut2",
+    "type": "return_default",
+    "description": "Return empty default on boundary"
+  }
+]

@@ -1,0 +1,9 @@
+--- a/solution.py
++++ b/solution.py
+@@ -7,5 +7,5 @@
+         for j in range(i, n):
+             d = math.sqrt((points[i][0] - points[j][0])**2 + (points[i][1] - points[j][1])**2)
+             dist[i][j] = d
+-            # BUG: forgets to mirror dist[j][i]
++            dist[j][i] = d
+     return dist

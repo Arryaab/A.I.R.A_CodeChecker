@@ -1,0 +1,21 @@
+{
+  "task_id": "task_072_schema_validator_extra_fields_ignore",
+  "bug_id": "task_072_schema_validator_extra_fields_ignore",
+  "category": "regression_defect",
+  "difficulty": "medium",
+  "description": "Preserve backward compatibility by ignoring unknown fields in user record validator",
+  "expected_behavior": "Validates declared fields and does not reject payloads containing additional attributes",
+  "tags": [
+    "validation",
+    "schema",
+    "backward-compatibility"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

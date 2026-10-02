@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_no_upper_bound_on_release",
+    "type": "overflow_defect",
+    "description": "Increments available unconditionally without checking size",
+    "code": "class ConnectionPool:\n    def __init__(self, size=10):\n        self.available = size\n        self.size = size\n    def acquire(self):\n        if self.available <= 0:\n            raise RuntimeError(\"Pool exhausted\")\n        self.available -= 1\n        return \"conn\"\n    def release(self):\n        self.available += 1\n"
+  }
+]

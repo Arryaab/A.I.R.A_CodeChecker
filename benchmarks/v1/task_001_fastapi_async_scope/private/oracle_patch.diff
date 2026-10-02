@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -5,7 +5,7 @@
+     async def resolve(self, dep_func):
+         gen = dep_func()
+         val = await gen.__anext__()
+-        # BUG: Forgot to store generator for cleanup
++        self.cleanups.append(gen)
+         return val
+ 
+     async def cleanup(self):

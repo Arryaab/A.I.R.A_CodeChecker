@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_first_byte_only",
+    "type": "security_flaw",
+    "description": "Compares only length and first byte",
+    "code": "def constant_time_compare(val1: bytes, val2: bytes) -> bool:\n    if len(val1) != len(val2):\n        return False\n    return len(val1) == len(val2) and (val1[0] == val2[0] if val1 else True)\n"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "security_defect",
+  "source": "https://github.com/aegis-benchmark/webhook-dispatcher",
+  "repository": "https://github.com/aegis-benchmark/webhook-dispatcher",
+  "base_commit": "7809101112131415161718192021222324252627",
+  "issue_id": "#task_064_ssrf_url_scheme_validation",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

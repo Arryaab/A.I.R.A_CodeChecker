@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_accept_unknown_events",
+    "type": "validation_bypass",
+    "description": "Accepts unknown event types without raising ValueError",
+    "code": "def parse_event(data: dict):\n    if not isinstance(data, dict) or \"type\" not in data:\n        raise ValueError(\"Missing discriminator 'type'\")\n    return data\n"
+  }
+]

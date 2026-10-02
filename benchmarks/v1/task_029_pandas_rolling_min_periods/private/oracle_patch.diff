@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -4,8 +4,7 @@
+         start = max(0, i - window + 1)
+         sub = series[start:i+1]
+         valid = [x for x in sub if x is not None]
+-        # BUG: checks len(sub) instead of len(valid)
+-        if len(sub) >= min_periods and valid:
++        if len(valid) >= min_periods:
+             result.append(sum(valid) / len(valid))
+         else:
+             result.append(None)

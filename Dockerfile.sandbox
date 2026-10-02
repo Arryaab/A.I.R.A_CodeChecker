@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+
+# Install pytest and core dependencies for sandboxed test execution
+RUN pip install --no-cache-dir pytest==8.3.4 fastapi pydantic httpx PyYAML packaging
+
+# Set working directory
+WORKDIR /workspace
+
+# Security: run as non-root user
+RUN useradd -m -s /bin/bash aegis
+USER aegis
+
+# Default command runs pytest in non-cache mode
+CMD ["python", "-m", "pytest", "-v", "--tb=short", "--color=no", "-p", "no:cacheprovider"]

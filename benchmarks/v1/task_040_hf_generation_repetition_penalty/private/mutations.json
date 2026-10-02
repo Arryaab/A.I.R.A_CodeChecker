@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_divide_negative_logits",
+    "type": "mathematical_inversion",
+    "description": "Always divides by penalty even for negative logits",
+    "code": "def apply_repetition_penalty(logits: list[float], seen_tokens: set[int], penalty: float = 1.2) -> list[float]:\n    out = list(logits)\n    for token_id in seen_tokens:\n        if token_id < len(out):\n            out[token_id] /= penalty\n    return out\n"
+  }
+]

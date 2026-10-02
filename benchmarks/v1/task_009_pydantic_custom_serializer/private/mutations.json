@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_decimal_as_str",
+    "type": "wrong_type",
+    "description": "Converts Decimal to str instead of float",
+    "code": "from datetime import datetime\nfrom decimal import Decimal\n\ndef custom_serializer(obj):\n    if isinstance(obj, datetime):\n        return obj.isoformat()\n    if isinstance(obj, Decimal):\n        return str(obj)\n    if isinstance(obj, (int, float, str, bool, type(None))):\n        return obj\n    return str(obj)\n"
+  }
+]

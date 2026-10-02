@@ -76,9 +76,11 @@ reports/
 aegis_*/
 aegis-report.json
 
-# Docker
-.dockerignore
-
-# Benchmark Private Evaluator Artifacts (Zero Contamination)
-benchmarks/**/private/
-benchmarks/private/
+# Local research & experiment outputs
+empirical_*/
+experiments/
+mlverify/
+scratch/
+results/
+*.zip
+*.tar.gz

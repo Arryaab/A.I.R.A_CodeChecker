@@ -1,0 +1,10 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,5 +1,6 @@
+ def csr_row_slice(indptr: list[int], indices: list[int], data: list[float], row: int):
+-    # BUG: negative row indexing allowed by python list but invalid in CSR
++    if row < 0 or row >= len(indptr) - 1:
++        raise IndexError(f"Row {row} out of range [0, {len(indptr) - 2}]")
+     start = indptr[row]
+     end = indptr[row + 1]
+     return indices[start:end], data[start:end]

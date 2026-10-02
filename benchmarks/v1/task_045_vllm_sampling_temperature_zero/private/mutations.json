@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_unconditional_division",
+    "type": "zero_division",
+    "description": "Divides logits by temperature without checking temperature == 0.0",
+    "code": "def sample_token(logits: list[float], temperature: float = 0.0) -> int:\n    scaled = [x / temperature for x in logits]\n    return max(range(len(scaled)), key=lambda i: scaled[i])\n"
+  }
+]

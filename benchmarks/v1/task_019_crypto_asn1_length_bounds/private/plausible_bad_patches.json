@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_short_form_only",
+    "description": "Only supports short form length",
+    "code": "def parse_asn1_length(data: bytes, offset: int = 0) -> tuple[int, int]:\n    return data[offset], offset + 1\n"
+  }
+]

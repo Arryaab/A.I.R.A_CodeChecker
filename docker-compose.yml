@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  aira-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aira-platform:1.0.0
+    container_name: aira_platform
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - AIRA_API_KEY=${AIRA_API_KEY:-}
+      - AIRA_CORS_ORIGINS=${AIRA_CORS_ORIGINS:-}
+      - AIRA_RATE_LIMIT=${AIRA_RATE_LIMIT:-30}
+      - AIRA_RATE_LIMIT_WINDOW=${AIRA_RATE_LIMIT_WINDOW:-60}
+      - DOCKER_SANDBOX_IMAGE=${DOCKER_SANDBOX_IMAGE:-aegis-sandbox:latest}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount Docker socket so A.I.R.A. can orchestrate hardened sandbox execution containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

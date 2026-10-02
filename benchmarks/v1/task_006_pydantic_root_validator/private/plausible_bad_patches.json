@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_hardcode_name",
+    "description": "Hardcodes John Doe",
+    "code": "def validate_user_payload(data: dict) -> dict:\n    res = dict(data)\n    res[\"full_name\"] = \"John Doe\"\n    return res\n"
+  }
+]

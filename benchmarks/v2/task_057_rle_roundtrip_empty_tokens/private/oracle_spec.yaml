@@ -1,0 +1,21 @@
+task_id: task_057_rle_roundtrip_empty_tokens
+oracle_version: 2.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: RLE codec must satisfy universal roundtrip decode(encode(x))
+  == x across empty and long runs.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  - winreg
+  - ctypes
+  max_latency_regression_pct: 25.0

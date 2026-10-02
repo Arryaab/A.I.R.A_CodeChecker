@@ -1,0 +1,32 @@
+{
+  "bug_id": "task_037_pytorch_dataloader_worker_seed",
+  "category": "ml_dataloader",
+  "difficulty": "easy",
+  "description": "Generate independent deterministic random seeds for multiprocessing DataLoader workers",
+  "expected_behavior": "Returns distinct non-overlapping seed for each worker_id given base seed",
+  "tags": [
+    "pytorch",
+    "dataloader",
+    "seeding"
+  ],
+  "task_id": "task_037_pytorch_dataloader_worker_seed",
+  "difficulty_dimensions": {
+    "LOCALITY": "single_function",
+    "ALGORITHM_COMPLEXITY": "O(1)",
+    "CONTEXT_SIZE": "small",
+    "DEPENDENCY_COMPLEXITY": "minimal",
+    "TESTING_COMPLEXITY": "pseudorandom_seeding",
+    "SECURITY_SENSITIVITY": "low",
+    "STATEFULNESS": "stateless",
+    "CONCURRENCY": "sequential",
+    "DIFFICULTY_BUCKET": "easy"
+  },
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

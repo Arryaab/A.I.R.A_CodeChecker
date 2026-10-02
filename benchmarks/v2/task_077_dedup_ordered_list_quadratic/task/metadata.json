@@ -1,0 +1,21 @@
+{
+  "task_id": "task_077_dedup_ordered_list_quadratic",
+  "bug_id": "task_077_dedup_ordered_list_quadratic",
+  "category": "performance_defect",
+  "difficulty": "medium",
+  "description": "Implement linear-time order-preserving deduplication using auxiliary hash set",
+  "expected_behavior": "Deduplicates list in O(N) time while strictly maintaining first-seen relative order",
+  "tags": [
+    "performance",
+    "dedup",
+    "order-preserving"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

@@ -1,0 +1,13 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,5 +2,9 @@
+     if not data or len(data) % block_size != 0:
+         raise ValueError("Invalid block length")
+     pad_len = data[-1]
+-    # BUG: fails to verify that ALL pad_len bytes actually match pad_len
++    if pad_len == 0 or pad_len > block_size:
++        raise ValueError("Invalid padding value")
++    padding = data[-pad_len:]
++    if any(b != pad_len for b in padding):
++        raise ValueError("Corrupt padding bytes")
+     return data[:-pad_len]

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_unsorted_return",
+    "type": "missing_sort",
+    "description": "Returns metrics as-is without sorting",
+    "code": "def sort_metric_history(metrics: list[dict]) -> list[dict]:\n    return metrics\n"
+  }
+]

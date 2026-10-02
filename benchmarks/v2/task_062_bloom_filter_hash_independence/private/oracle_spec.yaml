@@ -1,0 +1,21 @@
+task_id: task_062_bloom_filter_hash_independence
+oracle_version: 2.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: Bloom filter hash generator must use dual independent hashing
+  to prevent adjacent bit clustering.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  - winreg
+  - ctypes
+  max_latency_regression_pct: 25.0

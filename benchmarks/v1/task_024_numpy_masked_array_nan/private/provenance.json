@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "array_reduction",
+  "source": "https://github.com/numpy/numpy",
+  "repository": "https://github.com/numpy/numpy",
+  "base_commit": "2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b",
+  "issue_id": "#task_024_numpy_masked_array_nan",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_re_raise_exception",
+    "type": "unhandled_exception",
+    "description": "Re-raises CustomHTTPException instead of returning formatted response",
+    "code": "class CustomHTTPException(Exception):\n    def __init__(self, status_code: int, detail: str):\n        self.status_code = status_code\n        self.detail = detail\n\ndef execute_middleware_chain(handler, request):\n    try:\n        return handler(request)\n    except Exception as exc:\n        if isinstance(exc, CustomHTTPException):\n            raise exc\n        return {\"status\": 500, \"error\": \"Internal Server Error\"}\n"
+  }
+]

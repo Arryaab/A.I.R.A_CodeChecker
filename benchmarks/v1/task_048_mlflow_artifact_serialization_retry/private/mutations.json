@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_no_retry_fail_immediately",
+    "type": "missing_retry",
+    "description": "Fails immediately on first exception without retrying",
+    "code": "def upload_artifact_with_retry(upload_fn, max_retries: int = 3) -> bool:\n    try:\n        return upload_fn()\n    except Exception:\n        raise RuntimeError(\"Upload failed after 1 attempts\")\n"
+  }
+]

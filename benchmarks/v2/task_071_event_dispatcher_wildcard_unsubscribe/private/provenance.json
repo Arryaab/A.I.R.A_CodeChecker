@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "regression_defect",
+  "source": "https://github.com/aegis-benchmark/event-bus",
+  "repository": "https://github.com/aegis-benchmark/event-bus",
+  "base_commit": "4556677889900112233445566778899001122334",
+  "issue_id": "#task_071_event_dispatcher_wildcard_unsubscribe",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

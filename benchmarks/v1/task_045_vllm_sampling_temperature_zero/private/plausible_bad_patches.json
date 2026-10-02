@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_zero_always",
+    "description": "Returns index 0 always",
+    "code": "def sample_token(logits: list[float], temperature: float = 0.0) -> int:\n    return 0\n"
+  }
+]

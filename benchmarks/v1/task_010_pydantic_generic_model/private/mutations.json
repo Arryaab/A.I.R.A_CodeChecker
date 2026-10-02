@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_type_check",
+    "type": "validation_missing",
+    "description": "Fails to validate item types",
+    "code": "class GenericEnvelope:\n    def __init__(self, item_cls):\n        self.item_cls = item_cls\n    def parse(self, payload: dict):\n        items = payload.get(\"items\", [])\n        return {\"count\": len(items), \"items\": items}\n"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "array_operations",
+  "source": "https://github.com/numpy/numpy",
+  "repository": "https://github.com/numpy/numpy",
+  "base_commit": "0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f",
+  "issue_id": "#task_026_numpy_clip_inplace_view",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

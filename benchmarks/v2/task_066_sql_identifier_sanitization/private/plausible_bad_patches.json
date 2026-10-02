@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_066_sql_identifier_sanitization_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

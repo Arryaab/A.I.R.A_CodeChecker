@@ -1,0 +1,19 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,13 @@
+ import json
+ 
++def _canonicalize_obj(obj):
++    if isinstance(obj, dict):
++        return {k: _canonicalize_obj(v) for k, v in sorted(obj.items())}
++    if isinstance(obj, list):
++        return [_canonicalize_obj(v) for v in obj]
++    return obj
++
+ def canonical_json(data) -> str:
+-    """Produces canonical JSON with sorted keys and no unnecessary whitespace."""
+-    # BUG: Only sorts top-level keys if data is a dict, not handling nested structures
+-    return json.dumps(data, sort_keys=True, separators=(",", ":"))
++    """Produces canonical JSON with recursively sorted keys and no unnecessary whitespace."""
++    canonical_data = _canonicalize_obj(data)
++    return json.dumps(canonical_data, sort_keys=True, separators=(",", ":"))

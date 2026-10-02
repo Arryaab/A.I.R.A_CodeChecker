@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_reclaim_without_refcount_check",
+    "type": "double_free",
+    "description": "Immediately reclaims block on first free without checking ref count",
+    "code": "class BlockAllocator:\n    def __init__(self, num_blocks=10):\n        self.free_blocks = set(range(num_blocks))\n        self.ref_counts = {i: 0 for i in range(num_blocks)}\n    def allocate(self) -> int:\n        if not self.free_blocks:\n            raise RuntimeError(\"Out of blocks\")\n        b = self.free_blocks.pop()\n        self.ref_counts[b] = 1\n        return b\n    def share(self, block_id: int):\n        self.ref_counts[block_id] += 1\n    def free(self, block_id: int):\n        self.ref_counts[block_id] -= 1\n        self.free_blocks.add(block_id)\n"
+  }
+]

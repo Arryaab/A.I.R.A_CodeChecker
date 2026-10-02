@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "tabular_datetime",
+  "source": "https://github.com/pandas-dev/pandas",
+  "repository": "https://github.com/pandas-dev/pandas",
+  "base_commit": "8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0a9f",
+  "issue_id": "#task_028_pandas_datetime_tz_convert",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

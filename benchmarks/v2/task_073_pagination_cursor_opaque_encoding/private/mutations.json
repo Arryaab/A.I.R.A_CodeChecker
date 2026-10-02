@@ -1,0 +1,12 @@
+[
+  {
+    "mutation_id": "task_073_pagination_cursor_opaque_encoding_mut1",
+    "type": "operator_flip",
+    "description": "Flip boundary comparison operator"
+  },
+  {
+    "mutation_id": "task_073_pagination_cursor_opaque_encoding_mut2",
+    "type": "return_default",
+    "description": "Return empty default on boundary"
+  }
+]

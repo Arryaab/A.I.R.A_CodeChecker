@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_special_tokens_only",
+    "description": "Returns special tokens only",
+    "code": "def truncate_token_pair(seq_a: list[str], seq_b: list[str], max_length: int) -> list[str]:\n    return [\"[CLS]\", \"[SEP]\", \"[SEP]\"]\n"
+  }
+]

@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -10,7 +10,6 @@
+         self.subcommands[name] = handler
+ 
+     def invoke(self, ctx: CLIContext, cmd_name: str, *args):
+-        # BUG: invokes handler without passing the CLIContext
+         if cmd_name in self.subcommands:
+-            return self.subcommands[cmd_name](*args)
++            return self.subcommands[cmd_name](ctx, *args)
+         raise ValueError(f"Unknown command {cmd_name}")

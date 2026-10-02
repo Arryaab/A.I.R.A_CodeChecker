@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_passthrough",
+    "description": "Returns x without clamping",
+    "code": "def project_box_bounds(x: list[float], bounds: list[tuple[float, float]]) -> list[float]:\n    return list(x)\n"
+  }
+]

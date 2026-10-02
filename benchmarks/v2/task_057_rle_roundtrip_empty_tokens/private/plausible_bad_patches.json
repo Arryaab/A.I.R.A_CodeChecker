@@ -1,0 +1,8 @@
+[
+  {
+    "patch_id": "task_057_rle_roundtrip_empty_tokens_bad1",
+    "technique": "tautological_guard",
+    "passes_visible": true,
+    "caught_by": "oracle_tests"
+  }
+]

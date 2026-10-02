@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aegis-lite"
 version = "1.0.0"
-description = "Production-grade AI change verification and evaluation platform"
+description = "A.I.R.A. (AI Release Assurance): Production-grade software change verification and release control platform"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
-    {name = "Arya B", email = "arya@aegis-verifier.dev"}
+    {name = "A.I.R.A. Core Team", email = "maintainers@aira-verify.dev"}
 ]
 dependencies = [
     "PyYAML>=6.0.0",
@@ -23,6 +23,8 @@ ai = ["google-generativeai>=0.3.0"]
 web = [
     "flask>=3.0.0",
     "fastapi>=0.100.0",
+    "pydantic>=2.0.0",
+    "python-multipart>=0.0.6",
     "uvicorn>=0.20.0"
 ]
 dev = [
@@ -34,17 +36,20 @@ all = [
     "google-generativeai>=0.3.0",
     "flask>=3.0.0",
     "fastapi>=0.100.0",
+    "pydantic>=2.0.0",
+    "python-multipart>=0.0.6",
     "uvicorn>=0.20.0",
     "pytest>=7.0.0",
     "build>=1.0.0"
 ]
 
 [project.scripts]
+aira = "aegis.cli:main"
 aegis = "aegis.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/aryab/aegis-lite"
-Repository = "https://github.com/aryab/aegis-lite.git"
+Homepage = "https://github.com/aira-platform/aira"
+Repository = "https://github.com/aira-platform/aira.git"
 
 [tool.setuptools.packages.find]
 include = ["aegis*"]
@@ -52,4 +57,5 @@ include = ["aegis*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
+norecursedirs = ["fixtures", ".*", "build", "dist", "*.egg"]
 addopts = "-v --tb=short"

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_detached_node",
+    "type": "graph_disconnection",
+    "description": "Returns Node without connecting prev linkage",
+    "code": "class Node:\n    def __init__(self, val, grad=0.0, prev=None):\n        self.val = val\n        self.grad = grad\n        self.prev = prev or []\n\ndef square_node(x: Node) -> Node:\n    return Node(x.val ** 2, prev=[])\n\ndef backward(out: Node):\n    out.grad = 1.0\n    queue = [out]\n    while queue:\n        curr = queue.pop(0)\n        for p in curr.prev:\n            p.grad += curr.grad * (2 * p.val)\n            queue.append(p)\n"
+  }
+]

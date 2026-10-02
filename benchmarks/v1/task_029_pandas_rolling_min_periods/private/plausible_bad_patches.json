@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_all_none",
+    "description": "Always returns None",
+    "code": "def rolling_mean(series: list[float | None], window: int, min_periods: int) -> list[float | None]:\n    return [None] * len(series)\n"
+  }
+]

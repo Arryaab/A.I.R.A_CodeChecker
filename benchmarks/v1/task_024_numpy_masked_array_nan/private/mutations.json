@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_nan_check",
+    "type": "nan_leak",
+    "description": "Omits math.isnan(x) check, allowing NaNs to contaminate mean",
+    "code": "import math\n\ndef nanmean_masked(data: list[float], mask: list[bool]) -> float:\n    valid_elements = []\n    for x, m in zip(data, mask):\n        if not m:\n            valid_elements.append(x)\n    if not valid_elements:\n        return float('nan')\n    return sum(valid_elements) / len(valid_elements)\n"
+  }
+]

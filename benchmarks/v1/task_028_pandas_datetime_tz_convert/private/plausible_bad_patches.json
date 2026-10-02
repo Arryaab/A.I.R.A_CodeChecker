@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_dt_unchanged",
+    "description": "Returns original datetime",
+    "code": "def convert_tz_utc(dt: datetime, offset_hours: int) -> datetime:\n    return dt\n"
+  }
+]

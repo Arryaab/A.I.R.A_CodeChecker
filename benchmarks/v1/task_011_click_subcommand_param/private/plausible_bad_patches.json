@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_pass_none",
+    "description": "Passes None instead of ctx",
+    "code": "class CLIContext:\n    def __init__(self, verbose=False):\n        self.verbose = verbose\n\nclass CommandGroup:\n    def __init__(self):\n        self.subcommands = {}\n    def add(self, name, handler):\n        self.subcommands[name] = handler\n    def invoke(self, ctx: CLIContext, cmd_name: str, *args):\n        if cmd_name in self.subcommands:\n            return self.subcommands[cmd_name](None, *args)\n        raise ValueError(f\"Unknown command {cmd_name}\")\n"
+  }
+]

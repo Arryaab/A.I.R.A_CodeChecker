@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_check_sub_length_instead_of_valid",
+    "type": "null_accounting_error",
+    "description": "Checks window size len(sub) rather than non-null valid observation count",
+    "code": "def rolling_mean(series: list[float | None], window: int, min_periods: int) -> list[float | None]:\n    result = []\n    for i in range(len(series)):\n        start = max(0, i - window + 1)\n        sub = series[start:i+1]\n        valid = [x for x in sub if x is not None]\n        if len(sub) >= min_periods and valid:\n            result.append(sum(valid) / len(valid))\n        else:\n            result.append(None)\n    return result\n"
+  }
+]

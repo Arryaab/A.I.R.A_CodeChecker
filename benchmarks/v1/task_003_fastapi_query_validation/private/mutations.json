@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_exclusive_max_boundary",
+    "type": "wrong_boundary",
+    "description": "Uses >= instead of > for max_length, rejecting boundary",
+    "code": "import re\n\ndef validate_query_param(val: str, min_length: int = 1, max_length: int = 50, pattern: str = None) -> bool:\n    if len(val) < min_length:\n        return False\n    if len(val) >= max_length:\n        return False\n    if pattern and not re.match(pattern, val):\n        return False\n    return True\n"
+  }
+]

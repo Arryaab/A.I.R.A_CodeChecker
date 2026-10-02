@@ -1,0 +1,10 @@
+--- a/solution.py
++++ b/solution.py
+@@ -10,5 +10,5 @@
+         return "conn"
+ 
+     def release(self):
+-        # BUG: no upper bound check permits available > size on double release
+-        self.available += 1
++        if self.available < self.size:
++            self.available += 1

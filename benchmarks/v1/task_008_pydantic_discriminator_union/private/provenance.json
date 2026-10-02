@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v1: Scaled Empirical Suite (50 tasks)",
+  "taxonomy": "data_validation",
+  "source": "https://github.com/pydantic/pydantic",
+  "repository": "https://github.com/pydantic/pydantic",
+  "base_commit": "2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a",
+  "issue_id": "#task_008_pydantic_discriminator_union",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_evaluator_integrity_gate",
+  "verification_status": "reproduced"
+}

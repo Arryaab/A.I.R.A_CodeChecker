@@ -1,0 +1,21 @@
+{
+  "task_id": "task_056_date_recurrence_leap_year",
+  "bug_id": "task_056_date_recurrence_leap_year",
+  "category": "boundary_violation",
+  "difficulty": "medium",
+  "description": "Handle leap-year Feb 29 rollover in annual schedule recurrence engine",
+  "expected_behavior": "When start date is Feb 29, subsequent non-leap years clamp to Feb 28",
+  "tags": [
+    "datetime",
+    "leap-year",
+    "calendar"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}

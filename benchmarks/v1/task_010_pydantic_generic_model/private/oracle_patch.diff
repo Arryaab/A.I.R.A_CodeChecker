@@ -1,0 +1,15 @@
+--- a/solution.py
++++ b/solution.py
+@@ -3,6 +3,10 @@
+         self.item_cls = item_cls
+ 
+     def parse(self, payload: dict):
+-        # BUG: doesn't check if payload['items'] matches item_cls
+         items = payload.get("items", [])
+-        return {"count": len(items), "items": items}
++        parsed_items = []
++        for it in items:
++            if not isinstance(it, self.item_cls):
++                raise TypeError(f"Item {it} is not of type {self.item_cls.__name__}")
++            parsed_items.append(it)
++        return {"count": len(parsed_items), "items": parsed_items}

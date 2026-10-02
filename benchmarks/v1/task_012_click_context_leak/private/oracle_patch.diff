@@ -1,0 +1,12 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,6 @@
+ class Context:
+     def __init__(self, data=None):
+-        self.data = data or {}
++        self.data = dict(data) if data else {}
+ 
+     def child(self):
+-        # BUG: shares same reference instead of shallow copy
+-        return Context(self.data)
++        return Context(dict(self.data))

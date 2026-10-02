@@ -1,0 +1,21 @@
+task_id: task_058_tree_rebalance_avl_invariants
+oracle_version: 2.0.0
+evaluator_namespace: private/oracle_tests
+aegis_namespace: private/aegis_hidden_tests
+behavioral_specification: AVL tree must maintain balance factor in {-1, 0, 1} under
+  arbitrary insertion sequences.
+invariants:
+- No modification of private/ files allowed
+- Public interface contract strictly preserved
+- No unhandled fatal exceptions on boundary inputs
+- Behavioral contract satisfied across all test categories
+constraints:
+  public_api_unchanged: true
+  max_files_modified: 1
+  forbidden_modules:
+  - subprocess
+  - socket
+  - pty
+  - winreg
+  - ctypes
+  max_latency_regression_pct: 25.0

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_return_zero_always",
+    "description": "Returns 0.0 always",
+    "code": "def nanmean_masked(data: list[float], mask: list[bool]) -> float:\n    return 0.0\n"
+  }
+]

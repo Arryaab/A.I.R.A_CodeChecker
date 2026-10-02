@@ -232,9 +232,16 @@ def generate_reproducible_dockerfile(
             "COPY requirements.txt /tmp/requirements.txt",
             "RUN pip install --no-cache-dir -r /tmp/requirements.txt",
         ])
-    lines.append("COPY . /workspace")
+    if (repo_dir / "requirements-dev.txt").exists():
+        lines.extend([
+            "COPY requirements-dev.txt /tmp/requirements-dev.txt",
+            "RUN pip install --no-cache-dir -r /tmp/requirements-dev.txt",
+        ])
     if (repo_dir / "pyproject.toml").exists() or (repo_dir / "setup.py").exists():
-        lines.append("RUN pip install --no-cache-dir -e .")
+        lines.extend([
+            "COPY . /workspace",
+            "RUN pip install --no-cache-dir -e .",
+        ])
     return "\n".join(lines) + "\n"
 
 def build_sandbox_environment_image(

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_always_true",
+    "description": "Always returns True without calling upload_fn",
+    "code": "def upload_artifact_with_retry(upload_fn, max_retries: int = 3) -> bool:\n    return True\n"
+  }
+]

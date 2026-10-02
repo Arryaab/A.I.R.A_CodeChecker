@@ -1,0 +1,16 @@
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,8 @@
+ def upload_artifact_with_retry(upload_fn, max_retries: int = 3) -> bool:
+-    # BUG: fails immediately on first exception without retrying
+-    try:
+-        return upload_fn()
+-    except Exception:
+-        raise RuntimeError("Upload failed")
++    attempts = 0
++    while attempts < max_retries:
++        try:
++            return upload_fn()
++        except Exception:
++            attempts += 1
++    raise RuntimeError(f"Upload failed after {max_retries} attempts")

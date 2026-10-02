@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_always_true",
+    "description": "Always returns True without validation",
+    "code": "def validate_query_param(val: str, min_length: int = 1, max_length: int = 50, pattern: str = None) -> bool:\n    return True\n"
+  }
+]

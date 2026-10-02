@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_exclusive_lower_bound",
+    "type": "wrong_boundary",
+    "description": "Rejects lower endpoint using <=",
+    "code": "def parse_int_range(val_str: str, min_val: int, max_val: int) -> int:\n    val = int(val_str)\n    if val <= min_val or val > max_val:\n        raise ValueError(f\"Value {val} out of range [{min_val}, {max_val}]\")\n    return val\n"
+  }
+]

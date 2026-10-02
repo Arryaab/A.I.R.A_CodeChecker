@@ -1,0 +1,11 @@
+--- a/solution.py
++++ b/solution.py
+@@ -14,7 +14,5 @@
+     ip_int = ip_to_int(ip)
+     net_int = ip_to_int(net_str)
+     
+-    # BUG: Off by one shift fails on /32 and shifts incorrectly
+     mask = (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF if prefix > 0 else 0
+-    # BUG: Compares without masking net_int
+-    return (ip_int & mask) == net_int
++    return (ip_int & mask) == (net_int & mask)

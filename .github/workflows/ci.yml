@@ -28,14 +28,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install build wheel
-        python -m build
-        python -m pip install dist/*.whl
-        python -m pip install pytest flask docker
+        python -m pip install -e ".[all]"
 
-    - name: Run Aegis unit test suite
+    - name: Verify build distribution
+      run: |
+        python -m build
+
+    - name: Run A.I.R.A. test suite
       run: |
         python -m pytest tests/ -v
 
-    - name: Validate AegisBench task integrity against canonical schema
+    - name: Validate benchmark task integrity against canonical schema
       run: |
         python -m aegis.cli benchmark --dir benchmarks/dev --validate

@@ -1,0 +1,13 @@
+--- a/solution.py
++++ b/solution.py
+@@ -2,6 +2,8 @@
+     out = list(logits)
+     for token_id in seen_tokens:
+         if token_id < len(out):
+-            # BUG: always divides by penalty even for negative logits (making them less negative!)
+-            out[token_id] /= penalty
++            if out[token_id] < 0:
++                out[token_id] *= penalty
++            else:
++                out[token_id] /= penalty
+     return out

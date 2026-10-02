@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_unconditional_update",
+    "type": "mode_gate_missing",
+    "description": "Updates running_mean unconditionally even in eval mode",
+    "code": "class BatchNorm1D:\n    def __init__(self, momentum=0.1):\n        self.running_mean = 0.0\n        self.momentum = momentum\n        self.training = True\n    def forward(self, batch_mean: float):\n        self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean\n        return self.running_mean\n"
+  }
+]

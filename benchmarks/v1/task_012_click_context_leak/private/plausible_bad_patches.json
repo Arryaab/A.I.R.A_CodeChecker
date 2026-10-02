@@ -1,0 +1,7 @@
+[
+  {
+    "id": "bad_empty_child",
+    "description": "Always returns child with empty data",
+    "code": "class Context:\n    def __init__(self, data=None):\n        self.data = data or {}\n    def child(self):\n        return Context({})\n"
+  }
+]

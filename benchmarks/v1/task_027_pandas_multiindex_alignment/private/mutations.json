@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_df1_keys_only",
+    "type": "inner_join_defect",
+    "description": "Only iterates over df1 keys, dropping df2-only keys",
+    "code": "def align_multiindex_data(df1: dict, df2: dict) -> dict:\n    aligned = {}\n    for (k1, k2), v1 in df1.items():\n        v2 = df2.get((k1, k2), 0)\n        aligned[(k1, k2)] = v1 + v2\n    return aligned\n"
+  }
+]

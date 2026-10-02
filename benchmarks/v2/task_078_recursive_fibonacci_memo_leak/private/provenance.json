@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "performance_defect",
+  "source": "https://github.com/aegis-benchmark/combinatorics",
+  "repository": "https://github.com/aegis-benchmark/combinatorics",
+  "base_commit": "1223344556677889900112233445566778899001",
+  "issue_id": "#task_078_recursive_fibonacci_memo_leak",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

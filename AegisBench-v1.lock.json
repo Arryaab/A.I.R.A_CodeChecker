@@ -1,0 +1,40 @@
+{
+  "benchmark_version": "AegisBench-v1",
+  "status": "QUALIFIED",
+  "task_count": 50,
+  "task_manifest_hash": "sha256:78fcca20228154bfb3b37d7c8bb0cec6aa3a459759297cbd6969ce031293b2a5",
+  "oracle_manifest_hash": "sha256:55a0799e83f2887254f58fd63fc6b39891056b6f5f424ad26fb3ce4bbf623c37",
+  "environment_manifest_hash": "sha256:090d1d67b48b1e7281419562f627f5cd92cef78dfdbed813c79bfca4c3b8e06b",
+  "qualification_timestamp": "2026-09-27T04:36:28Z",
+  "qualification_commit": "1b5baf1deca889eb61feb8a1884480e4c624af3b",
+  "qualification_summary": {
+    "benchmark_name": "AegisBench-v1",
+    "total_tasks": 50,
+    "qualified_tasks": 50,
+    "rejected_tasks": 0,
+    "qualification_rate_pct": 100.0,
+    "total_public_tests": 53,
+    "total_aegis_hidden_tests": 52,
+    "total_oracle_tests": 177,
+    "total_mutants_evaluated": 51,
+    "total_mutants_killed": 51,
+    "overall_mutation_score": 1.0,
+    "total_shallow_fixes_evaluated": 50,
+    "total_shallow_fixes_rejected": 50,
+    "overall_shallow_fix_resistance": 1.0,
+    "evaluation_duration_seconds": 90.72,
+    "gates_evaluated": [
+      "BASELINE_DEFECT_CONFIRMED",
+      "REFERENCE_PATCH_APPLIES",
+      "REFERENCE_PATCH_PASSES_PUBLIC",
+      "REFERENCE_PATCH_PASSES_ORACLE",
+      "REFERENCE_PATCH_PASSES_AEGIS_HIDDEN",
+      "ORACLE_TESTS_NONTRIVIAL",
+      "MUTATION_SANITY_PASSES",
+      "PRIVATE_ARTIFACTS_ISOLATED",
+      "PUBLIC_LEAKAGE_CHECK_PASSES",
+      "ENVIRONMENT_REPRODUCIBLE",
+      "ORACLE_BEHAVIORAL_SPECIFICITY"
+    ]
+  }
+}

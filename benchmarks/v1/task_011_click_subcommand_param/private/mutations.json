@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mutant_omit_ctx_argument",
+    "type": "wrong_call_signature",
+    "description": "Invokes handler without passing ctx",
+    "code": "class CLIContext:\n    def __init__(self, verbose=False):\n        self.verbose = verbose\n\nclass CommandGroup:\n    def __init__(self):\n        self.subcommands = {}\n    def add(self, name, handler):\n        self.subcommands[name] = handler\n    def invoke(self, ctx: CLIContext, cmd_name: str, *args):\n        if cmd_name in self.subcommands:\n            return self.subcommands[cmd_name](*args)\n        raise ValueError(f\"Unknown command {cmd_name}\")\n"
+  }
+]

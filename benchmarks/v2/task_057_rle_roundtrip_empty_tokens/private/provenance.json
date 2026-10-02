@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "AegisBench v2: MLVerify Expansion Suite (30 tasks)",
+  "taxonomy": "test_overfitting",
+  "source": "https://github.com/aegis-benchmark/codec-lib",
+  "repository": "https://github.com/aegis-benchmark/codec-lib",
+  "base_commit": "0102030405060708091011121314151617181920",
+  "issue_id": "#task_057_rle_roundtrip_empty_tokens",
+  "license": "Apache-2.0",
+  "verified_by": "aegis_phase3_expansion_gate",
+  "verification_status": "reproduced"
+}

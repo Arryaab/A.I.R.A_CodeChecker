@@ -1,0 +1,21 @@
+{
+  "task_id": "task_074_logging_format_context_pollution",
+  "bug_id": "task_074_logging_format_context_pollution",
+  "category": "regression_defect",
+  "difficulty": "medium",
+  "description": "Handle missing or cleared contextvar in logging record formatter without crashing",
+  "expected_behavior": "Formats record with fallback '-' when request_id contextvar is None or unset",
+  "tags": [
+    "logging",
+    "contextvars",
+    "formatting"
+  ],
+  "environment": {
+    "python_version": "3.11+",
+    "dependencies_lock": "pytest>=8.0.0, pyyaml>=6.0.0",
+    "os_target": "cross-platform (Linux/Windows/macOS)",
+    "test_command": "pytest task/tests/test_solution.py -v",
+    "oracle_command": "pytest private/oracle_tests/test_oracle_behavior.py -v",
+    "verification_command": "aegis verify --task-dir ."
+  }
+}
