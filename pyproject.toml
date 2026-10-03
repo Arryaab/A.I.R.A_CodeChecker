@@ -48,8 +48,8 @@ aira = "aegis.cli:main"
 aegis = "aegis.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/aira-platform/aira"
-Repository = "https://github.com/aira-platform/aira.git"
+Homepage = "https://github.com/Arryaab/A.I.R.A_CodeChecker"
+Repository = "https://github.com/Arryaab/A.I.R.A_CodeChecker.git"
 
 [tool.setuptools.packages.find]
 include = ["aegis*"]

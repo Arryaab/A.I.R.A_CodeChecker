@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Status](https://img.shields.io/badge/release-v1.0.0-brightgreen)](https://github.com/aira-platform/aira)
+[![Status](https://img.shields.io/badge/release-v1.0.0-brightgreen)](https://github.com/Arryaab/A.I.R.A_CodeChecker)
 [![Execution Isolation](https://img.shields.io/badge/sandbox-Docker%20Jail-blue)](docs/DEPLOYMENT.md)
 [![MLVerify](https://img.shields.io/badge/MLVerify-Shadow%20Mode%20Only-orange)](docs/ARCHITECTURE.md)
 
@@ -108,8 +108,8 @@ MLVerify is an internal research component investigating whether machine learnin
 
 ### 2. Local Installation
 ```bash
-git clone https://github.com/aira-platform/aira.git
-cd aira
+git clone https://github.com/Arryaab/A.I.R.A_CodeChecker.git
+cd A.I.R.A_CodeChecker
 
 # Inspect and verify release tag
 git show v1.0.0 --summary

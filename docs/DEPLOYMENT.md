@@ -9,8 +9,8 @@ This guide covers deploying the **A.I.R.A. (AI Release Assurance)** service in p
 ### Option A: Direct Python Installation
 ```bash
 # Clone the repository
-git clone https://github.com/aira-platform/aira.git
-cd aira
+git clone https://github.com/Arryaab/A.I.R.A_CodeChecker.git
+cd A.I.R.A_CodeChecker
 
 # Inspect and checkout release tag
 git show v1.0.0 --summary
