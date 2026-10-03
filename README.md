@@ -110,19 +110,38 @@ MLVerify is an internal research component investigating whether machine learnin
 ```bash
 git clone https://github.com/aira-platform/aira.git
 cd aira
+
+# Inspect and verify release tag
+git show v1.0.0 --summary
+git rev-parse v1.0.0
+git checkout v1.0.0
+
 pip install -e ".[all]"
 ```
 
-### 3. Launching A.I.R.A.
+### 3. Launching A.I.R.A. Locally
 ```bash
+# Build sandbox runner image (required for real verification)
+docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
+
+# Start the A.I.R.A. control plane
 uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
 ```
 Open **`http://localhost:8000`** in your browser.
 
 ### 4. Running with Docker Compose
 ```bash
+# 1. Build the sandbox runner image on host Docker daemon
+docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
+
+# 2. Launch platform with Docker socket mounted for sandbox orchestration
 docker compose up -d
 ```
+
+> [!IMPORTANT]
+> **Control-Plane vs. Sandbox Health**:
+> When running the control-plane container (e.g. via `docker run` or `docker compose`), `/api/health` returning HTTP 200 confirms that the control-plane API and web application are healthy.
+> However, full end-to-end sandbox execution requires that the container can access the host Docker daemon (via the `/var/run/docker.sock` volume mount configured in `docker compose`) and that `aegis-sandbox:latest` is built. A plain standalone `docker run` without socket mounting confirms control-plane health only; verification requests will safely fail closed (HTTP 503 `SANDBOX_UNAVAILABLE`) until the sandbox daemon connection is configured.
 
 ---
 
@@ -151,6 +170,9 @@ Run the complete test suite:
 ```bash
 python -m pytest tests/ -v
 ```
+
+Authoritative test suite result: **343 passed, 0 failed, 4 skipped; 100% of executed tests passed.**
+*(The 4 skipped tests are optional live cloud-model provider tests requiring external credentials.)*
 
 ---
 

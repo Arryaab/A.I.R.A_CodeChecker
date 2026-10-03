@@ -78,7 +78,7 @@ def test_sandbox_isolation_and_security(mock_task_dir: Path):
         old_openai = os.environ.get("OPENAI_API_KEY")
         try:
             os.environ["AEGIS_API_KEY"] = "secret12345"
-            os.environ["OPENAI_API_KEY"] = "sk-abcdef123456789012345"
+            os.environ["OPENAI_API_KEY"] = "sk-test-key-abcdef123456789012345"
             env = sandbox.get_sanitized_env()
             assert "AEGIS_API_KEY" not in env
             assert "OPENAI_API_KEY" not in env

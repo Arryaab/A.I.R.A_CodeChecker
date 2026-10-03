@@ -126,16 +126,17 @@
 ### `DEPLOYMENT_STATUS`
 - **Current State**: `DEPLOYMENT_READY`
 - **Local Service**: Active and responsive at `http://127.0.0.1:8000`.
-- **Containers**:
+- **Containers & Sandboxing Architecture**:
   - `docker-compose.yml` configured for service `aira-platform`, image `aira-platform:1.0.0`, container `aira_platform`.
-  - Docker daemon socket mounted to allow sandbox container orchestration.
-  - Hardened runner image builder (`Dockerfile.sandbox`).
-- **Production Status Note**: Container deployment configurations are verified and ready for cloud deployment; live production cloud rollout has not been performed as external cloud credentials were not provided.
+  - Docker daemon socket mounted (`/var/run/docker.sock`) to allow control plane to orchestrate ephemeral sandbox containers.
+  - Dedicated runner image builder (`Dockerfile.sandbox`) creates `aegis-sandbox:latest`.
+  - **Control-Plane Health vs. Full Sandbox Verification**: A plain standalone control-plane container running without host Docker socket passthrough verifies that the control-plane API starts and `/api/health` responds (HTTP 200), reporting `sandbox_available: false`. Full sandboxed execution of untrusted user code requires mounting the Docker socket and pre-building `aegis-sandbox:latest`; otherwise verification requests safely fail closed (HTTP 503 `SANDBOX_UNAVAILABLE`).
+- **Production Status Note**: Container deployment configurations are verified and ready for deployment.
 
 ### `TEST_STATUS`
 - **Current State**: `ALL_TESTS_PASSING`
-- **Full Verification Suite**: **343 PASSED, 4 SKIPPED, 0 FAILED** (100% pass rate across 347 collected test cases in 45 files).
-  - Skipped tests (4) correspond to remote live cloud API provider calls that skip gracefully when live credentials are not exported.
+- **Full Verification Suite**: **343 passed, 0 failed, 4 skipped; 100% of executed tests passed** across 347 collected test cases in 45 files.
+  - The 4 skipped tests are optional remote live cloud API provider calls that skip gracefully when external live credentials are not exported.
 - **Sub-Suite Verification Highlights**:
   - Real Fixtures & Repository Test Accounting (`tests/test_real_fixtures_and_repo_accounting.py`): **19 PASSED**
   - Test Integrity & Regression Suite (`tests/test_test_integrity.py`): **15 PASSED**
@@ -217,7 +218,7 @@
    - `pyproject.toml` configured with console entrypoints `aira` and `aegis` mapped to `aegis.cli:main`.
    - Optional dependency extras `[web]`, `[sandbox]`, `[dev]`, and `[all]` hardened with `pydantic>=2.0.0` and `python-multipart>=0.0.6`.
    - Verified clean sdist and wheel generation (`aegis_lite-1.0.0.tar.gz` and `aegis_lite-1.0.0-py3-none-any.whl`) via `python -m build`.
-   - Built production container image `aira-platform:latest` from scratch running as non-root user `aira`, verified passing container health probe at `/api/health`.
+   - Built production container image `aira-platform:release` from scratch running as non-root user `aira`. Verified control-plane container health probe at `/api/health` (HTTP 200). Note: plain container smoke test confirms control-plane readiness; end-to-end sandbox verification requires Docker daemon socket mounting and pre-building `aegis-sandbox:latest` as documented in `docs/DEPLOYMENT.md`.
 
 ---
 
@@ -233,7 +234,7 @@
 ## 4. Remaining Blockers
 
 - **None**: All release gates for Release Candidate 1 are satisfied.
-- **Operational Requirement**: A running Docker daemon is required on the host system to verify user code in non-demo mode. If Docker is offline, the system behaves safely and truthfully by failing closed.
+- **Operational Requirement**: A running Docker daemon is required on the host system to verify user code in non-demo mode. In containerized control-plane deployments, the host Docker socket must be mounted (`/var/run/docker.sock`) and `aegis-sandbox:latest` pre-built. If Docker is offline or unmounted, the control plane behaves safely and truthfully by failing closed (HTTP 503 `SANDBOX_UNAVAILABLE`).
 
 ---
 
@@ -241,13 +242,18 @@
 
 ### Local Development Startup
 ```bash
-# 1. Install dependencies with web & testing extras
+# 1. Inspect and checkout release tag
+git show v1.0.0 --summary
+git rev-parse v1.0.0
+git checkout v1.0.0
+
+# 2. Install dependencies with web & testing extras
 pip install -e ".[all]"
 
-# 2. Build sandbox runner image (requires Docker)
+# 3. Build sandbox runner image (requires Docker)
 docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
 
-# 3. Launch A.I.R.A. service and visual control plane
+# 4. Launch A.I.R.A. service and visual control plane
 uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
 ```
 Access the application at `http://localhost:8000`.
@@ -258,9 +264,12 @@ Access the application at `http://localhost:8000`.
 cp .env.example .env
 # Edit .env with your AIRA_API_KEY and configuration
 
-# 2. Build and launch platform
+# 2. Build sandbox runner image on host Docker daemon
+docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
+
+# 3. Launch platform via Docker Compose (mounts /var/run/docker.sock)
 docker compose up -d
 
-# 3. Check service health
+# 4. Check service health
 curl -f http://localhost:8000/api/health
 ```

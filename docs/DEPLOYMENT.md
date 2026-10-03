@@ -12,8 +12,16 @@ This guide covers deploying the **A.I.R.A. (AI Release Assurance)** service in p
 git clone https://github.com/aira-platform/aira.git
 cd aira
 
+# Inspect and checkout release tag
+git show v1.0.0 --summary
+git rev-parse v1.0.0
+git checkout v1.0.0
+
 # Install package and dependencies
-pip install -e .
+pip install -e ".[all]"
+
+# Build the sandbox runner image on host (required for real verification)
+docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
 
 # Launch API and visual control plane
 uvicorn aegis.api.service:app --host 0.0.0.0 --port 8000
@@ -22,6 +30,10 @@ Open your browser at `http://localhost:8000`.
 
 ### Option B: Docker Compose (Unified Service)
 ```bash
+# 1. Build the sandbox runner image on the host Docker daemon
+docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .
+
+# 2. Launch unified service via Docker Compose (mounts /var/run/docker.sock)
 docker compose up -d
 ```
 The control plane dashboard and REST API will be accessible at `http://localhost:8000`.
@@ -55,6 +67,23 @@ In production (`DEMO_MODE=false`), A.I.R.A. mandates a running Docker daemon to 
 Untrusted user projects and patches are **never** executed directly on the host machine. If Docker is unavailable:
 - Verification requests (`POST /api/projects/{id}/verify`) immediately return `HTTP 503 Service Unavailable` (`SANDBOX_UNAVAILABLE`).
 - Results are **never fabricated** or simulated when real execution fails or cannot be scheduled.
+
+### Control-Plane Container Health vs. End-to-End Sandbox Execution
+It is critical to distinguish between control-plane container health and full sandbox execution readiness:
+
+- **Control-Plane Health**: Running `docker run -p 8000:8000 aira-platform:release` starts the FastAPI backend and serves the frontend dashboard. Probing `/api/health` returns HTTP 200 with `status: "healthy"`. However, if the container does not have access to the host's Docker socket, the health payload reports:
+  ```json
+  "docker_available": false,
+  "sandbox_available": false,
+  "sandbox_health": "DOCKER_CLI_MISSING"
+  ```
+  This indicates that while the control-plane container itself is functioning, it cannot spawn execution sandboxes. In this state, any request to verify untrusted code (`POST /api/projects/{id}/verify`) will safely **fail closed** with `HTTP 503 Service Unavailable`.
+- **Full Sandbox Execution**: To enable sandboxed verification in container deployments:
+  1. Mount the host Docker socket into the control-plane container: `-v /var/run/docker.sock:/var/run/docker.sock` (configured by default in `docker-compose.yml`).
+  2. Pre-build the sandbox runner image on the host daemon: `docker build -t aegis-sandbox:latest -f Dockerfile.sandbox .`.
+  3. Ensure the running user in the container has permissions to communicate with the Docker socket.
+
+A control-plane container smoke test confirms that the application starts and serves requests; it does not substitute for configuring host sandbox socket access.
 
 ### Building the Sandbox Image
 Before launching full verification in non-demo mode, build the hardened sandbox container:
@@ -119,7 +148,13 @@ server {
 
 Automated orchestrators (Kubernetes, AWS ECS, Nomad) can probe:
 - **Liveness Probe**: `GET /health` (Returns HTTP 200 with service version and engine status).
-- **Readiness Probe**: `GET /api/health` (Reports Docker availability and operational mode).
+- **Readiness Probe**: `GET /api/health` (Reports detailed system diagnostics):
+  - `status`: `"healthy"` confirms the control-plane application is active.
+  - `docker_available`: Boolean indicating whether Docker CLI tools are present.
+  - `sandbox_available`: Boolean indicating whether the sandbox daemon is reachable.
+  - `sandbox_health`: Detailed status string (`HEALTHY`, `DOCKER_CLI_MISSING`, `DAEMON_UNREACHABLE`, `IMAGE_MISSING`).
+
+Operators should configure readiness gates based on operational requirements: a node serving only static demo walkthroughs requires only `status: "healthy"`, while a worker processing live code verifications requires `sandbox_available: true`.
 
 ---
 

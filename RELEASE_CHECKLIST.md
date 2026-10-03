@@ -59,7 +59,7 @@ This checklist confirms that the repository, backend service, visual control pla
 
 ## 6. Testing, CI/CD & Deployment
 
-- [x] **Test Suite**: Pytest test suite passing 100%.
+- [x] **Test Suite**: 343 passed, 0 failed, 4 skipped; 100% of executed tests passed (4 skipped tests are optional live cloud-model provider tests requiring external credentials).
 - [x] **Public API Tests**: Complete coverage for `/health`, `/api/verifications`, `/api/demo/scenarios`, and web assets.
 - [x] **GitHub Actions CI**: Automated lint, test, security, and build checks in `.github/workflows/ci.yml`.
-- [x] **Docker Support**: Unified service `Dockerfile` and `docker-compose.yml` configured for instant deployment.
+- [x] **Docker Support**: Unified service `Dockerfile` and `docker-compose.yml` configured for deployment with `/var/run/docker.sock` volume mount for containerized sandbox orchestration.
