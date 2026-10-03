@@ -2,6 +2,7 @@
 
 **Release Candidate**: `v1.0.0-rc1`
 **System**: A.I.R.A. (AI Release Assurance Platform)
+**Creator**: Arya Bhandari (Amrita Vishwa Vidyapeetham)
 **Evaluation Date**: 2026-10-02
 **Security Posture**: Fail-Closed Hardened
 

@@ -8,7 +8,7 @@
 
 > **"Verify what AI changes. Know what ships."**
 
-**A.I.R.A. (AI Release Assurance)** is an enterprise control plane engineered to verify AI-generated software changes before production release and generate auditable, evidence-backed release decisions.
+**A.I.R.A. (AI Release Assurance)** is an enterprise control plane engineered to verify AI-generated software changes before production release and generate auditable, evidence-backed release decisions. Created by **Arya Bhandari** (Amrita Vishwa Vidyapeetham).
 
 ---
 
@@ -176,6 +176,13 @@ Authoritative test suite result: **343 passed, 0 failed, 4 skipped; 100% of exec
 
 ---
 
-## 📄 License & Contact
+## 👨‍💻 Creator & Maintainers
 
-Released under the [MIT License](LICENSE). Maintained by the **A.I.R.A. Core Team** (`maintainers@aira-verify.dev`).
+Created by **Arya Bhandari** (Amrita Vishwa Vidyapeetham).
+Maintained by the **A.I.R.A. Core Team** (`maintainers@aira-verify.dev`).
+
+---
+
+## 📄 License
+
+Released under the [MIT License](LICENSE).

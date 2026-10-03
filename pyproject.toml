@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
-    {name = "A.I.R.A. Core Team", email = "maintainers@aira-verify.dev"}
+    {name = "Arya Bhandari", email = "maintainers@aira-verify.dev"}
 ]
 dependencies = [
     "PyYAML>=6.0.0",
